@@ -85,7 +85,16 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs Display (Using Flexbox to prevent hiding)
+# 1. Reboot Terminal Option (Moved to Top)
+if st.button("🔌 Reboot Terminal", use_container_width=True):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.cache_data.clear()
+    st.rerun()
+
+st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
+
+# 2. All 8 Pairs Display
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
@@ -101,7 +110,7 @@ html_pairs += '</div>'
 
 st.markdown(html_pairs, unsafe_allow_html=True)
 
-# 2. Timeframe Selection
+# 3. Timeframe Selection
 st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
@@ -151,7 +160,7 @@ if df is not None:
 else:
     current_price, price_change_pct, signal_type, market_state, confidence = 0, 0, "HOLD", "SIDEWAYS", "LOW"
 
-# 3. Price & Signal Card
+# 4. Price & Signal Card
 st.markdown(f"""
     <div style="background: #1f2937; padding: 4px 8px; border-radius: 5px; border: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px;">
         <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
@@ -168,7 +177,7 @@ elif signal_type == "DOWN":
 else:
     st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:15px;">HOLD</h3></div>', unsafe_allow_html=True)
 
-# 4. Status Bar
+# 5. Status Bar
 st.markdown(f"""
     <div class="status-bar">
         <span>State: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
@@ -176,7 +185,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 5. Indicators Section
+# 6. Indicators Section
 if df is not None:
     indicators = [
         ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
@@ -194,12 +203,5 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 6. Auto-Refresh Option[span_1](start_span)[span_1](end_span)
+# 7. Auto-Refresh Option[span_3](start_span)[span_3](end_span)
 auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
-
-# 7. Reboot Terminal Option
-if st.button("🔌 Reboot Terminal", use_container_width=True):
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.cache_data.clear()
-    st.rerun()
