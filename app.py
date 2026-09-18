@@ -5,6 +5,9 @@ import numpy as np
 
 st.set_page_config(page_title="Quotex Signal Bot", page_icon="📈", layout="centered")
 
+# 60 Seconds Auto-Refresh Meta Tag
+st.markdown('<meta http-equiv="refresh" content="60">', unsafe_allow_html=True)
+
 st.markdown("""
     <style>
     .stApp { background-color: #0d1117; color: #ffffff; }
@@ -21,16 +24,19 @@ st.markdown("""
     <div class="top-header">
         <div>
             <h3 style="margin:0; color: #58a6ff;">📈 Quotex Signal Bot</h3>
-            <p style="margin:0; font-size:12px; color: #8b949e;">EUR/USD Analysis & Signal</p>
+            <p style="margin:0; font-size:12px; color: #8b949e;">Auto-Refresh: 60s Active</p>
         </div>
         <div>
-            <span class="market-badge" style="color: #3fb950;">● Market: LIVE</span>
+            <span class="market-badge" style="color: #3fb950;">● LIVE</span>
         </div>
     </div>
 """, unsafe_allow_html=True)
 
-timeframe = st.radio("Timeframe", ["1 Min", "2 Min", "5 Min"], horizontal=True, label_visibility="collapsed")
-selected_asset = st.sidebar.selectbox("Select Currency Pair", ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDJPY=X"])
+# Expanded Currency Pairs List
+selected_asset = st.sidebar.selectbox("Select Currency Pair", [
+    "EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDJPY=X", 
+    "USDCAD=X", "NZDUSD=X", "EURJPY=X", "GBPJPY=X"
+])
 
 @st.cache_data(ttl=15)
 def load_data(ticker):
@@ -86,7 +92,7 @@ else:
 
     st.markdown(f"""
         <div style="background: #161b22; padding: 12px; border-radius: 10px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <div><h4 style="margin:0; color: #8b949e;">{selected_asset.replace('=X', '')} (OTC/Live)</h4></div>
+            <div><h4 style="margin:0; color: #8b949e;">{selected_asset.replace('=X', '')} (Live)</h4></div>
             <div style="text-align: right;">
                 <h3 style="margin:0; color: #ffffff;">{current_price:.5f}</h3>
                 <span style="color: {'#3fb950' if price_change >= 0 else '#f85149'}; font-size: 13px; font-weight: bold;">
@@ -143,10 +149,9 @@ else:
     st.markdown("---")
     st.markdown("""
         <div style="background: #161b22; padding: 12px; border-radius: 8px; border: 1px solid #30363d;">
-            <p style="margin:0; font-weight:bold; color: #58a6ff; font-size: 13px;">💡 Important Rules:</p>
+            <p style="margin:0; font-weight:bold; color: #58a6ff; font-size: 13px;">💡 Rules:</p>
             <ul style="margin:5px 0 0 0; padding-left: 15px; font-size: 12px; color: #8b949e;">
-                <li>Ye bot sirf signal deta hai.</li>
-                <li>Trade aapko khud manually place karna hai.</li>
+                <li>Page automatically har 60 seconds me refresh hoga.</li>
                 <li>Strictly NO Martingale, 1-2% risk per trade.</li>
             </ul>
         </div>
