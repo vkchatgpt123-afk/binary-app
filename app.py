@@ -8,22 +8,23 @@ st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="c
 st.markdown("""
     <style>
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 1.2rem !important; padding-bottom: 0.8rem !important; max-width: 100% !important; }
     
     .pairs-container {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
-        margin-bottom: 4px;
+        gap: 5px;
+        margin-bottom: 6px;
+        margin-top: 6px;
     }
     .pair-btn {
         flex: 1 1 22%;
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 5px 2px;
+        padding: 6px 2px;
         text-align: center;
-        border-radius: 5px;
+        border-radius: 6px;
         font-size: 10px;
         font-weight: bold;
         text-decoration: none;
@@ -85,16 +86,16 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. Reboot Terminal Option (Moved to Top)
+# 1. Reboot Terminal Option (At Top)
 if st.button("🔌 Reboot Terminal", use_container_width=True):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.cache_data.clear()
     st.rerun()
 
-st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-top: 6px;'></div>", unsafe_allow_html=True)
 
-# 2. All 8 Pairs Display
+# 2. All 8 Pairs Display (Flexbox Grid)
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
@@ -203,5 +204,5 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 7. Auto-Refresh Option[span_3](start_span)[span_3](end_span)
+# 7. Auto-Refresh Option
 auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
