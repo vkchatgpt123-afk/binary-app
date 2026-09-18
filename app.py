@@ -8,9 +8,9 @@ st.set_page_config(page_title="Pro Reversal Terminal", page_icon="⚡", layout="
 st.markdown("""
     <style>
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.3rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 2.2rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    /* 2 Rows of 4 Pairs Layout */
+    /* 2 Rows of 4 Pairs Layout with proper top spacing */
     .pairs-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
     .pairs-row { display: flex; justify-content: space-between; gap: 4px; }
     .pair-btn {
@@ -82,7 +82,7 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. 8 Pairs in 2 Rows (4 items each) matching your layout
+# 8 Pairs in 2 Rows
 row1 = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
 row2 = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
 
@@ -101,7 +101,7 @@ st.markdown(f'''
     </div>
 ''', unsafe_allow_html=True)
 
-# 2. Timeframe Selection
+# Timeframe Selection
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 df = load_data(selected_asset, timeframe)
@@ -112,11 +112,9 @@ if df is not None and not df.empty:
     df = df[~df.index.duplicated(keep="last")]
     
     if len(df) >= 116:
-        # Ignore the latest forming candle
         data = df.iloc[:-1].copy()
         o, h, l, c = [data[x].astype(float) for x in needed]
         
-        # ATR Calculation (Tumhare code ka core logic)
         tr = pd.concat([(h-l), (h-c.shift()).abs(), (l-c.shift()).abs()], axis=1).max(axis=1)
         atr = tr.rolling(14).mean()
         
@@ -124,7 +122,6 @@ if df is not None and not df.empty:
         atr_last = float(atr.iloc[-1])
         prior_median = float(atr.iloc[-101:-1].median())
         
-        # Reversal Setup Checks (Tumhara strict logic)
         checks_down = {
             "4 consecutive bullish candles": bool((recent["Close"] > recent["Open"]).all()),
             "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
@@ -156,7 +153,6 @@ if df is not None and not df.empty:
         prev_price = float(c.iloc[-2])
         price_change_pct = ((current_price - prev_price) / prev_price) * 100
         
-        # Other Technical Indicators for UI
         sma_20 = float(c.rolling(20).mean().iloc[-1])
         ema_12 = float(c.ewm(span=12, adjust=False).mean().iloc[-1])
         
@@ -186,7 +182,6 @@ else:
     sma_20, ema_12, bb_lower, bb_upper, rsi_14 = 0, 0, 0, 0, 50
     macd_status = "Neutral"
 
-# 3. Price & Asset Bar
 clean_name = selected_asset.replace('=X', '')
 st.markdown(f"""
     <div style="background: #1f2937; padding: 6px 10px; border-radius: 6px; border: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 12px;">
@@ -197,7 +192,6 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 4. Large Signal Display Box
 if signal_type == "UP":
     st.markdown('<div class="signal-up">UP</div>', unsafe_allow_html=True)
 elif signal_type == "DOWN":
@@ -205,7 +199,6 @@ elif signal_type == "DOWN":
 else:
     st.markdown('<div class="signal-hold">NO TRADE / HOLD</div>', unsafe_allow_html=True)
 
-# 5. State and Confidence Bar
 st.markdown(f"""
     <div class="status-bar">
         <span>State: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
@@ -213,7 +206,6 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 6. Indicators List
 indicators = [
     ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
     ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
@@ -230,10 +222,8 @@ for name, val, status in indicators:
         </div>
     """, unsafe_allow_html=True)
 
-# 7. Refresh Rate Dropdown
 refresh_rate = st.selectbox("Refresh Rate", ["60s", "30s", "2m", "5m"], label_visibility="collapsed")
 
-# 8. Reboot Terminal Button
 if st.button("🔌 Reboot Terminal", use_container_width=True):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
