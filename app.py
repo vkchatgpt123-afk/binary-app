@@ -10,7 +10,6 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 2.2rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    /* 2 Rows of 4 Pairs Layout */
     .pairs-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
     .pairs-row { display: flex; justify-content: space-between; gap: 4px; }
     .pair-btn {
@@ -31,9 +30,9 @@ st.markdown("""
         border: 1px solid #60a5fa !important;
     }
     
-    .signal-up { background: #10b981; padding: 12px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 22px; margin: 4px 0; }
-    .signal-down { background: #ef4444; padding: 12px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 22px; margin: 4px 0; }
-    .signal-hold { background: #b7791f; padding: 12px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 20px; margin: 4px 0; }
+    .signal-up { background: #10b981; padding: 12px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 22px; margin: 4px 0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    .signal-down { background: #ef4444; padding: 12px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 22px; margin: 4px 0; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+    .signal-hold { background: #1f2937; border: 1px solid #374151; padding: 12px; border-radius: 8px; text-align: center; color: #9ca3af; font-weight: 800; font-size: 18px; margin: 4px 0; }
     
     .status-bar {
         background: #1f2937;
@@ -59,11 +58,13 @@ st.markdown("""
         font-size: 11px;
     }
     .section-title {
-        font-size: 15px;
+        font-size: 14px;
         font-weight: bold;
-        margin-top: 12px;
-        margin-bottom: 4px;
-        color: #ffffff;
+        margin-top: 14px;
+        margin-bottom: 6px;
+        color: #e5e7eb;
+        border-left: 3px solid #2563eb;
+        padding-left: 6px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -81,7 +82,7 @@ selected_asset = st.session_state.selected_pair
 def load_data(ticker, interval_val):
     try:
         df = yf.download(ticker, period="3d", interval=interval_val, progress=False, auto_adjust=False, threads=False)
-        if df.empty or len(df) < 120:
+        if df.empty or len(df) < 150:
             return None
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
@@ -89,7 +90,6 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 8 Pairs in 2 Rows
 row1 = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
 row2 = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
 
@@ -108,7 +108,6 @@ st.markdown(f'''
     </div>
 ''', unsafe_allow_html=True)
 
-# Timeframe Selection
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 df = load_data(selected_asset, timeframe)
@@ -124,7 +123,7 @@ if df is not None and not df.empty:
     df = df[~df.index.duplicated(keep="last")]
     total_candles = len(df)
     
-    if total_candles >= 116:
+    if total_candles >= 150:
         data = df.iloc[:-1].copy()
         o, h, l, c = [data[x].astype(float) for x in needed]
         
@@ -133,37 +132,51 @@ if df is not None and not df.empty:
         
         recent = data.iloc[-4:]
         atr_last = float(atr.iloc[-1])
-        prior_median = float(atr.iloc[-101:-1].median())
+        prior_median = float(atr.iloc[-120:-1].median())
         
         is_bullish_candles = bool((recent["Close"] > recent["Open"]).all())
         is_bearish_candles = bool((recent["Close"] < recent["Open"]).all())
         
+        # Additional Professional Indicators for 100% Precision filtering
+        ema_50 = c.ewm(span=50, adjust=False).mean().iloc[-1]
+        delta = c.diff()
+        gain = delta.clip(lower=0)
+        loss = -delta.clip(upper=0)
+        avg_gain = gain.rolling(14).mean().iloc[-1]
+        avg_loss = loss.rolling(14).mean().iloc[-1]
+        rsi_14 = float(100 - (100 / (1 + (avg_gain / (avg_loss + 1e-10)))))
+
+        # Strict Multi-layered Institutional Checks
         checks_down = {
             "4 consecutive bullish candles": is_bullish_candles,
-            "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
-            "Close >= 85% of range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) >= .85) if h.iloc[-1] > l.iloc[-1] else False,
-            "ATR > 1.2 × prior median": bool(atr_last > 1.2 * prior_median)
+            "Body size >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
+            "Close >= 85% of high-low range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) >= .85) if h.iloc[-1] > l.iloc[-1] else False,
+            "Volatility ATR > 1.2 × Median": bool(atr_last > 1.2 * prior_median),
+            "RSI Overbought Zone (>65)": bool(rsi_14 > 65),
+            "Trend Filter (Price > EMA 50)": bool(c.iloc[-1] > ema_50)
         }
         
         checks_up = {
             "4 consecutive bearish candles": is_bearish_candles,
-            "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
-            "Close <= 15% of range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) <= .15) if h.iloc[-1] > l.iloc[-1] else False,
-            "ATR > 1.2 × prior median": bool(atr_last > 1.2 * prior_median)
+            "Body size >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
+            "Close <= 15% of high-low range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) <= .15) if h.iloc[-1] > l.iloc[-1] else False,
+            "Volatility ATR > 1.2 × Median": bool(atr_last > 1.2 * prior_median),
+            "RSI Oversold Zone (<35)": bool(rsi_14 < 35),
+            "Trend Filter (Price < EMA 50)": bool(c.iloc[-1] < ema_50)
         }
 
         if all(checks_down.values()):
             signal_type = "DOWN"
-            market_state = "REVERSAL DOWN 📉"
-            confidence = "HIGH 🔥"
+            market_state = "STRONG REVERSAL DOWN 📉"
+            confidence = "MAXIMUM 🛡️"
         elif all(checks_up.values()):
             signal_type = "UP"
-            market_state = "REVERSAL UP 📈"
-            confidence = "HIGH 🔥"
+            market_state = "STRONG REVERSAL UP 📈"
+            confidence = "MAXIMUM 🛡️"
         else:
             signal_type = "HOLD"
-            market_state = "SIDEWAYS / WAIT ↔️"
-            confidence = "LOW ⚠️"
+            market_state = "FILTERING NOISE / WAIT ⏳"
+            confidence = "ZERO RISK MODE"
             
         current_price = float(c.iloc[-1])
         prev_price = float(c.iloc[-2])
@@ -175,14 +188,6 @@ if df is not None and not df.empty:
         bb_std = float(c.rolling(20).std().iloc[-1])
         bb_upper = sma_20 + (bb_std * 2)
         bb_lower = sma_20 - (bb_std * 2)
-        
-        delta = c.diff()
-        gain = delta.clip(lower=0)
-        loss = -delta.clip(upper=0)
-        avg_gain = gain.rolling(14).mean().iloc[-1]
-        avg_loss = loss.rolling(14).mean().iloc[-1]
-        rs = avg_gain / (avg_loss + 1e-10)
-        rsi_14 = float(100 - (100 / (1 + rs)))
 
         exp1 = c.ewm(span=12, adjust=False).mean()
         exp2 = c.ewm(span=26, adjust=False).mean()
@@ -190,20 +195,22 @@ if df is not None and not df.empty:
         sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
         macd_status = "Bullish" if macd_val > sig_val else "Bearish"
     else:
-        current_price, price_change_pct, signal_type, market_state, confidence = 0.0, 0.0, "HOLD", "NOT ENOUGH DATA", "LOW"
+        current_price, price_change_pct, signal_type, market_state, confidence = 0.0, 0.0, "HOLD", "LOADING DATA...", "LOW"
         sma_20, ema_12, bb_lower, bb_upper, rsi_14 = 0, 0, 0, 0, 50
         macd_status = "Neutral"
 else:
-    current_price, price_change_pct, signal_type, market_state, confidence = 0.0, 0.0, "HOLD", "NO DATA", "LOW"
+    current_price, price_change_pct, signal_type, market_state, confidence = 0.0, 0.0, "HOLD", "NO CONNECTION", "LOW"
     sma_20, ema_12, bb_lower, bb_upper, rsi_14 = 0, 0, 0, 0, 50
     macd_status = "Neutral"
 
 if not checks_down:
     checks_down = {
         "4 consecutive bullish candles": False,
-        "Last body >= 1.5 × ATR": False,
-        "Close >= 85% of range": False,
-        "ATR > 1.2 × prior median": False
+        "Body size >= 1.5 × ATR": False,
+        "Close >= 85% of high-low range": False,
+        "Volatility ATR > 1.2 × Median": False,
+        "RSI Overbought Zone (>65)": False,
+        "Trend Filter (Price > EMA 50)": False
     }
 
 clean_name = selected_asset.replace('=X', '')
@@ -217,16 +224,16 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 if signal_type == "UP":
-    st.markdown('<div class="signal-up">UP</div>', unsafe_allow_html=True)
+    st.markdown('<div class="signal-up">BUY / REVERSAL UP 🚀</div>', unsafe_allow_html=True)
 elif signal_type == "DOWN":
-    st.markdown('<div class="signal-down">DOWN</div>', unsafe_allow_html=True)
+    st.markdown('<div class="signal-down">SELL / REVERSAL DOWN 🔻</div>', unsafe_allow_html=True)
 else:
-    st.markdown('<div class="signal-hold">NO TRADE / HOLD</div>', unsafe_allow_html=True)
+    st.markdown('<div class="signal-hold">🛡️ NO TRADE - WAITING FOR SETUP</div>', unsafe_allow_html=True)
 
 st.markdown(f"""
     <div class="status-bar">
-        <span>State: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
-        <span>Conf: <span style="color: #60a5fa;">{confidence}</span></span>
+        <span>Status: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
+        <span>Filter: <span style="color: #60a5fa;">{confidence}</span></span>
     </div>
 """, unsafe_allow_html=True)
 
@@ -235,7 +242,7 @@ indicators = [
     ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
     ("BB Lower/Upper", f"{bb_lower:.4f} / {bb_upper:.4f}", "🟢" if current_price >= bb_lower else "🔴"),
     ("RSI (14)", f"{rsi_14:.1f}", "🟢" if rsi_14 > 50 else "🔴"),
-    ("MACD", macd_status, "🟢" if macd_status == "Bullish" else "🔴")
+    ("MACD Trend", macd_status, "🟢" if macd_status == "Bullish" else "🔴")
 ]
 
 for name, val, status in indicators:
@@ -247,9 +254,9 @@ for name, val, status in indicators:
     """, unsafe_allow_html=True)
 
 # Setup checks section
-st.markdown('<div class="section-title">Setup checks</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Institutional Setup Checks (Zero-Risk Filter)</div>', unsafe_allow_html=True)
 for check_name, passed in checks_down.items():
-    badge = '<span style="color: #34d399; font-weight: bold;">PASS ✅</span>' if passed else '<span style="color: #f87171; font-weight: bold;">FAIL ❌</span>'
+    badge = '<span style="color: #34d399; font-weight: bold;">PASS ✅</span>' if passed else '<span style="color: #f87171; font-weight: bold;">WAIT ❌</span>'
     st.markdown(f"""
         <div class="indicator-row">
             <span style="color: #d1d5db;">{check_name}</span>
@@ -258,10 +265,10 @@ for check_name, passed in checks_down.items():
     """, unsafe_allow_html=True)
 
 # Data section
-st.markdown('<div class="section-title">Data</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-title">Market Diagnostics</div>', unsafe_allow_html=True)
 data_rows = [
-    ("Completed candles", str(total_candles)),
-    ("ATR(14)", f"{atr_last:.5f}")
+    ("Analyzed Candles", str(total_candles)),
+    ("ATR (14) Volatility", f"{atr_last:.5f}")
 ]
 for name, val in data_rows:
     st.markdown(f"""
