@@ -10,30 +10,6 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
     
-    .pairs-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 3px;
-        margin-bottom: 4px;
-    }
-    .pair-btn {
-        background: #1f2937;
-        color: #ffffff;
-        border: 1px solid #374151;
-        padding: 5px 2px;
-        text-align: center;
-        border-radius: 4px;
-        font-size: 9px;
-        font-weight: bold;
-        text-decoration: none;
-        display: block;
-        box-sizing: border-box;
-    }
-    .pair-btn-active {
-        background: #2563eb !important;
-        border: 1px solid #60a5fa !important;
-    }
-    
     .signal-card-up { background: #10b981; padding: 6px; border-radius: 6px; text-align: center; color: white; font-weight: bold; margin: 4px 0; }
     .signal-card-down { background: #ef4444; padding: 6px; border-radius: 6px; text-align: center; color: white; font-weight: bold; margin: 4px 0; }
     .signal-card-wait { background: #f59e0b; padding: 6px; border-radius: 6px; text-align: center; color: white; font-weight: bold; margin: 4px 0; }
@@ -67,10 +43,6 @@ st.markdown("""
 if 'selected_pair' not in st.session_state:
     st.session_state.selected_pair = "EURUSD=X"
 
-query_params = st.query_params
-if "pair" in query_params:
-    st.session_state.selected_pair = query_params["pair"]
-
 selected_asset = st.session_state.selected_pair
 
 @st.cache_data(ttl=5)
@@ -85,21 +57,25 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs Display (Fixed with CSS Grid so all 8 are fully visible)
-pairs = [
-    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
-    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
-    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
-    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
-]
+# 1. All 8 Pairs using Native Streamlit Columns (2 Rows of 4 Buttons)
+row1_tickers = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
+row2_tickers = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
 
-html_pairs = '<div class="pairs-grid">'
-for name, ticker in pairs:
-    active = " pair-btn-active" if selected_asset == ticker else ""
-    html_pairs += f'<a href="?pair={ticker}" class="pair-btn{active}">{name}</a>'
-html_pairs += '</div>'
+cols1 = st.columns(4)
+for i, (name, ticker) in enumerate(row1_tickers):
+    is_active = selected_asset == ticker
+    btn_type = "primary" if is_active else "secondary"
+    if cols1[i].button(name, key=f"p_{ticker}", use_container_width=True, type=btn_type):
+        st.session_state.selected_pair = ticker
+        st.rerun()
 
-st.markdown(html_pairs, unsafe_allow_html=True)
+cols2 = st.columns(4)
+for i, (name, ticker) in enumerate(row2_tickers):
+    is_active = selected_asset == ticker
+    btn_type = "primary" if is_active else "secondary"
+    if cols2[i].button(name, key=f"p_{ticker}", use_container_width=True, type=btn_type):
+        st.session_state.selected_pair = ticker
+        st.rerun()
 
 # 2. Timeframe Selection
 st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
@@ -194,7 +170,7 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 6. Auto-Refresh Option[span_2](start_span)[span_2](end_span)
+# 6. Auto-Refresh Option
 auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
 
 # 7. Reboot Terminal Option (At Bottom)
