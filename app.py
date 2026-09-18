@@ -10,23 +10,23 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
     
-    .pairs-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
+    .pairs-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 3px;
         margin-bottom: 4px;
     }
     .pair-btn {
-        flex: 1 1 22%;
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
         padding: 5px 2px;
         text-align: center;
-        border-radius: 5px;
-        font-size: 10px;
+        border-radius: 4px;
+        font-size: 9px;
         font-weight: bold;
         text-decoration: none;
+        display: block;
         box-sizing: border-box;
     }
     .pair-btn-active {
@@ -85,7 +85,7 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs Display (Ensuring all 8 are visible in flex-wrap grid)[span_2](start_span)[span_2](end_span)
+# 1. All 8 Pairs Display (Fixed with CSS Grid so all 8 are fully visible)
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
@@ -93,7 +93,7 @@ pairs = [
     ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
 ]
 
-html_pairs = '<div class="pairs-container">'
+html_pairs = '<div class="pairs-grid">'
 for name, ticker in pairs:
     active = " pair-btn-active" if selected_asset == ticker else ""
     html_pairs += f'<a href="?pair={ticker}" class="pair-btn{active}">{name}</a>'
@@ -194,10 +194,10 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 6. Auto-Refresh Option[span_3](start_span)[span_3](end_span)
+# 6. Auto-Refresh Option[span_2](start_span)[span_2](end_span)
 auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
 
-# 7. Reboot Terminal Option (At Bottom as in your preferred layout style)[span_4](start_span)[span_4](end_span)
+# 7. Reboot Terminal Option (At Bottom)
 if st.button("🔌 Reboot Terminal", use_container_width=True):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
