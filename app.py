@@ -120,9 +120,30 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# Temporary timeframe for top calculations
-timeframe = "1m"
-df = load_data(selected_asset, timeframe)
+# 1. All 8 Pairs Grid Box
+pairs = [
+    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
+    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
+    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
+    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
+]
+
+grid_html = '<div class="pairs-grid">'
+for name, ticker in pairs:
+    is_active = (selected_asset == ticker)
+    active_class = " pair-btn-active" if is_active else ""
+    grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
+grid_html += '</div>'
+
+st.markdown(grid_html, unsafe_allow_html=True)
+
+# 2. Timeframe Selection (1m, 2m, 5m with gap)
+st.markdown("<div style='margin-top: 6px;'></div>", unsafe_allow_html=True)
+timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
+
+# Map timeframe string to yfinance interval
+tf_map = {"1m": "1m", "2m": "2m", "5m": "5m"}
+df = load_data(selected_asset, tf_map[timeframe])
 
 if df is not None:
     close = df['Close']
@@ -167,31 +188,7 @@ if df is not None:
 else:
     current_price, price_change_pct, signal_type, market_state, confidence = 0, 0, "HOLD", "SIDEWAYS", "LOW"
 
-# 1. Pairs Grid Box (First as requested)
-pairs = [
-    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
-    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
-    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
-    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
-]
-
-grid_html = '<div class="pairs-grid">'
-for name, ticker in pairs:
-    is_active = (selected_asset == ticker)
-    active_class = " pair-btn-active" if is_active else ""
-    grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
-grid_html += '</div>'
-
-st.markdown(grid_html, unsafe_allow_html=True)
-
-# 2. Timeframe Selection with better gap
-st.markdown("<div style='margin-top: 6px;'></div>", unsafe_allow_html=True)
-timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
-
-# Reload data with selected timeframe
-df = load_data(selected_asset, timeframe)
-
-# 3. Hold / Signal Card shifted slightly below with price info banner
+# 3. Hold / Signal Card with Price Banner
 st.markdown(f"""
     <div style="background: #1f2937; padding: 4px 8px; border-radius: 6px; border: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px;">
         <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
@@ -218,28 +215,6 @@ st.markdown(f"""
 
 # 5. Indicators Section
 if df is not None:
-    close = df['Close']
-    current_price = close.iloc[-1]
-    sma_20 = close.rolling(20).mean().iloc[-1]
-    ema_12 = close.ewm(span=12).mean().iloc[-1]
-    bb_std = close.rolling(20).std().iloc[-1]
-    bb_upper = sma_20 + (bb_std * 2)
-    bb_lower = sma_20 - (bb_std * 2)
-    
-    delta = close.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(14).mean().iloc[-1]
-    avg_loss = loss.rolling(14).mean().iloc[-1]
-    rs = avg_gain / (avg_loss + 1e-10)
-    rsi_14 = 100 - (100 / (1 + rs))
-
-    exp1 = close.ewm(span=12, adjust=False).mean()
-    exp2 = close.ewm(span=26, adjust=False).mean()
-    macd_val = (exp1 - exp2).iloc[-1]
-    sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
-    macd_status = "Bullish" if macd_val > sig_val else "Bearish"
-
     indicators = [
         ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
         ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
@@ -256,8 +231,8 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 6. Auto-Refresh Option
-auto_refresh = st.selectbox("Auto Refresh", ["1 min", "2 min", "5 min"], label_visibility="collapsed")
+# 6. Auto-Refresh Option (Including 60s)[span_2](start_span)[span_2](end_span)
+auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
 
 # 7. Reboot Terminal Option (Last)
 if st.button("🔌 Reboot Terminal", use_container_width=True):
