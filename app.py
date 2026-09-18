@@ -10,27 +10,22 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    .pairs-scroll-container {
+    .pairs-container {
         display: flex;
-        overflow-x: auto;
+        flex-wrap: wrap;
+        justify-content: center;
         gap: 6px;
-        padding-bottom: 4px;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         margin-top: 5px;
-        scrollbar-width: none;
-    }
-    .pairs-scroll-container::-webkit-scrollbar {
-        display: none;
     }
     .pair-btn {
-        flex: 0 0 auto;
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 6px 12px;
+        padding: 5px 10px;
         text-align: center;
-        border-radius: 20px;
-        font-size: 11px;
+        border-radius: 15px;
+        font-size: 10px;
         font-weight: bold;
         text-decoration: none;
         box-sizing: border-box;
@@ -141,7 +136,7 @@ all_pairs = [
 ]
 
 def render_pill_row(pairs):
-    html = '<div class="pairs-scroll-container">'
+    html = '<div class="pairs-container">'
     for name, ticker in pairs:
         active = " pair-btn-active" if selected_asset == ticker else ""
         html += f'<a href="?pair={ticker}" class="pair-btn{active}">{name}</a>'
