@@ -2,6 +2,7 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
+import time
 
 st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="centered")
 
@@ -10,24 +11,21 @@ st.markdown("""
     .stApp { background: #0b0e14; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; max-width: 100% !important; }
     
-    /* Force 4 columns grid layout in mobile view via HTML/CSS */
     .pairs-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 4px;
         margin-bottom: 4px;
     }
-    
     .pair-btn {
         background: #161b22;
         color: #c9d1d9;
-        border: 1px: solid #30363d;
-        padding: 6px 2px;
+        border: 1px solid #30363d;
+        padding: 5px 2px;
         text-align: center;
         border-radius: 4px;
         font-size: 11px;
         font-weight: bold;
-        cursor: pointer;
         text-decoration: none;
         display: block;
     }
@@ -84,20 +82,19 @@ st.markdown("""
 if 'selected_pair' not in st.session_state:
     st.session_state.selected_pair = "EURUSD=X"
 
-# Handle query parameters for fast grid button clicks without full form reload issues
 query_params = st.query_params
 if "pair" in query_params:
     st.session_state.selected_pair = query_params["pair"]
 
-# Top row compact header
-c_title, c_ref = st.columns([4, 1])
+# Top row compact header with live indicator status
+c_title, c_ref = st.columns([3, 1])
 with c_title:
-    st.markdown("<h6 style='margin:0; color:#58a6ff;'>⚡ PRO TERMINAL</h6>", unsafe_allow_html=True)
+    st.markdown("<h6 style='margin:0; color:#58a6ff;'>⚡ PRO TERMINAL <span style='color:#3fb950; font-size:9px;'>● LIVE</span></h6>", unsafe_allow_html=True)
 with c_ref:
     if st.button("🔄", use_container_width=True):
         st.rerun()
 
-# Render Pairs using pure HTML CSS Grid to prevent vertical stacking on mobile
+# Render Pairs in Grid
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
@@ -109,18 +106,16 @@ grid_html = '<div class="pairs-grid">'
 for name, ticker in pairs:
     is_active = (st.session_state.selected_pair == ticker)
     active_class = " pair-btn-active" if is_active else ""
-    # Using streamlit query params link trick for compact buttons
     grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
 grid_html += '</div>'
 
 st.markdown(grid_html, unsafe_allow_html=True)
-
 selected_asset = st.session_state.selected_pair
 
 # Timeframe compact radio
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
-@st.cache_data(ttl=10)
+@st.cache_data(ttl=5)
 def load_data(ticker, interval_val):
     try:
         df = yf.download(ticker, period="1d", interval=interval_val, progress=False)
@@ -143,8 +138,14 @@ else:
     price_change = current_price - prev_price
     price_change_pct = (price_change / prev_price) * 100
 
+    # Technical Indicators Calculations
     sma_20 = close.rolling(20).mean().iloc[-1]
     ema_12 = close.ewm(span=12).mean().iloc[-1]
+    
+    # Bollinger Bands (20, 2)
+    bb_std = close.rolling(20).std().iloc[-1]
+    bb_upper = sma_20 + (bb_std * 2)
+    bb_lower = sma_20 - (bb_std * 2)
     
     delta = close.diff()
     gain = delta.clip(lower=0)
@@ -160,11 +161,18 @@ else:
     sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
     macd_status = "Bullish" if macd_val > sig_val else "Bearish"
 
+    # Market State & Confidence Logic
     if rsi_14 > 55 and macd_status == "Bullish":
+        market_state = "UPTREND"
+        confidence = "HIGH 🔥"
         signal_type = "UP"
     elif rsi_14 < 45 and macd_status == "Bearish":
+        market_state = "DOWNTREND"
+        confidence = "HIGH 🔥"
         signal_type = "DOWN"
     else:
+        market_state = "SIDEWAYS"
+        confidence = "LOW ⚠️"
         signal_type = "HOLD"
 
     # Price banner
@@ -177,7 +185,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Signal Card
+    # Signal Card (UP / DOWN)
     if signal_type == "UP":
         st.markdown('<div class="signal-card-up"><h3 style="margin:0; font-size:18px;">UP</h3></div>', unsafe_allow_html=True)
     elif signal_type == "DOWN":
@@ -185,10 +193,19 @@ else:
     else:
         st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:16px;">HOLD</h3></div>', unsafe_allow_html=True)
 
-    # Indicators compact
+    # Status Bar: Market State & Confidence Bar
+    st.markdown(f"""
+        <div style="background: #161b22; padding: 4px 8px; border-radius: 4px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
+            <span>State: <b style="color: {'#3fb950' if market_state=='UPTREND' else '#f85149' if market_state=='DOWNTREND' else '#f0b429'};">{market_state}</b></span>
+            <span>Conf: <b style="color: #58a6ff;">{confidence}</b></span>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Indicators compact (including Bollinger Bands)
     indicators = [
         ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
         ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
+        ("BB Lower/Upper", f"{bb_lower:.4f} / {bb_upper:.4f}", "🟢" if current_price >= bb_lower else "🔴"),
         ("RSI", f"{rsi_14:.1f}", "🟢" if rsi_14 > 50 else "🔴"),
         ("MACD", macd_status, "🟢" if macd_status == "Bullish" else "🔴")
     ]
