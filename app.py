@@ -8,28 +8,31 @@ st.set_page_config(page_title="Pro Reversal Terminal", page_icon="⚡", layout="
 st.markdown("""
     <style>
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.3rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 0.2rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    .pairs-flex {
+    .pairs-container {
         display: flex;
-        flex-wrap: wrap;
-        gap: 2px;
+        flex-direction: column;
+        gap: 3px;
         margin-bottom: 4px;
+    }
+    .pairs-row {
+        display: flex;
         justify-content: space-between;
+        gap: 3px;
     }
     .pair-link {
-        flex: 0 0 24.2%;
+        flex: 1;
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 5px 1px;
+        padding: 5px 2px;
         text-align: center;
         border-radius: 4px;
         font-size: 9px;
         font-weight: bold;
         text-decoration: none;
         box-sizing: border-box;
-        margin-bottom: 3px;
     }
     .pair-link-active {
         background: #2563eb !important;
@@ -37,20 +40,17 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    .signal-up { background: #059669; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 18px; margin: 4px 0; }
-    .signal-down { background: #dc2626; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 18px; margin: 4px 0; }
-    .signal-wait { background: #b7791f; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 16px; margin: 4px 0; }
+    .signal-up { background: #059669; padding: 8px; border-radius: 6px; text-align: center; color: white; font-weight: 800; font-size: 16px; margin: 3px 0; }
+    .signal-down { background: #dc2626; padding: 8px; border-radius: 6px; text-align: center; color: white; font-weight: 800; font-size: 16px; margin: 3px 0; }
+    .signal-wait { background: #b7791f; padding: 8px; border-radius: 6px; text-align: center; color: white; font-weight: 800; font-size: 15px; margin: 3px 0; }
     
-    .card { background: #1f2937; border: 1px solid #374151; border-radius: 6px; padding: 8px; margin: 4px 0; font-size: 11px; }
-    .metric { background: #111827; border: 1px solid #1f2937; border-radius: 4px; padding: 5px; margin: 2px 0; display: flex; justify-content: space-between; font-size: 10px; }
+    .card { background: #1f2937; border: 1px solid #374151; border-radius: 6px; padding: 6px 8px; margin: 3px 0; font-size: 11px; }
+    .metric { background: #111827; border: 1px solid #1f2937; border-radius: 4px; padding: 4px 6px; margin: 2px 0; display: flex; justify-content: space-between; font-size: 10px; }
     </style>
 """, unsafe_allow_html=True)
 
 if 'selected_pair' not in st.session_state:
     st.session_state.selected_pair = "EURUSD=X"
-
-if 'tf' not in st.session_state:
-    st.session_state.tf = "5m"
 
 query_params = st.query_params
 if "pair" in query_params:
@@ -70,22 +70,32 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs Grid Selection (Strictly 2 Rows of 4, Fully Visible without Scrolling)
-pairs = [
+# 1. 8 Pairs Divided into Strict 2 Rows (4 pairs each) for Perfect Mobile Fit
+row1_pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
-    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
+    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")
+]
+row2_pairs = [
     ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
     ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
 ]
 
-html_code = '<div class="pairs-flex">'
-for name, ticker in pairs:
-    active_class = " pair-link-active" if selected_asset == ticker else ""
-    html_code += f'<a href="?pair={ticker}" class="pair-link{active_class}">{name}</a>'
-html_code += '</div>'
-st.markdown(html_code, unsafe_allow_html=True)
+def render_row(pair_list):
+    html = '<div class="pairs-row">'
+    for name, ticker in pair_list:
+        active = " pair-link-active" if selected_asset == ticker else ""
+        html += f'<a href="?pair={ticker}" class="pair-link{active}">{name}</a>'
+    html += '</div>'
+    return html
 
-# 2. Compact Timeframe Selection
+st.markdown(f'''
+    <div class="pairs-container">
+        {render_row(row1_pairs)}
+        {render_row(row2_pairs)}
+    </div>
+''', unsafe_allow_html=True)
+
+# 2. Timeframe Selection
 timeframe = st.radio("TF", ["5m", "1m", "2m"], horizontal=True, label_visibility="collapsed")
 
 df = load_data(selected_asset, timeframe)
