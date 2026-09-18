@@ -13,6 +13,7 @@ st.markdown("""
     .pairs-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(2, auto);
         gap: 4px;
         margin-bottom: 4px;
         margin-top: 4px;
@@ -120,22 +121,23 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs in Two Separate Rows for Perfect Visibility[span_2](start_span)[span_2](end_span)
-row1 = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
-row2 = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
+# 1. All 8 Pairs in One Single Unified Grid Container (4 columns x 2 rows)
+pairs = [
+    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
+    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
+    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
+    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
+]
 
-def render_grid(pairs_list):
-    html = '<div class="pairs-grid">'
-    for name, ticker in pairs_list:
-        active = " pair-btn-active" if selected_asset == ticker else ""
-        html += f'<a href="?pair={ticker}" class="pair-btn{active}">{name}</a>'
-    html += '</div>'
-    return html
+grid_html = '<div class="pairs-grid">'
+for name, ticker in pairs:
+    active = " pair-btn-active" if selected_asset == ticker else ""
+    grid_html += f'<a href="?pair={ticker}" class="pair-btn{active}">{name}</a>'
+grid_html += '</div>'
 
-st.markdown(render_grid(row1), unsafe_allow_html=True)
-st.markdown(render_grid(row2), unsafe_allow_html=True)
+st.markdown(grid_html, unsafe_allow_html=True)
 
-# 2. Single Timeframe Selection with Proper Gap[span_3](start_span)[span_3](end_span)
+# 2. Single Timeframe Selection with Proper Gap
 st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
@@ -228,7 +230,7 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 6. Auto-Refresh Option[span_4](start_span)[span_4](end_span)
+# 6. Auto-Refresh Option
 auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
 
 # 7. Reboot Terminal Option (Last)
