@@ -7,85 +7,94 @@ st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="c
 
 st.markdown("""
     <style>
-    .stApp { background: #0b0e14; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
+    .stApp { background: linear-gradient(180deg, #07090e 0%, #111827 100%); color: #ffffff; font-family: sans-serif; }
+    .block-container { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; max-width: 100% !important; }
     
     .pairs-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 3px;
-        margin-bottom: 3px;
+        gap: 6px;
+        margin-bottom: 8px;
+        margin-top: 4px;
     }
     .pair-btn {
-        background: #161b22;
-        color: #c9d1d9;
-        border: 1px solid #30363d;
-        padding: 4px 2px;
+        background: #1f2937;
+        color: #ffffff;
+        border: 1px solid #374151;
+        padding: 6px 2px;
         text-align: center;
-        border-radius: 4px;
-        font-size: 10px;
+        border-radius: 6px;
+        font-size: 11px;
         font-weight: bold;
         text-decoration: none;
         display: block;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
     .pair-btn-active {
-        background: #f85149;
-        color: #ffffff;
-        border: 1px solid #ff7b72;
+        background: #2563eb !important;
+        color: #ffffff !important;
+        border: 1px solid #60a5fa !important;
+        box-shadow: 0 0 10px rgba(37,99,235,0.6);
     }
     
     .signal-card-up { 
-        background: linear-gradient(135deg, #0e4429, #1b7a43); 
-        padding: 5px; 
-        border-radius: 5px; 
+        background: linear-gradient(135deg, #059669, #10b981); 
+        padding: 8px; 
+        border-radius: 8px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
-        border: 1px solid #2ea043;
-        margin-bottom: 3px;
+        border: 1px solid #34d399;
+        margin-bottom: 6px;
+        margin-top: 6px;
+        box-shadow: 0 4px 12px rgba(16,185,129,0.3);
     }
     .signal-card-down { 
-        background: linear-gradient(135deg, #541212, #8c2020); 
-        padding: 5px; 
-        border-radius: 5px; 
+        background: linear-gradient(135deg, #dc2626, #ef4444); 
+        padding: 8px; 
+        border-radius: 8px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
-        border: 1px solid #da3633;
-        margin-bottom: 3px;
+        border: 1px solid #f87171;
+        margin-bottom: 6px;
+        margin-top: 6px;
+        box-shadow: 0 4px 12px rgba(239,68,68,0.3);
     }
     .signal-card-wait { 
-        background: linear-gradient(135deg, #593e02, #946903); 
-        padding: 5px; 
-        border-radius: 5px; 
+        background: linear-gradient(135deg, #d97706, #f59e0b); 
+        padding: 8px; 
+        border-radius: 8px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
-        border: 1px solid #bb8009;
-        margin-bottom: 3px;
+        border: 1px solid #fbbf24;
+        margin-bottom: 6px;
+        margin-top: 6px;
+        box-shadow: 0 4px 12px rgba(245,158,11,0.3);
     }
     .status-bar {
-        background: #161b22;
-        padding: 4px 6px;
-        border-radius: 4px;
-        border: 1px solid #30363d;
+        background: #1f2937;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid #374151;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 3px;
-        font-size: 10px;
+        margin-bottom: 6px;
+        font-size: 11px;
         font-weight: bold;
     }
     .indicator-row { 
-        background: #121824; 
-        padding: 2px 6px; 
-        border-radius: 4px; 
-        margin-bottom: 2px; 
+        background: #111827; 
+        padding: 4px 8px; 
+        border-radius: 6px; 
+        margin-bottom: 3px; 
         border: 1px solid #1f293d; 
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        font-size: 10px;
+        font-size: 11px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -111,7 +120,7 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# Temporary timeframe to fetch data for top banner & signal calculation
+# Temporary timeframe for top calculations
 timeframe = "1m"
 df = load_data(selected_asset, timeframe)
 
@@ -158,24 +167,7 @@ if df is not None:
 else:
     current_price, price_change_pct, signal_type, market_state, confidence = 0, 0, "HOLD", "SIDEWAYS", "LOW"
 
-# 1. TOP: Signal Card & Price Banner
-st.markdown(f"""
-    <div style="background: #121824; padding: 3px 6px; border-radius: 4px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
-        <span><b>{selected_asset.replace('=X', '')}</b></span>
-        <span style="color: {'#3fb950' if price_change_pct >= 0 else '#f85149'}; font-weight:bold;">
-            {current_price:.5f} ({'+' if price_change_pct >= 0 else ''}{price_change_pct:.2f}%)
-        </span>
-    </div>
-""", unsafe_allow_html=True)
-
-if signal_type == "UP":
-    st.markdown('<div class="signal-card-up"><h3 style="margin:0; font-size:16px;">UP</h3></div>', unsafe_allow_html=True)
-elif signal_type == "DOWN":
-    st.markdown('<div class="signal-card-down"><h3 style="margin:0; font-size:16px;">DOWN</h3></div>', unsafe_allow_html=True)
-else:
-    st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:14px;">HOLD</h3></div>', unsafe_allow_html=True)
-
-# 2. USKE NICHE: Pairs Grid Box
+# 1. Pairs Grid Box (First as requested)
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
@@ -192,21 +184,39 @@ grid_html += '</div>'
 
 st.markdown(grid_html, unsafe_allow_html=True)
 
-# 3. USKE NICHE: Timeframe (1m, 2m, 5m)
+# 2. Timeframe Selection with better gap
+st.markdown("<div style='margin-top: 6px;'></div>", unsafe_allow_html=True)
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 # Reload data with selected timeframe
 df = load_data(selected_asset, timeframe)
 
-# 4. USKE NICHE: Indicators & Status Bar
+# 3. Hold / Signal Card shifted slightly below with price info banner
 st.markdown(f"""
-    <div class="status-bar">
-        <span>State: <span style="color: {'#3fb950' if 'UP' in market_state else '#f85149' if 'DOWN' in market_state else '#f0b429'};">{market_state}</span></span>
-        <span>Conf: <span style="color: #58a6ff;">{confidence}</span></span>
-        <span>Share: <span style="color: #3fb950;">Active</span></span>
+    <div style="background: #1f2937; padding: 4px 8px; border-radius: 6px; border: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px;">
+        <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
+        <span style="color: {'#34d399' if price_change_pct >= 0 else '#f87171'}; font-weight:bold;">
+            {current_price:.5f} ({'+' if price_change_pct >= 0 else ''}{price_change_pct:.2f}%)
+        </span>
     </div>
 """, unsafe_allow_html=True)
 
+if signal_type == "UP":
+    st.markdown('<div class="signal-card-up"><h2 style="margin:0; font-size:20px;">UP</h2></div>', unsafe_allow_html=True)
+elif signal_type == "DOWN":
+    st.markdown('<div class="signal-card-down"><h2 style="margin:0; font-size:20px;">DOWN</h2></div>', unsafe_allow_html=True)
+else:
+    st.markdown('<div class="signal-card-wait"><h2 style="margin:0; font-size:18px;">HOLD</h2></div>', unsafe_allow_html=True)
+
+# 4. Status Bar (Without Share option)
+st.markdown(f"""
+    <div class="status-bar">
+        <span>State: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
+        <span>Conf: <span style="color: #60a5fa;">{confidence}</span></span>
+    </div>
+""", unsafe_allow_html=True)
+
+# 5. Indicators Section
 if df is not None:
     close = df['Close']
     current_price = close.iloc[-1]
@@ -241,15 +251,15 @@ if df is not None:
     for name, val, status in indicators:
         st.markdown(f"""
             <div class="indicator-row">
-                <span style="color: #8b949e;">{name}</span>
-                <span><b style="color: #ffffff; margin-right: 3px;">{val}</b> {status}</span>
+                <span style="color: #9ca3af;">{name}</span>
+                <span><b style="color: #ffffff; margin-right: 4px;">{val}</b> {status}</span>
             </div>
         """, unsafe_allow_html=True)
 
-# 5. USKE NICHE: Auto-Refresh Interval
+# 6. Auto-Refresh Option
 auto_refresh = st.selectbox("Auto Refresh", ["1 min", "2 min", "5 min"], label_visibility="collapsed")
 
-# 6. USKE NICHE: Reboot App Option
+# 7. Reboot Terminal Option (Last)
 if st.button("🔌 Reboot Terminal", use_container_width=True):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
