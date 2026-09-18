@@ -13,23 +13,23 @@ st.markdown("""
     .pairs-flex {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
-        margin-bottom: 6px;
+        gap: 2px;
+        margin-bottom: 4px;
         justify-content: space-between;
     }
     .pair-link {
-        flex: 0 0 23.5%;
+        flex: 0 0 24.2%;
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 6px 2px;
+        padding: 5px 1px;
         text-align: center;
         border-radius: 4px;
-        font-size: 10px;
+        font-size: 9px;
         font-weight: bold;
         text-decoration: none;
         box-sizing: border-box;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
     }
     .pair-link-active {
         background: #2563eb !important;
@@ -37,9 +37,9 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    .signal-up { background: #059669; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 20px; margin: 4px 0; }
-    .signal-down { background: #dc2626; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 20px; margin: 4px 0; }
-    .signal-wait { background: #b7791f; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 18px; margin: 4px 0; }
+    .signal-up { background: #059669; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 18px; margin: 4px 0; }
+    .signal-down { background: #dc2626; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 18px; margin: 4px 0; }
+    .signal-wait { background: #b7791f; padding: 10px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 16px; margin: 4px 0; }
     
     .card { background: #1f2937; border: 1px solid #374151; border-radius: 6px; padding: 8px; margin: 4px 0; font-size: 11px; }
     .metric { background: #111827; border: 1px solid #1f2937; border-radius: 4px; padding: 5px; margin: 2px 0; display: flex; justify-content: space-between; font-size: 10px; }
@@ -48,6 +48,9 @@ st.markdown("""
 
 if 'selected_pair' not in st.session_state:
     st.session_state.selected_pair = "EURUSD=X"
+
+if 'tf' not in st.session_state:
+    st.session_state.tf = "5m"
 
 query_params = st.query_params
 if "pair" in query_params:
@@ -67,7 +70,7 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. 8 Pairs Grid Selection
+# 1. All 8 Pairs Grid Selection (Strictly 2 Rows of 4, Fully Visible without Scrolling)
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
@@ -82,8 +85,8 @@ for name, ticker in pairs:
 html_code += '</div>'
 st.markdown(html_code, unsafe_allow_html=True)
 
-# 2. Timeframe Selection
-timeframe = st.selectbox("TF", ["5m", "1m", "2m"], index=0, label_visibility="collapsed")
+# 2. Compact Timeframe Selection
+timeframe = st.radio("TF", ["5m", "1m", "2m"], horizontal=True, label_visibility="collapsed")
 
 df = load_data(selected_asset, timeframe)
 
@@ -92,7 +95,7 @@ if df is not None and not df.empty:
     df = df.dropna(subset=[x for x in needed if x in df.columns])
     
     if len(df) >= 50:
-        data = df.iloc[:-1].copy() # Ignore forming candle
+        data = df.iloc[:-1].copy() 
         o, h, l, c = [data[x].astype(float) for x in needed]
         
         tr = pd.concat([(h-l), (h-c.shift()).abs(), (l-c.shift()).abs()], axis=1).max(axis=1)
@@ -101,19 +104,16 @@ if df is not None and not df.empty:
         atr_last = float(atr.iloc[-1])
         prior_median = float(atr.iloc[-50:-1].median())
         
-        # Strict Reversal Logic Checks
-        # DOWN Setup (After 4 bullish candles reversal)
         checks_down = {
             "4 consecutive bullish candles": bool((recent["Close"] > recent["Open"]).all()),
-            "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.2 * atr_last),
-            "Volatility ATR check": bool(atr_last > 0.9 * prior_median)
+            "Last body >= 1.2 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.2 * atr_last),
+            "Volatility ATR check": bool(atr_last > 0.8 * prior_median)
         }
         
-        # UP Setup (After 4 bearish candles reversal)
         checks_up = {
             "4 consecutive bearish candles": bool((recent["Close"] < recent["Open"]).all()),
-            "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.2 * atr_last),
-            "Volatility ATR check": bool(atr_last > 0.9 * prior_median)
+            "Last body >= 1.2 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.2 * atr_last),
+            "Volatility ATR check": bool(atr_last > 0.8 * prior_median)
         }
 
         if all(checks_down.values()):
@@ -134,7 +134,7 @@ if df is not None and not df.empty:
 else:
     signal, price, pct, checks, atr_last = "NO TRADE ⏸", 0, 0, {}, 0
 
-# 3. UI Display
+# 3. UI Display Cards
 st.markdown(f'''
     <div class="card">
         <b>{selected_asset.replace("=X", "")} • {timeframe}</b>
