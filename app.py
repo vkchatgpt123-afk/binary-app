@@ -8,23 +8,22 @@ st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="c
 st.markdown("""
     <style>
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 1.2rem !important; padding-bottom: 0.8rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
     
     .pairs-container {
         display: flex;
         flex-wrap: wrap;
-        gap: 5px;
-        margin-bottom: 6px;
-        margin-top: 6px;
+        gap: 4px;
+        margin-bottom: 4px;
     }
     .pair-btn {
         flex: 1 1 22%;
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 6px 2px;
+        padding: 5px 2px;
         text-align: center;
-        border-radius: 6px;
+        border-radius: 5px;
         font-size: 10px;
         font-weight: bold;
         text-decoration: none;
@@ -86,16 +85,7 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. Reboot Terminal Option (At Top)
-if st.button("🔌 Reboot Terminal", use_container_width=True):
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.cache_data.clear()
-    st.rerun()
-
-st.markdown("<div style='margin-top: 6px;'></div>", unsafe_allow_html=True)
-
-# 2. All 8 Pairs Display (Flexbox Grid)
+# 1. All 8 Pairs Display (Ensuring all 8 are visible in flex-wrap grid)[span_2](start_span)[span_2](end_span)
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
@@ -111,7 +101,7 @@ html_pairs += '</div>'
 
 st.markdown(html_pairs, unsafe_allow_html=True)
 
-# 3. Timeframe Selection
+# 2. Timeframe Selection
 st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
@@ -161,7 +151,7 @@ if df is not None:
 else:
     current_price, price_change_pct, signal_type, market_state, confidence = 0, 0, "HOLD", "SIDEWAYS", "LOW"
 
-# 4. Price & Signal Card
+# 3. Price & Signal Card
 st.markdown(f"""
     <div style="background: #1f2937; padding: 4px 8px; border-radius: 5px; border: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 11px;">
         <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
@@ -178,7 +168,7 @@ elif signal_type == "DOWN":
 else:
     st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:15px;">HOLD</h3></div>', unsafe_allow_html=True)
 
-# 5. Status Bar
+# 4. Status Bar
 st.markdown(f"""
     <div class="status-bar">
         <span>State: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
@@ -186,7 +176,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 6. Indicators Section
+# 5. Indicators Section
 if df is not None:
     indicators = [
         ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
@@ -204,5 +194,12 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 7. Auto-Refresh Option
+# 6. Auto-Refresh Option[span_3](start_span)[span_3](end_span)
 auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
+
+# 7. Reboot Terminal Option (At Bottom as in your preferred layout style)[span_4](start_span)[span_4](end_span)
+if st.button("🔌 Reboot Terminal", use_container_width=True):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.cache_data.clear()
+    st.rerun()
