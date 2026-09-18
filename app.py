@@ -8,11 +8,19 @@ st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="c
 st.markdown("""
     <style>
     .stApp { background: #0b0e14; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.8rem !important; padding-bottom: 0.8rem !important; }
+    .block-container { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; max-width: 100% !important; }
+    
+    /* Custom compact grid for currency buttons */
+    .pair-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-bottom: 6px;
+    }
     
     .signal-card-up { 
         background: linear-gradient(135deg, #0e4429, #1b7a43); 
-        padding: 8px; 
+        padding: 6px; 
         border-radius: 6px; 
         text-align: center; 
         color: white; 
@@ -22,7 +30,7 @@ st.markdown("""
     }
     .signal-card-down { 
         background: linear-gradient(135deg, #541212, #8c2020); 
-        padding: 8px; 
+        padding: 6px; 
         border-radius: 6px; 
         text-align: center; 
         color: white; 
@@ -32,7 +40,7 @@ st.markdown("""
     }
     .signal-card-wait { 
         background: linear-gradient(135deg, #593e02, #946903); 
-        padding: 8px; 
+        padding: 6px; 
         border-radius: 6px; 
         text-align: center; 
         color: white; 
@@ -42,14 +50,14 @@ st.markdown("""
     }
     .indicator-row { 
         background: #121824; 
-        padding: 4px 8px; 
-        border-radius: 6px; 
-        margin-bottom: 3px; 
+        padding: 3px 6px; 
+        border-radius: 4px; 
+        margin-bottom: 2px; 
         border: 1px solid #1f293d; 
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        font-size: 11px;
+        font-size: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -57,33 +65,30 @@ st.markdown("""
 if 'selected_pair' not in st.session_state:
     st.session_state.selected_pair = "EURUSD=X"
 
-# Top row: Title and Refresh button compact
-c_title, c_ref = st.columns([3, 1])
+# Top row compact header
+c_title, c_ref = st.columns([4, 1])
 with c_title:
-    st.markdown("<h5 style='margin:0; color:#58a6ff;'>⚡ PRO TERMINAL</h5>", unsafe_allow_html=True)
+    st.markdown("<h6 style='margin:0; color:#58a6ff;'>⚡ PRO TERMINAL</h6>", unsafe_allow_html=True)
 with c_ref:
     if st.button("🔄", use_container_width=True):
         st.rerun()
 
-# Currency pairs in 4 columns grid (2 rows for 8 pairs) to save vertical space
+# Pairs in small compact buttons using 4 columns with custom styling keys
 pairs = ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDJPY=X", "USDCAD=X", "NZDUSD=X", "EURJPY=X", "GBPJPY=X"]
 
-for i in range(0, len(pairs), 4):
-    cols = st.columns(4)
-    for j in range(4):
-        if i + j < len(pairs):
-            pair = pairs[i + j]
-            clean_name = pair.replace('=X', '')
-            is_selected = (st.session_state.selected_pair == pair)
-            with cols[j]:
-                btn_type = "primary" if is_selected else "secondary"
-                if st.button(clean_name, key=f"btn_{pair}", use_container_width=True, type=btn_type):
-                    st.session_state.selected_pair = pair
-                    st.rerun()
+cols = st.columns(4)
+for idx, pair in enumerate(pairs):
+    clean_name = pair.replace('=X', '')
+    is_selected = (st.session_state.selected_pair == pair)
+    with cols[idx % 4]:
+        btn_type = "primary" if is_selected else "secondary"
+        if st.button(clean_name, key=f"bp_{pair}", use_container_width=True, type=btn_type):
+            st.session_state.selected_pair = pair
+            st.rerun()
 
 selected_asset = st.session_state.selected_pair
 
-# Timeframe compact selector
+# Timeframe compact radio
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 @st.cache_data(ttl=10)
@@ -133,9 +138,9 @@ else:
     else:
         signal_type = "HOLD"
 
-    # Price banner compact
+    # Price banner
     st.markdown(f"""
-        <div style="background: #121824; padding: 5px 8px; border-radius: 6px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px;">
+        <div style="background: #121824; padding: 4px 6px; border-radius: 4px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
             <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
             <span style="color: {'#3fb950' if price_change >= 0 else '#f85149'}; font-weight:bold;">
                 {current_price:.5f} ({'+' if price_change >= 0 else ''}{price_change_pct:.2f}%)
@@ -143,15 +148,15 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Signal Card (Only UP or DOWN)
+    # Signal Card
     if signal_type == "UP":
-        st.markdown('<div class="signal-card-up"><h2 style="margin:0; font-size:22px;">UP</h2></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-up"><h3 style="margin:0; font-size:18px;">UP</h3></div>', unsafe_allow_html=True)
     elif signal_type == "DOWN":
-        st.markdown('<div class="signal-card-down"><h2 style="margin:0; font-size:22px;">DOWN</h2></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-down"><h3 style="margin:0; font-size:18px;">DOWN</h3></div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="signal-card-wait"><h2 style="margin:0; font-size:18px;">HOLD</h2></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:16px;">HOLD</h3></div>', unsafe_allow_html=True)
 
-    # Indicators compact rows
+    # Indicators compact
     indicators = [
         ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
         ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
@@ -163,6 +168,6 @@ else:
         st.markdown(f"""
             <div class="indicator-row">
                 <span style="color: #8b949e;">{name}</span>
-                <span><b style="color: #ffffff; margin-right: 4px;">{val}</b> {status}</span>
+                <span><b style="color: #ffffff; margin-right: 3px;">{val}</b> {status}</span>
             </div>
         """, unsafe_allow_html=True)
