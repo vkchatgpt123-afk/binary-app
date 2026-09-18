@@ -30,20 +30,52 @@ st.markdown("""
         border: 1px solid #60a5fa !important;
     }
     
-    .signal-up { background: #10b981; padding: 12px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 22px; margin: 4px 0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
-    .signal-down { background: #ef4444; padding: 12px; border-radius: 8px; text-align: center; color: white; font-weight: 800; font-size: 22px; margin: 4px 0; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
-    .signal-hold { background: #1f2937; border: 1px solid #374151; padding: 12px; border-radius: 8px; text-align: center; color: #9ca3af; font-weight: 800; font-size: 18px; margin: 4px 0; }
+    .signal-up { 
+        background: linear-gradient(135deg, #059669, #10b981); 
+        padding: 10px; 
+        border-radius: 6px; 
+        text-align: center; 
+        color: #ffffff; 
+        font-weight: 900; 
+        font-size: 20px; 
+        margin: 4px 0; 
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.7);
+        border: 1px solid #34d399;
+    }
+    .signal-down { 
+        background: linear-gradient(135deg, #dc2626, #ef4444); 
+        padding: 10px; 
+        border-radius: 6px; 
+        text-align: center; 
+        color: #ffffff; 
+        font-weight: 900; 
+        font-size: 20px; 
+        margin: 4px 0; 
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.7);
+        border: 1px solid #f87171;
+    }
+    .signal-hold { 
+        background: #1f2937; 
+        border: 1px solid #374151; 
+        padding: 10px; 
+        border-radius: 6px; 
+        text-align: center; 
+        color: #fbbf24; 
+        font-weight: 800; 
+        font-size: 16px; 
+        margin: 4px 0; 
+    }
     
     .status-bar {
-        background: #1f2937;
+        background: #111827;
         padding: 6px 10px;
-        border-radius: 6px;
-        border: 1px solid #374151;
+        border-radius: 5px;
+        border: 1px solid #1f293d;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 6px;
-        font-size: 12px;
+        margin-bottom: 3px;
+        font-size: 11px;
         font-weight: bold;
     }
     .indicator-row { 
@@ -108,7 +140,8 @@ st.markdown(f'''
     </div>
 ''', unsafe_allow_html=True)
 
-timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
+# Kept only 2m and 5m as requested
+timeframe = st.radio("TF", ["2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 df = load_data(selected_asset, timeframe)
 
@@ -137,7 +170,6 @@ if df is not None and not df.empty:
         is_bullish_candles = bool((recent["Close"] > recent["Open"]).all())
         is_bearish_candles = bool((recent["Close"] < recent["Open"]).all())
         
-        # Additional Professional Indicators for 100% Precision filtering
         ema_50 = c.ewm(span=50, adjust=False).mean().iloc[-1]
         delta = c.diff()
         gain = delta.clip(lower=0)
@@ -146,7 +178,6 @@ if df is not None and not df.empty:
         avg_loss = loss.rolling(14).mean().iloc[-1]
         rsi_14 = float(100 - (100 / (1 + (avg_gain / (avg_loss + 1e-10)))))
 
-        # Strict Multi-layered Institutional Checks
         checks_down = {
             "4 consecutive bullish candles": is_bullish_candles,
             "Body size >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
@@ -224,16 +255,17 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 if signal_type == "UP":
-    st.markdown('<div class="signal-up">BUY / REVERSAL UP 🚀</div>', unsafe_allow_html=True)
+    st.markdown('<div class="signal-up">🚀 BUY / REVERSAL UP 🟢</div>', unsafe_allow_html=True)
 elif signal_type == "DOWN":
-    st.markdown('<div class="signal-down">SELL / REVERSAL DOWN 🔻</div>', unsafe_allow_html=True)
+    st.markdown('<div class="signal-down">🔻 SELL / REVERSAL DOWN 🔴</div>', unsafe_allow_html=True)
 else:
     st.markdown('<div class="signal-hold">🛡️ NO TRADE - WAITING FOR SETUP</div>', unsafe_allow_html=True)
 
+# Status and Filter matched to indicator row size style
 st.markdown(f"""
     <div class="status-bar">
-        <span>Status: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
-        <span>Filter: <span style="color: #60a5fa;">{confidence}</span></span>
+        <span style="color: #9ca3af;">Status: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
+        <span>Filter: <b style="color: #60a5fa;">{confidence}</b></span>
     </div>
 """, unsafe_allow_html=True)
 
