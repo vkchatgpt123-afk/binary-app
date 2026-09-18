@@ -3,102 +3,151 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 
-# Page Config
-st.set_page_config(page_title="Pro Binary Signal Panel", page_icon="📈", layout="centered")
+st.set_page_config(page_title="Quotex Signal Bot", page_icon="📈", layout="centered")
 
-st.title("🚀 Pro Binary Options Signal Panel")
-st.markdown("### EMA + RSI + MACD + Bollinger Bands (No Martingale)")
+st.markdown("""
+    <style>
+    .stApp { background-color: #0d1117; color: #ffffff; }
+    .top-header { display: flex; justify-content: space-between; align-items: center; background: #161b22; padding: 10px 15px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px; }
+    .market-badge { background: #21262d; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; border: 1px solid #30363d; }
+    .signal-card-up { background: linear-gradient(135deg, #238636, #2ea043); padding: 20px; border-radius: 12px; text-align: center; color: white; font-weight: bold; box-shadow: 0 0 15px rgba(46,160,67,0.4); }
+    .signal-card-down { background: linear-gradient(135deg, #da3633, #f85149); padding: 20px; border-radius: 12px; text-align: center; color: white; font-weight: bold; box-shadow: 0 0 15px rgba(218,54,51,0.4); }
+    .signal-card-wait { background: linear-gradient(135deg, #9e6a03, #bb8009); padding: 20px; border-radius: 12px; text-align: center; color: white; font-weight: bold; box-shadow: 0 0 15px rgba(187,128,9,0.4); }
+    .indicator-row { background: #161b22; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+    </style>
+""", unsafe_allow_html=True)
 
-# Sidebar for settings
-st.sidebar.header("⚙️ Settings")
-selected_asset = st.sidebar.selectbox(
-    "Select Currency Pair",
-    ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "NZDUSD=X", "USDJPY=X", "BTC-USD"]
-)
+st.markdown("""
+    <div class="top-header">
+        <div>
+            <h3 style="margin:0; color: #58a6ff;">📈 Quotex Signal Bot</h3>
+            <p style="margin:0; font-size:12px; color: #8b949e;">EUR/USD Analysis & Signal</p>
+        </div>
+        <div>
+            <span class="market-badge" style="color: #3fb950;">● Market: LIVE</span>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
-auto_refresh = st.sidebar.checkbox("Auto-Refresh Every 60s", value=False)
+timeframe = st.radio("Timeframe", ["1 Min", "2 Min", "5 Min"], horizontal=True, label_visibility="collapsed")
+selected_asset = st.sidebar.selectbox("Select Currency Pair", ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDJPY=X"])
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=15)
 def load_data(ticker):
     try:
         df = yf.download(ticker, period="1d", interval="1m", progress=False)
-        if df.empty or len(df) < 30:
+        if df.empty or len(df) < 20:
             return None
         if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.droplevel(1)
+            df.columns = df.columns.get_level_values(0)
         return df
-    except Exception:
+    except:
         return None
 
-# Main Panel
 df = load_data(selected_asset)
 
 if df is None:
-    st.error("❌ Data fetch karne me dikkat ya market band hai. Kripya baad me koshish karein.")
+    st.error("⚠️ Data fetch karne me samasya aa rahi hai.")
 else:
     close = df['Close']
-    
-    # Indicators
-    sma_20 = close.rolling(20).mean()
-    std_20 = close.rolling(20).std()
-    upper_band = sma_20 + (std_20 * 2)
-    lower_band = sma_20 - (std_20 * 2)
-    
-    ema_9 = close.ewm(span=9, adjust=False).mean()
-    ema_21 = close.ewm(span=21, adjust=False).mean()
+    current_price = close.iloc[-1]
+    prev_price = close.iloc[-2]
+    price_change = current_price - prev_price
+    price_change_pct = (price_change / prev_price) * 100
+
+    sma_20 = close.rolling(20).mean().iloc[-1]
+    ema_12 = close.ewm(span=12).mean().iloc[-1]
     
     delta = close.diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(14).mean()
-    avg_loss = loss.rolling(14).mean()
+    avg_gain = gain.rolling(14).mean().iloc[-1]
+    avg_loss = loss.rolling(14).mean().iloc[-1]
     rs = avg_gain / (avg_loss + 1e-10)
-    rsi = 100 - (100 / (1 + rs))
-    
+    rsi_14 = 100 - (100 / (1 + rs))
+
     exp1 = close.ewm(span=12, adjust=False).mean()
     exp2 = close.ewm(span=26, adjust=False).mean()
-    macd = exp1 - exp2
-    sig_line = macd.ewm(span=9, adjust=False).mean()
-    
-    res = pd.DataFrame({
-        'Close': close, 'RSI': rsi, 'MACD': macd, 
-        'Sig_Line': sig_line, 'EMA_9': ema_9, 
-        'EMA_21': ema_21, 'SMA_20': sma_20,
-        'Upper': upper_band, 'Lower': lower_band
-    }).dropna()
-    
-    signal = '⏳ HOLD (WAIT - No Clear Setup)'
-    
-    call_cond = (res['EMA_9'].iloc[-1] > res['EMA_21'].iloc[-1]) & (res['RSI'].iloc[-1] > 45) & (res['RSI'].iloc[-1] < 65) & (res['MACD'].iloc[-1] > res['Sig_Line'].iloc[-1]) & (res['Close'].iloc[-1] > res['SMA_20'].iloc[-1]) & (res['Close'].iloc[-1] < res['Upper'].iloc[-1])
-    
-    put_cond = (res['EMA_9'].iloc[-1] < res['EMA_21'].iloc[-1]) & (res['RSI'].iloc[-1] > 35) & (res['RSI'].iloc[-1] < 55) & (res['MACD'].iloc[-1] < res['Sig_Line'].iloc[-1]) & (res['Close'].iloc[-1] < res['SMA_20'].iloc[-1]) & (res['Close'].iloc[-1] > res['Lower'].iloc[-1])
-    
-    if call_cond:
-        signal = '🟢 STRONG CALL (UP)'
-    elif put_cond:
-        signal = '🔴 STRONG PUT (DOWN)'
-        
-    latest_close = close.iloc[-1]
-    latest_rsi = rsi.iloc[-1]
-    latest_macd = macd.iloc[-1]
-    latest_sig = sig_line.iloc[-1]
-    
-    # UI Display Cards
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    col1.metric("💰 Current Price", f"{latest_close:.5f}")
-    col2.metric("📈 RSI Value", f"{latest_rsi:.2f}")
-    
-    macd_status = "Bullish 🚀" if latest_macd > latest_sig else "Bearish 🔻"
-    st.info(f"⚡ **MACD Status:** {macd_status}")
-    
-    st.markdown("### 🎯 Final Signal Status:")
-    if "STRONG CALL" in signal:
-        st.success(f"### {signal}")
-    elif "STRONG PUT" in signal:
-        st.error(f"### {signal}")
+    macd_val = (exp1 - exp2).iloc[-1]
+    sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
+    macd_status = "Bullish" if macd_val > sig_val else "Bearish"
+
+    std_20 = close.rolling(20).std().iloc[-1]
+    upper_band = sma_20 + (std_20 * 2)
+    lower_band = sma_20 - (std_20 * 2)
+    bb_status = "Price above middle" if current_price > sma_20 else "Price below middle"
+
+    if rsi_14 > 55 and macd_status == "Bullish":
+        market_state, confidence, signal_type = "UPTREND", "HIGH", "UP"
+    elif rsi_14 < 45 and macd_status == "Bearish":
+        market_state, confidence, signal_type = "DOWNTREND", "HIGH", "DOWN"
     else:
-        st.warning(f"### {signal}")
-        
+        market_state, confidence, signal_type = "SIDEWAYS", "LOW", "HOLD"
+
+    st.markdown(f"""
+        <div style="background: #161b22; padding: 12px; border-radius: 10px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div><h4 style="margin:0; color: #8b949e;">{selected_asset.replace('=X', '')} (OTC/Live)</h4></div>
+            <div style="text-align: right;">
+                <h3 style="margin:0; color: #ffffff;">{current_price:.5f}</h3>
+                <span style="color: {'#3fb950' if price_change >= 0 else '#f85149'}; font-size: 13px; font-weight: bold;">
+                    {'+' if price_change >= 0 else ''}{price_change:.5f} ({'+' if price_change_pct >= 0 else ''}{price_change_pct:.2f}%)
+                </span>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"""
+            <div style="background: #161b22; padding: 10px; border-radius: 8px; border: 1px solid #30363d; text-align: center;">
+                <p style="margin:0; font-size:11px; color:#8b949e;">Market State</p>
+                <h4 style="margin:0; color: {'#3fb950' if market_state=='UPTREND' else '#f85149' if market_state=='DOWNTREND' else '#d29922'};">{market_state}</h4>
+            </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
+            <div style="background: #161b22; padding: 10px; border-radius: 8px; border: 1px solid #30363d; text-align: center;">
+                <p style="margin:0; font-size:11px; color:#8b949e;">Confidence</p>
+                <h4 style="margin:0; color: {'#3fb950' if confidence=='HIGH' else '#d29922'};">{confidence}</h4>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.write("")
+
+    if signal_type == "UP":
+        st.markdown('<div class="signal-card-up"><h2>🚀 UP (CALL / BUY)</h2><p style="margin:0; font-size:13px;">Strong Bullish Momentum Detected</p></div>', unsafe_allow_html=True)
+    elif signal_type == "DOWN":
+        st.markdown('<div class="signal-card-down"><h2>🔻 DOWN (PUT / SELL)</h2><p style="margin:0; font-size:13px;">Strong Bearish Momentum Detected</p></div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="signal-card-wait"><h2>⏳ NO TRADE / HOLD</h2><p style="margin:0; font-size:13px;">Market clear nahi hai, Wait karo</p></div>', unsafe_allow_html=True)
+
+    st.write("")
+    st.markdown("### 📊 Indicator Breakdown")
+
+    indicators = [
+        ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
+        ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
+        ("RSI 14", f"{rsi_14:.1f}", "🟢" if rsi_14 > 50 else "🔴"),
+        ("MACD", macd_status, "🟢" if macd_status == "Bullish" else "🔴"),
+        ("Bollinger Bands", bb_status, "⚪")
+    ]
+
+    for name, val, status in indicators:
+        st.markdown(f"""
+            <div class="indicator-row">
+                <span style="color: #8b949e;">{name}</span>
+                <span><b>{val}</b> {status}</span>
+            </div>
+        """, unsafe_allow_html=True)
+
     st.markdown("---")
-    st.caption("💡 **Rule Reminder:** 2-3 minute expiry, Mon-Fri peak volume only, strictly NO Martingale, 1-2% risk per trade.")
+    st.markdown("""
+        <div style="background: #161b22; padding: 12px; border-radius: 8px; border: 1px solid #30363d;">
+            <p style="margin:0; font-weight:bold; color: #58a6ff; font-size: 13px;">💡 Important Rules:</p>
+            <ul style="margin:5px 0 0 0; padding-left: 15px; font-size: 12px; color: #8b949e;">
+                <li>Ye bot sirf signal deta hai.</li>
+                <li>Trade aapko khud manually place karna hai.</li>
+                <li>Strictly NO Martingale, 1-2% risk per trade.</li>
+            </ul>
+        </div>
+    """, unsafe_allow_html=True)
