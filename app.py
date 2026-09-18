@@ -11,7 +11,7 @@ st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown("""
     <style>
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.1rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 0.5rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
     .pairs-flex {
         display: flex;
