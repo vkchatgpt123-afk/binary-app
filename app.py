@@ -5,14 +5,13 @@ import numpy as np
 
 st.set_page_config(page_title="Pro Reversal Terminal", page_icon="⚡", layout="centered")
 
-# Custom CSS for Professional Neon Glow UI & Layout
 st.markdown("""
     <style>
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    .pairs-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
-    .pairs-row { display: flex; justify-content: space-between; gap: 4px; }
+    .pairs-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; margin-top: 5px; }
+    .pairs-row { display: flex; justify-content: space-between; gap: 4px; width: 100%; }
     .pair-btn {
         flex: 1;
         background: #1f2937;
@@ -115,13 +114,13 @@ selected_asset = st.session_state.selected_pair
 @st.cache_data(ttl=5)
 def load_data(ticker, interval_val):
     try:
-        df = yf.download(ticker, period="3d", interval=interval_val, progress=False, auto_adjust=False, threads=False)
-        if df.empty or len(df) < 150:
+        df = yf.download(ticker, period="5d", interval=interval_val, progress=False, auto_adjust=False, threads=False)
+        if df is None or df.empty:
             return None
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
         return df
-    except:
+    except Exception:
         return None
 
 row1 = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
@@ -146,97 +145,107 @@ timeframe = st.radio("TF", ["2m", "5m"], horizontal=True, label_visibility="coll
 
 df = load_data(selected_asset, timeframe)
 
+# Fallback & Safety Defaults
 checks_down = {}
 checks_up = {}
 signal_type = "HOLD"
 market_state = "FILTERING NOISE / WAIT ⏳"
 confidence = "ZERO RISK MODE"
 total_candles = 0
-atr_last = 0.0
+atr_last = 0.0001
+current_price, price_change_pct = 1.0000, 0.0
+sma_20, ema_12, bb_lower, bb_upper, rsi_14 = 1.0000, 1.0000, 0.9900, 1.0100, 50.0
+macd_status = "Neutral"
+is_fallback_active = False
 
 if df is not None and not df.empty:
     needed = ["Open", "High", "Low", "Close"]
-    df = df.dropna(subset=[x for x in needed if x in df.columns])
-    df = df[~df.index.duplicated(keep="last")]
-    total_candles = len(df)
-    
-    if total_candles >= 150:
-        data = df.iloc[:-1].copy()
-        o, h, l, c = [data[x].astype(float) for x in needed]
+    available_cols = [x for x in needed if x in df.columns]
+    if len(available_cols) == 4:
+        df = df.dropna(subset=available_cols)
+        df = df[~df.index.duplicated(keep="last")]
+        total_candles = len(df)
         
-        tr = pd.concat([(h-l), (h-c.shift()).abs(), (l-c.shift()).abs()], axis=1).max(axis=1)
-        atr = tr.rolling(14).mean()
-        
-        recent = data.iloc[-4:]
-        atr_last = float(atr.iloc[-1])
-        prior_median = float(atr.iloc[-120:-1].median())
-        
-        is_bullish_candles = bool((recent["Close"] > recent["Open"]).all())
-        is_bearish_candles = bool((recent["Close"] < recent["Open"]).all())
-        
-        ema_50 = c.ewm(span=50, adjust=False).mean().iloc[-1]
-        delta = c.diff()
-        gain = delta.clip(lower=0)
-        loss = -delta.clip(upper=0)
-        avg_gain = gain.rolling(14).mean().iloc[-1]
-        avg_loss = loss.rolling(14).mean().iloc[-1]
-        rsi_14 = float(100 - (100 / (1 + (avg_gain / (avg_loss + 1e-10)))))
-
-        checks_down = {
-            "4 consecutive bullish candles": is_bullish_candles,
-            "Body size >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
-            "Close >= 85% of high-low range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) >= .85) if h.iloc[-1] > l.iloc[-1] else False,
-            "Volatility ATR > 1.2 × Median": bool(atr_last > 1.2 * prior_median),
-            "RSI Overbought Zone (>65)": bool(rsi_14 > 65),
-            "Trend Filter (Price > EMA 50)": bool(c.iloc[-1] > ema_50)
-        }
-        
-        checks_up = {
-            "4 consecutive bearish candles": is_bearish_candles,
-            "Body size >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
-            "Close <= 15% of high-low range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) <= .15) if h.iloc[-1] > l.iloc[-1] else False,
-            "Volatility ATR > 1.2 × Median": bool(atr_last > 1.2 * prior_median),
-            "RSI Oversold Zone (<35)": bool(rsi_14 < 35),
-            "Trend Filter (Price < EMA 50)": bool(c.iloc[-1] < ema_50)
-        }
-
-        if all(checks_down.values()):
-            signal_type = "DOWN"
-            market_state = "STRONG REVERSAL DOWN 📉"
-            confidence = "MAXIMUM 🛡️"
-        elif all(checks_up.values()):
-            signal_type = "UP"
-            market_state = "STRONG REVERSAL UP 📈"
-            confidence = "MAXIMUM 🛡️"
-        else:
-            signal_type = "HOLD"
-            market_state = "FILTERING NOISE / WAIT ⏳"
-            confidence = "ZERO RISK MODE"
+        if total_candles > 10:
+            data = df.copy()
+            o, h, l, c = [data[x].astype(float) for x in needed]
             
-        current_price = float(c.iloc[-1])
-        prev_price = float(c.iloc[-2])
-        price_change_pct = ((current_price - prev_price) / prev_price) * 100
-        
-        sma_20 = float(c.rolling(20).mean().iloc[-1])
-        ema_12 = float(c.ewm(span=12, adjust=False).mean().iloc[-1])
-        
-        bb_std = float(c.rolling(20).std().iloc[-1])
-        bb_upper = sma_20 + (bb_std * 2)
-        bb_lower = sma_20 - (bb_std * 2)
+            tr = pd.concat([(h-l), (h-c.shift()).abs(), (l-c.shift()).abs()], axis=1).max(axis=1)
+            atr = tr.rolling(14).mean()
+            
+            recent = data.iloc[-4:] if len(data) >= 4 else data
+            atr_last = float(atr.iloc[-1]) if not pd.isna(atr.iloc[-1]) else 0.001
+            prior_median = float(atr.iloc[-30:-1].median()) if len(data) >= 30 else atr_last
+            
+            is_bullish_candles = bool((recent["Close"] > recent["Open"]).all()) if len(recent) >= 4 else False
+            is_bearish_candles = bool((recent["Close"] < recent["Open"]).all()) if len(recent) >= 4 else False
+            
+            ema_50 = c.ewm(span=50, adjust=False).mean().iloc[-1] if len(c) >= 50 else c.mean()
+            delta = c.diff()
+            gain = delta.clip(lower=0)
+            loss = -delta.clip(upper=0)
+            avg_gain = gain.rolling(14).mean().iloc[-1]
+            avg_loss = loss.rolling(14).mean().iloc[-1]
+            
+            if pd.isna(avg_gain) or pd.isna(avg_loss):
+                rsi_14 = 50.0
+            else:
+                rs = avg_gain / (avg_loss + 1e-10)
+                rsi_14 = float(100 - (100 / (1 + rs)))
 
-        exp1 = c.ewm(span=12, adjust=False).mean()
-        exp2 = c.ewm(span=26, adjust=False).mean()
-        macd_val = (exp1 - exp2).iloc[-1]
-        sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
-        macd_status = "Bullish" if macd_val > sig_val else "Bearish"
+            checks_down = {
+                "4 consecutive bullish candles": is_bullish_candles,
+                "Body size >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
+                "Close >= 85% of high-low range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) >= .85) if h.iloc[-1] > l.iloc[-1] else False,
+                "Volatility ATR > 1.2 × Median": bool(atr_last > 1.2 * prior_median),
+                "RSI Overbought Zone (>65)": bool(rsi_14 > 65),
+                "Trend Filter (Price > EMA 50)": bool(c.iloc[-1] > ema_50)
+            }
+            
+            checks_up = {
+                "4 consecutive bearish candles": is_bearish_candles,
+                "Body size >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
+                "Close <= 15% of high-low range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) <= .15) if h.iloc[-1] > l.iloc[-1] else False,
+                "Volatility ATR > 1.2 × Median": bool(atr_last > 1.2 * prior_median),
+                "RSI Oversold Zone (<35)": bool(rsi_14 < 35),
+                "Trend Filter (Price < EMA 50)": bool(c.iloc[-1] < ema_50)
+            }
+
+            if all(checks_down.values()):
+                signal_type = "DOWN"
+                market_state = "STRONG REVERSAL DOWN 📉"
+                confidence = "MAXIMUM 🛡️"
+            elif all(checks_up.values()):
+                signal_type = "UP"
+                market_state = "STRONG REVERSAL UP 📈"
+                confidence = "MAXIMUM 🛡️"
+            else:
+                signal_type = "HOLD"
+                market_state = "FILTERING NOISE / WAIT ⏳"
+                confidence = "ZERO RISK MODE"
+                
+            current_price = float(c.iloc[-1])
+            prev_price = float(c.iloc[-2]) if len(c) > 1 else current_price
+            price_change_pct = ((current_price - prev_price) / prev_price) * 100 if prev_price > 0 else 0.0
+            
+            sma_20 = float(c.rolling(20).mean().iloc[-1]) if len(c) >= 20 else current_price
+            ema_12 = float(c.ewm(span=12, adjust=False).mean().iloc[-1]) if len(c) >= 12 else current_price
+            
+            bb_std = float(c.rolling(20).std().iloc[-1]) if len(c) >= 20 else 0.001
+            bb_upper = sma_20 + (bb_std * 2)
+            bb_lower = sma_20 - (bb_std * 2)
+
+            exp1 = c.ewm(span=12, adjust=False).mean()
+            exp2 = c.ewm(span=26, adjust=False).mean()
+            macd_val = (exp1 - exp2).iloc[-1]
+            sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
+            macd_status = "Bullish" if macd_val > sig_val else "Bearish"
+        else:
+            is_fallback_active = True
     else:
-        current_price, price_change_pct, signal_type, market_state, confidence = 0.0, 0.0, "HOLD", "LOADING DATA...", "LOW"
-        sma_20, ema_12, bb_lower, bb_upper, rsi_14 = 0, 0, 0, 0, 50
-        macd_status = "Neutral"
+        is_fallback_active = True
 else:
-    current_price, price_change_pct, signal_type, market_state, confidence = 0.0, 0.0, "HOLD", "NO CONNECTION", "LOW"
-    sma_20, ema_12, bb_lower, bb_upper, rsi_14 = 0, 0, 0, 0, 50
-    macd_status = "Neutral"
+    is_fallback_active = True
 
 if not checks_down:
     checks_down = {
@@ -247,6 +256,9 @@ if not checks_down:
         "RSI Overbought Zone (>65)": False,
         "Trend Filter (Price > EMA 50)": False
     }
+
+if is_fallback_active:
+    st.warning("⚠️ Safety Fallback Active: Live data incomplete or market closed. Showing default safety structure.")
 
 clean_name = selected_asset.replace('=X', '')
 st.markdown(f"""
@@ -260,11 +272,9 @@ st.markdown(f"""
 
 if signal_type == "UP":
     st.markdown('<div class="signal-up">🚀 BUY / REVERSAL UP 🟢</div>', unsafe_allow_html=True)
-    # Audio Beep Script for UP Signal
     st.markdown('<audio autoplay="true"><source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg"></audio>', unsafe_allow_html=True)
 elif signal_type == "DOWN":
     st.markdown('<div class="signal-down">🔻 SELL / REVERSAL DOWN 🔴</div>', unsafe_allow_html=True)
-    # Audio Beep Script for DOWN Signal
     st.markdown('<audio autoplay="true"><source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg"></audio>', unsafe_allow_html=True)
 else:
     st.markdown('<div class="signal-hold">🛡️ NO TRADE - WAITING FOR SETUP</div>', unsafe_allow_html=True)
@@ -292,7 +302,6 @@ for name, val, status in indicators:
         </div>
     """, unsafe_allow_html=True)
 
-# Setup checks section
 st.markdown('<div class="section-title">Institutional Setup Checks (Zero-Risk Filter)</div>', unsafe_allow_html=True)
 for check_name, passed in checks_down.items():
     badge = '<span style="color: #34d399; font-weight: bold;">PASS ✅</span>' if passed else '<span style="color: #f87171; font-weight: bold;">WAIT ❌</span>'
@@ -303,7 +312,6 @@ for check_name, passed in checks_down.items():
         </div>
     """, unsafe_allow_html=True)
 
-# Data section
 st.markdown('<div class="section-title">Market Diagnostics</div>', unsafe_allow_html=True)
 data_rows = [
     ("Analyzed Candles", str(total_candles)),
