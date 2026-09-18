@@ -10,7 +10,7 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 2.2rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    /* 2 Rows of 4 Pairs Layout with proper top spacing */
+    /* 2 Rows of 4 Pairs Layout */
     .pairs-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
     .pairs-row { display: flex; justify-content: space-between; gap: 4px; }
     .pair-btn {
@@ -57,6 +57,13 @@ st.markdown("""
         justify-content: space-between; 
         align-items: center; 
         font-size: 11px;
+    }
+    .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 14px;
+        margin-bottom: 6px;
+        color: #ffffff;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -106,12 +113,19 @@ timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility
 
 df = load_data(selected_asset, timeframe)
 
+# Initialize check variables dictionary
+checks_down = {}
+checks_up = {}
+total_candles = 0
+atr_last = 0.0
+
 if df is not None and not df.empty:
     needed = ["Open", "High", "Low", "Close"]
     df = df.dropna(subset=[x for x in needed if x in df.columns])
     df = df[~df.index.duplicated(keep="last")]
+    total_candles = len(df)
     
-    if len(df) >= 116:
+    if total_candles >= 116:
         data = df.iloc[:-1].copy()
         o, h, l, c = [data[x].astype(float) for x in needed]
         
@@ -122,25 +136,33 @@ if df is not None and not df.empty:
         atr_last = float(atr.iloc[-1])
         prior_median = float(atr.iloc[-101:-1].median())
         
-        checks_down = {
-            "4 consecutive bullish candles": bool((recent["Close"] > recent["Open"]).all()),
-            "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
-            "Close >= 85% of range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) >= .85) if h.iloc[-1] > l.iloc[-1] else False,
-            "ATR > 1.2 × prior median": bool(atr_last > 1.2 * prior_median)
-        }
+        # Check active signal direction (优先判断 Bullish ya Bearish setup me se kaunsa kareeb hai)
+        is_bullish_candles = bool((recent["Close"] > recent["Open"]).all())
+        is_bearish_candles = bool((recent["Close"] < recent["Open"]).all())
         
-        checks_up = {
-            "4 consecutive bearish candles": bool((recent["Close"] < recent["Open"]).all()),
-            "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
-            "Close <= 15% of range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) <= .15) if h.iloc[-1] > l.iloc[-1] else False,
-            "ATR > 1.2 × prior median": bool(atr_last > 1.2 * prior_median)
-        }
+        # Default view ke liye checks_down ya checks_up set karenge
+        if is_bullish_candles or not is_bearish_candles:
+            checks_down = {
+                "4 consecutive bullish candles": bool((recent["Close"] > recent["Open"]).all()),
+                "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
+                "Close >= 85% of range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) >= .85) if h.iloc[-1] > l.iloc[-1] else False,
+                "ATR > 1.2 × prior median": bool(atr_last > 1.2 * prior_median)
+            }
+            active_checks = checks_down
+        else:
+            checks_up = {
+                "4 consecutive bearish candles": bool((recent["Close"] < recent["Open"]).all()),
+                "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
+                "Close <= 15% of range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) <= .15) if h.iloc[-1] > l.iloc[-1] else False,
+                "ATR > 1.2 × prior median": bool(atr_last > 1.2 * prior_median)
+            }
+            active_checks = checks_up
 
-        if all(checks_down.values()):
+        if all(checks_down.get(k, False) for k in checks_down) and len(checks_down) > 0:
             signal_type = "DOWN"
             market_state = "REVERSAL DOWN 📉"
             confidence = "HIGH 🔥"
-        elif all(checks_up.values()):
+        elif all(checks_up.get(k, False) for k in checks_up) and len(checks_up) > 0:
             signal_type = "UP"
             market_state = "REVERSAL UP 📈"
             confidence = "HIGH 🔥"
@@ -148,6 +170,14 @@ if df is not None and not df.empty:
             signal_type = "HOLD"
             market_state = "SIDEWAYS / WAIT ↔️"
             confidence = "LOW ⚠️"
+            # Agar koi bhi match na ho toh default checks_down dikhayein UI par status ke liye
+            if not checks_down:
+                checks_down = {
+                    "4 consecutive bullish 5M candles": is_bullish_candles,
+                    "Last body >= 1.5 × ATR": bool(abs(o.iloc[-1] - c.iloc[-1]) >= 1.5 * atr_last),
+                    "Close >= 85% of range": bool((c.iloc[-1] - l.iloc[-1]) / (h.iloc[-1] - l.iloc[-1]) >= .85) if h.iloc[-1] > l.iloc[-1] else False,
+                    "ATR > 1.2 × prior 100 ATR median": bool(atr_last > 1.2 * prior_median)
+                }
             
         current_price = float(c.iloc[-1])
         prev_price = float(c.iloc[-2])
@@ -182,6 +212,15 @@ else:
     sma_20, ema_12, bb_lower, bb_upper, rsi_14 = 0, 0, 0, 0, 50
     macd_status = "Neutral"
 
+# Fallback dictionary for display if empty
+if not checks_down:
+    checks_down = {
+        "4 consecutive bullish 5M candles": False,
+        "Last body >= 1.5 × ATR": False,
+        "Close >= 85% of range": False,
+        "ATR > 1.2 × prior 100 ATR median": False
+    }
+
 clean_name = selected_asset.replace('=X', '')
 st.markdown(f"""
     <div style="background: #1f2937; padding: 6px 10px; border-radius: 6px; border: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 12px;">
@@ -206,6 +245,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
+# Standard Indicators
 indicators = [
     ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
     ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
@@ -219,6 +259,31 @@ for name, val, status in indicators:
         <div class="indicator-row">
             <span style="color: #9ca3af;">{name}</span>
             <span><b style="color: #ffffff; margin-right: 6px;">{val}</b> {status}</span>
+        </div>
+    """, unsafe_allow_html=True)
+
+# --- NEW SECTION: Setup checks ---
+st.markdown('<div class="section-title">Setup checks</div>', unsafe_allow_html=True)
+for check_name, passed in checks_down.items():
+    badge = '<span style="color: #34d399; font-weight: bold;">PASS ✅</span>' if passed else '<span style="color: #f87171; font-weight: bold;">FAIL ❌</span>'
+    st.markdown(f"""
+        <div class="indicator-row">
+            <span style="color: #d1d5db;">{check_name}</span>
+            <span>{badge}</span>
+        </div>
+    """, unsafe_allow_html=True)
+
+# --- NEW SECTION: Data ---
+st.markdown('<div class="section-title">Data</div>', unsafe_allow_html=True)
+data_rows = [
+    ("Completed candles", str(total_candles)),
+    ("ATR(14)", f"{atr_last:.6f}")
+]
+for name, val in data_rows:
+    st.markdown(f"""
+        <div class="indicator-row">
+            <span style="color: #d1d5db;">{name}</span>
+            <span><b style="color: #ffffff;">{val}</b></span>
         </div>
     """, unsafe_allow_html=True)
 
