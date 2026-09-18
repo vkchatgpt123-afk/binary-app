@@ -36,7 +36,7 @@ st.markdown("""
     
     .signal-card-up { 
         background: linear-gradient(135deg, #0e4429, #1b7a43); 
-        padding: 4px; 
+        padding: 5px; 
         border-radius: 5px; 
         text-align: center; 
         color: white; 
@@ -46,7 +46,7 @@ st.markdown("""
     }
     .signal-card-down { 
         background: linear-gradient(135deg, #541212, #8c2020); 
-        padding: 4px; 
+        padding: 5px; 
         border-radius: 5px; 
         text-align: center; 
         color: white; 
@@ -56,7 +56,7 @@ st.markdown("""
     }
     .signal-card-wait { 
         background: linear-gradient(135deg, #593e02, #946903); 
-        padding: 4px; 
+        padding: 5px; 
         border-radius: 5px; 
         text-align: center; 
         color: white; 
@@ -66,14 +66,14 @@ st.markdown("""
     }
     .status-bar {
         background: #161b22;
-        padding: 5px 8px;
-        border-radius: 5px;
+        padding: 4px 6px;
+        border-radius: 4px;
         border: 1px solid #30363d;
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 3px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: bold;
     }
     .indicator-row { 
@@ -97,41 +97,7 @@ query_params = st.query_params
 if "pair" in query_params:
     st.session_state.selected_pair = query_params["pair"]
 
-# Top header with Reboot & Refresh options
-c_title, c_ref, c_boot = st.columns([2.5, 1, 1])
-with c_title:
-    st.markdown("<h6 style='margin:0; color:#58a6ff;'>⚡ TERMINAL</h6>", unsafe_allow_html=True)
-with c_ref:
-    if st.button("🔄", use_container_width=True, help="Refresh Data"):
-        st.cache_data.clear()
-        st.rerun()
-with c_boot:
-    if st.button("🔌 Reboot", use_container_width=True, help="Reboot Terminal"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.cache_data.clear()
-        st.rerun()
-
-# Render Pairs Grid
-pairs = [
-    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
-    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
-    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
-    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
-]
-
-grid_html = '<div class="pairs-grid">'
-for name, ticker in pairs:
-    is_active = (st.session_state.selected_pair == ticker)
-    active_class = " pair-btn-active" if is_active else ""
-    grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
-grid_html += '</div>'
-
-st.markdown(grid_html, unsafe_allow_html=True)
 selected_asset = st.session_state.selected_pair
-
-# Timeframe compact radio
-timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 @st.cache_data(ttl=5)
 def load_data(ticker, interval_val):
@@ -145,22 +111,20 @@ def load_data(ticker, interval_val):
     except:
         return None
 
+# Temporary timeframe to fetch data for top banner & signal calculation
+timeframe = "1m"
 df = load_data(selected_asset, timeframe)
 
-if df is None:
-    st.error("Data error")
-else:
+if df is not None:
     close = df['Close']
     current_price = close.iloc[-1]
     prev_price = close.iloc[-2]
     price_change = current_price - prev_price
     price_change_pct = (price_change / prev_price) * 100
 
-    # Indicators
     sma_20 = close.rolling(20).mean().iloc[-1]
     ema_12 = close.ewm(span=12).mean().iloc[-1]
     
-    # Bollinger Bands
     bb_std = close.rolling(20).std().iloc[-1]
     bb_upper = sma_20 + (bb_std * 2)
     bb_lower = sma_20 - (bb_std * 2)
@@ -179,7 +143,6 @@ else:
     sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
     macd_status = "Bullish" if macd_val > sig_val else "Bearish"
 
-    # Market State & Confidence
     if rsi_14 > 55 and macd_status == "Bullish":
         market_state = "UPTREND 📈"
         confidence = "HIGH 🔥"
@@ -192,34 +155,81 @@ else:
         market_state = "SIDEWAYS ↔️"
         confidence = "LOW ⚠️"
         signal_type = "HOLD"
+else:
+    current_price, price_change_pct, signal_type, market_state, confidence = 0, 0, "HOLD", "SIDEWAYS", "LOW"
 
-    # Price banner
-    st.markdown(f"""
-        <div style="background: #121824; padding: 3px 6px; border-radius: 4px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
-            <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
-            <span style="color: {'#3fb950' if price_change >= 0 else '#f85149'}; font-weight:bold;">
-                {current_price:.5f} ({'+' if price_change >= 0 else ''}{price_change_pct:.2f}%)
-            </span>
-        </div>
-    """, unsafe_allow_html=True)
+# 1. TOP: Signal Card & Price Banner
+st.markdown(f"""
+    <div style="background: #121824; padding: 3px 6px; border-radius: 4px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
+        <span><b>{selected_asset.replace('=X', '')}</b></span>
+        <span style="color: {'#3fb950' if price_change_pct >= 0 else '#f85149'}; font-weight:bold;">
+            {current_price:.5f} ({'+' if price_change_pct >= 0 else ''}{price_change_pct:.2f}%)
+        </span>
+    </div>
+""", unsafe_allow_html=True)
 
-    # Signal Card
-    if signal_type == "UP":
-        st.markdown('<div class="signal-card-up"><h3 style="margin:0; font-size:16px;">UP</h3></div>', unsafe_allow_html=True)
-    elif signal_type == "DOWN":
-        st.markdown('<div class="signal-card-down"><h3 style="margin:0; font-size:16px;">DOWN</h3></div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:14px;">HOLD</h3></div>', unsafe_allow_html=True)
+if signal_type == "UP":
+    st.markdown('<div class="signal-card-up"><h3 style="margin:0; font-size:16px;">UP</h3></div>', unsafe_allow_html=True)
+elif signal_type == "DOWN":
+    st.markdown('<div class="signal-card-down"><h3 style="margin:0; font-size:16px;">DOWN</h3></div>', unsafe_allow_html=True)
+else:
+    st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:14px;">HOLD</h3></div>', unsafe_allow_html=True)
 
-    # Proper Status Bar (Market State & Confidence)
-    st.markdown(f"""
-        <div class="status-bar">
-            <span>State: <span style="color: {'#3fb950' if 'UP' in market_state else '#f85149' if 'DOWN' in market_state else '#f0b429'};">{market_state}</span></span>
-            <span>Conf: <span style="color: #58a6ff;">{confidence}</span></span>
-        </div>
-    """, unsafe_allow_html=True)
+# 2. USKE NICHE: Pairs Grid Box
+pairs = [
+    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
+    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
+    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
+    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
+]
 
-    # Indicators compact list
+grid_html = '<div class="pairs-grid">'
+for name, ticker in pairs:
+    is_active = (selected_asset == ticker)
+    active_class = " pair-btn-active" if is_active else ""
+    grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
+grid_html += '</div>'
+
+st.markdown(grid_html, unsafe_allow_html=True)
+
+# 3. USKE NICHE: Timeframe (1m, 2m, 5m)
+timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
+
+# Reload data with selected timeframe
+df = load_data(selected_asset, timeframe)
+
+# 4. USKE NICHE: Indicators & Status Bar
+st.markdown(f"""
+    <div class="status-bar">
+        <span>State: <span style="color: {'#3fb950' if 'UP' in market_state else '#f85149' if 'DOWN' in market_state else '#f0b429'};">{market_state}</span></span>
+        <span>Conf: <span style="color: #58a6ff;">{confidence}</span></span>
+        <span>Share: <span style="color: #3fb950;">Active</span></span>
+    </div>
+""", unsafe_allow_html=True)
+
+if df is not None:
+    close = df['Close']
+    current_price = close.iloc[-1]
+    sma_20 = close.rolling(20).mean().iloc[-1]
+    ema_12 = close.ewm(span=12).mean().iloc[-1]
+    bb_std = close.rolling(20).std().iloc[-1]
+    bb_upper = sma_20 + (bb_std * 2)
+    bb_lower = sma_20 - (bb_std * 2)
+    
+    delta = close.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.rolling(14).mean().iloc[-1]
+    avg_loss = loss.rolling(14).mean().iloc[-1]
+    rs = avg_gain / (avg_loss + 1e-10)
+    rsi_14 = 100 - (100 / (1 + rs))
+
+    exp1 = close.ewm(span=12, adjust=False).mean()
+    exp2 = close.ewm(span=26, adjust=False).mean()
+    macd_val = (exp1 - exp2).iloc[-1]
+    sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
+    macd_status = "Bullish" if macd_val > sig_val else "Bearish"
+
     indicators = [
         ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
         ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
@@ -235,3 +245,13 @@ else:
                 <span><b style="color: #ffffff; margin-right: 3px;">{val}</b> {status}</span>
             </div>
         """, unsafe_allow_html=True)
+
+# 5. USKE NICHE: Auto-Refresh Interval
+auto_refresh = st.selectbox("Auto Refresh", ["1 min", "2 min", "5 min"], label_visibility="collapsed")
+
+# 6. USKE NICHE: Reboot App Option
+if st.button("🔌 Reboot Terminal", use_container_width=True):
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.cache_data.clear()
+    st.rerun()
