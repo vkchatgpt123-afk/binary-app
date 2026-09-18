@@ -5,102 +5,86 @@ import numpy as np
 
 st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="centered")
 
-# Custom Styling for Clean Trading Terminal
 st.markdown("""
     <style>
     .stApp { background: #0b0e14; color: #ffffff; font-family: sans-serif; }
-    
-    .terminal-header { 
-        background: #121824; 
-        padding: 10px 15px; 
-        border-radius: 10px; 
-        border: 1px solid #1f293d; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        margin-bottom: 10px; 
-    }
+    .block-container { padding-top: 0.8rem !important; padding-bottom: 0.8rem !important; }
     
     .signal-card-up { 
         background: linear-gradient(135deg, #0e4429, #1b7a43); 
-        padding: 20px; 
-        border-radius: 12px; 
+        padding: 8px; 
+        border-radius: 6px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
-        border: 2px solid #2ea043;
-        box-shadow: 0 0 20px rgba(46, 160, 67, 0.4);
-        margin-bottom: 10px;
+        border: 1px solid #2ea043;
+        margin-bottom: 4px;
     }
-    
     .signal-card-down { 
         background: linear-gradient(135deg, #541212, #8c2020); 
-        padding: 20px; 
-        border-radius: 12px; 
+        padding: 8px; 
+        border-radius: 6px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
-        border: 2px solid #da3633;
-        box-shadow: 0 0 20px rgba(218, 54, 51, 0.4);
-        margin-bottom: 10px;
+        border: 1px solid #da3633;
+        margin-bottom: 4px;
     }
-    
     .signal-card-wait { 
         background: linear-gradient(135deg, #593e02, #946903); 
-        padding: 20px; 
-        border-radius: 12px; 
+        padding: 8px; 
+        border-radius: 6px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
-        border: 2px solid #bb8009;
-        box-shadow: 0 0 20px rgba(187, 128, 9, 0.4);
-        margin-bottom: 10px;
+        border: 1px solid #bb8009;
+        margin-bottom: 4px;
     }
-
     .indicator-row { 
         background: #121824; 
-        padding: 8px 12px; 
-        border-radius: 8px; 
-        margin-bottom: 6px; 
+        padding: 4px 8px; 
+        border-radius: 6px; 
+        margin-bottom: 3px; 
         border: 1px solid #1f293d; 
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        font-size: 13px;
+        font-size: 11px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Session state for selected pair
 if 'selected_pair' not in st.session_state:
     st.session_state.selected_pair = "EURUSD=X"
 
-# Top Header with Refresh Button
-col_h1, col_h2 = st.columns([3, 1])
-with col_h1:
-    st.markdown("<h4 style='margin:0; color:#58a6ff;'>⚡ PRO TRADING TERMINAL</h4>", unsafe_allow_html=True)
-with col_h2:
-    if st.button("🔄 Refresh", use_container_width=True):
+# Top row: Title and Refresh button compact
+c_title, c_ref = st.columns([3, 1])
+with c_title:
+    st.markdown("<h5 style='margin:0; color:#58a6ff;'>⚡ PRO TERMINAL</h5>", unsafe_allow_html=True)
+with c_ref:
+    if st.button("🔄", use_container_width=True):
         st.rerun()
 
-# Currency Pairs Grid Layout on Main Screen
-st.markdown("<p style='font-size:11px; color:#8b949e; margin-bottom:4px;'>SELECT CURRENCY PAIR:</p>", unsafe_allow_html=True)
+# Currency pairs in 4 columns grid (2 rows for 8 pairs) to save vertical space
 pairs = ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDJPY=X", "USDCAD=X", "NZDUSD=X", "EURJPY=X", "GBPJPY=X"]
 
-cols = st.columns(4)
-for idx, pair in enumerate(pairs):
-    clean_name = pair.replace('=X', '')
-    is_selected = (st.session_state.selected_pair == pair)
-    with cols[idx % 4]:
-        btn_type = "primary" if is_selected else "secondary"
-        if st.button(clean_name, key=f"p_{pair}", use_container_width=True, type=btn_type):
-            st.session_state.selected_pair = pair
-            st.rerun()
+for i in range(0, len(pairs), 4):
+    cols = st.columns(4)
+    for j in range(4):
+        if i + j < len(pairs):
+            pair = pairs[i + j]
+            clean_name = pair.replace('=X', '')
+            is_selected = (st.session_state.selected_pair == pair)
+            with cols[j]:
+                btn_type = "primary" if is_selected else "secondary"
+                if st.button(clean_name, key=f"btn_{pair}", use_container_width=True, type=btn_type):
+                    st.session_state.selected_pair = pair
+                    st.rerun()
 
 selected_asset = st.session_state.selected_pair
 
-# Timeframe Selector
-timeframe = st.radio("Timeframe", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
+# Timeframe compact selector
+timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 @st.cache_data(ttl=10)
 def load_data(ticker, interval_val):
@@ -117,7 +101,7 @@ def load_data(ticker, interval_val):
 df = load_data(selected_asset, timeframe)
 
 if df is None:
-    st.error("⚠️ Data load karne me samasya aa rahi hai.")
+    st.error("Data error")
 else:
     close = df['Close']
     current_price = close.iloc[-1]
@@ -143,15 +127,15 @@ else:
     macd_status = "Bullish" if macd_val > sig_val else "Bearish"
 
     if rsi_14 > 55 and macd_status == "Bullish":
-        market_state, confidence, signal_type = "UPTREND", "HIGH 🔥", "UP"
+        signal_type = "UP"
     elif rsi_14 < 45 and macd_status == "Bearish":
-        market_state, confidence, signal_type = "DOWNTREND", "HIGH 🔥", "DOWN"
+        signal_type = "DOWN"
     else:
-        market_state, confidence, signal_type = "SIDEWAYS", "LOW ⚠️", "HOLD"
+        signal_type = "HOLD"
 
-    # Price Banner
+    # Price banner compact
     st.markdown(f"""
-        <div class="terminal-header" style="margin-top: 8px;">
+        <div style="background: #121824; padding: 5px 8px; border-radius: 6px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px;">
             <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
             <span style="color: {'#3fb950' if price_change >= 0 else '#f85149'}; font-weight:bold;">
                 {current_price:.5f} ({'+' if price_change >= 0 else ''}{price_change_pct:.2f}%)
@@ -159,37 +143,26 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Signal Card Display (Sirf UP ya DOWN)
+    # Signal Card (Only UP or DOWN)
     if signal_type == "UP":
-        st.markdown('<div class="signal-card-up"><h1 style="margin:0; font-size:32px; letter-spacing: 1px;">🟢 UP</h1><p style="margin:4px 0 0 0; font-size:12px; color:#d1fae5;">Strong Bullish Momentum</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-up"><h2 style="margin:0; font-size:22px;">UP</h2></div>', unsafe_allow_html=True)
     elif signal_type == "DOWN":
-        st.markdown('<div class="signal-card-down"><h1 style="margin:0; font-size:32px; letter-spacing: 1px;">🔴 DOWN</h1><p style="margin:4px 0 0 0; font-size:12px; color:#fee2e2;">Strong Bearish Momentum</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-down"><h2 style="margin:0; font-size:22px;">DOWN</h2></div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="signal-card-wait"><h1 style="margin:0; font-size:26px;">⏳ HOLD</h1><p style="margin:4px 0 0 0; font-size:12px; color:#fef3c7;">Market Sideways - Wait</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-wait"><h2 style="margin:0; font-size:18px;">HOLD</h2></div>', unsafe_allow_html=True)
 
-    # Mini Stats
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown(f"<div style='background:#121824; padding:6px; border-radius:6px; text-align:center; border:1px solid #1f293d;'><p style='margin:0; font-size:9px; color:#8b949e;'>STATE</p><p style='margin:0; font-size:11px; font-weight:bold; color:#58a6ff;'>{market_state}</p></div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"<div style='background:#121824; padding:6px; border-radius:6px; text-align:center; border:1px solid #1f293d;'><p style='margin:0; font-size:9px; color:#8b949e;'>CONF</p><p style='margin:0; font-size:11px; font-weight:bold; color:#3fb950;'>{confidence}</p></div>", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"<div style='background:#121824; padding:6px; border-radius:6px; text-align:center; border:1px solid #1f293d;'><p style='margin:0; font-size:9px; color:#8b949e;'>RSI</p><p style='margin:0; font-size:11px; font-weight:bold; color:#f0b429;'>{rsi_14:.1f}</p></div>", unsafe_allow_html=True)
-
-    st.write("")
-
-    # Indicators list
+    # Indicators compact rows
     indicators = [
         ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
         ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
-        ("MACD", macd_status, "🟢" if macd_status == "Bullish" else "🔴"),
-        ("RSI Status", "Overbought" if rsi_14 > 70 else "Oversold" if rsi_14 < 30 else "Normal", "⚪")
+        ("RSI", f"{rsi_14:.1f}", "🟢" if rsi_14 > 50 else "🔴"),
+        ("MACD", macd_status, "🟢" if macd_status == "Bullish" else "🔴")
     ]
 
     for name, val, status in indicators:
         st.markdown(f"""
             <div class="indicator-row">
                 <span style="color: #8b949e;">{name}</span>
-                <span><b style="color: #ffffff; margin-right: 5px;">{val}</b> {status}</span>
+                <span><b style="color: #ffffff; margin-right: 4px;">{val}</b> {status}</span>
             </div>
         """, unsafe_allow_html=True)
