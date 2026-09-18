@@ -10,17 +10,27 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    .pairs-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; margin-top: 5px; }
-    .pairs-row { display: flex; justify-content: space-between; gap: 4px; width: 100%; }
+    .pairs-scroll-container {
+        display: flex;
+        overflow-x: auto;
+        gap: 6px;
+        padding-bottom: 4px;
+        margin-bottom: 8px;
+        margin-top: 5px;
+        scrollbar-width: none;
+    }
+    .pairs-scroll-container::-webkit-scrollbar {
+        display: none;
+    }
     .pair-btn {
-        flex: 1;
+        flex: 0 0 auto;
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 6px 2px;
+        padding: 6px 12px;
         text-align: center;
-        border-radius: 6px;
-        font-size: 10px;
+        border-radius: 20px;
+        font-size: 11px;
         font-weight: bold;
         text-decoration: none;
         box-sizing: border-box;
@@ -123,29 +133,27 @@ def load_data(ticker, interval_val):
     except Exception:
         return None
 
-row1 = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
-row2 = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
+all_pairs = [
+    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
+    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"),
+    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
+    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
+]
 
-def render_row(pairs):
-    html = '<div class="pairs-row">'
+def render_pill_row(pairs):
+    html = '<div class="pairs-scroll-container">'
     for name, ticker in pairs:
         active = " pair-btn-active" if selected_asset == ticker else ""
         html += f'<a href="?pair={ticker}" class="pair-btn{active}">{name}</a>'
     html += '</div>'
     return html
 
-st.markdown(f'''
-    <div class="pairs-container">
-        {render_row(row1)}
-        {render_row(row2)}
-    </div>
-''', unsafe_allow_html=True)
+st.markdown(render_pill_row(all_pairs), unsafe_allow_html=True)
 
 timeframe = st.radio("TF", ["2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 df = load_data(selected_asset, timeframe)
 
-# Fallback & Safety Defaults
 checks_down = {}
 checks_up = {}
 signal_type = "HOLD"
