@@ -8,14 +8,33 @@ st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="c
 st.markdown("""
     <style>
     .stApp { background: #0b0e14; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; max-width: 100% !important; }
     
-    /* Custom compact grid for currency buttons */
-    .pair-container {
-        display: flex;
-        flex-wrap: wrap;
+    /* Force 4 columns grid layout in mobile view via HTML/CSS */
+    .pairs-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
         gap: 4px;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
+    }
+    
+    .pair-btn {
+        background: #161b22;
+        color: #c9d1d9;
+        border: 1px: solid #30363d;
+        padding: 6px 2px;
+        text-align: center;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+    }
+    .pair-btn-active {
+        background: #f85149;
+        color: #ffffff;
+        border: 1px solid #ff7b72;
     }
     
     .signal-card-up { 
@@ -65,6 +84,11 @@ st.markdown("""
 if 'selected_pair' not in st.session_state:
     st.session_state.selected_pair = "EURUSD=X"
 
+# Handle query parameters for fast grid button clicks without full form reload issues
+query_params = st.query_params
+if "pair" in query_params:
+    st.session_state.selected_pair = query_params["pair"]
+
 # Top row compact header
 c_title, c_ref = st.columns([4, 1])
 with c_title:
@@ -73,18 +97,23 @@ with c_ref:
     if st.button("🔄", use_container_width=True):
         st.rerun()
 
-# Pairs in small compact buttons using 4 columns with custom styling keys
-pairs = ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDJPY=X", "USDCAD=X", "NZDUSD=X", "EURJPY=X", "GBPJPY=X"]
+# Render Pairs using pure HTML CSS Grid to prevent vertical stacking on mobile
+pairs = [
+    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
+    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
+    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
+    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
+]
 
-cols = st.columns(4)
-for idx, pair in enumerate(pairs):
-    clean_name = pair.replace('=X', '')
-    is_selected = (st.session_state.selected_pair == pair)
-    with cols[idx % 4]:
-        btn_type = "primary" if is_selected else "secondary"
-        if st.button(clean_name, key=f"bp_{pair}", use_container_width=True, type=btn_type):
-            st.session_state.selected_pair = pair
-            st.rerun()
+grid_html = '<div class="pairs-grid">'
+for name, ticker in pairs:
+    is_active = (st.session_state.selected_pair == ticker)
+    active_class = " pair-btn-active" if is_active else ""
+    # Using streamlit query params link trick for compact buttons
+    grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
+grid_html += '</div>'
+
+st.markdown(grid_html, unsafe_allow_html=True)
 
 selected_asset = st.session_state.selected_pair
 
