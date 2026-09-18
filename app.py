@@ -1,122 +1,237 @@
 import streamlit as st
+import yfinance as yf
+import pandas as pd
+import numpy as np
 
-# Page Configuration (Corrected layout parameter)
-st.set_page_config(page_title="Quotex Signal Bot Pro", layout="centered")
+st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="centered")
 
-# Custom Quotex Styling & Layout
 st.markdown("""
     <style>
-        :root {
-            --bg-color: #0b0e14;
-            --card-bg: #131823;
-            --border-color: #222b3d;
-            --accent-green: #00ecb7;
-            --accent-red: #ff3366;
-            --text-main: #ffffff;
-            --text-secondary: #8492a6;
-            --gold: #f5a623;
-        }
-
-        .stApp {
-            background-color: var(--bg-color);
-        }
-
-        .top-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 10px 14px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .acc-balance {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--gold);
-        }
-
-        .signal-btn-up {
-            width: 100%;
-            background: linear-gradient(135deg, #00b09b, #96c93d);
-            color: #051310;
-            padding: 16px;
-            font-size: 22px;
-            font-weight: 900;
-            border-radius: 8px;
-            text-align: center;
-            box-shadow: 0 0 15px rgba(0, 236, 183, 0.4);
-            margin-bottom: 10px;
-        }
-
-        .card-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            color: var(--text-main);
-        }
+    .stApp { background: #0b0e14; color: #ffffff; font-family: sans-serif; }
+    .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
+    
+    .pairs-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 3px;
+        margin-bottom: 3px;
+    }
+    .pair-btn {
+        background: #161b22;
+        color: #c9d1d9;
+        border: 1px solid #30363d;
+        padding: 4px 2px;
+        text-align: center;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: bold;
+        text-decoration: none;
+        display: block;
+    }
+    .pair-btn-active {
+        background: #f85149;
+        color: #ffffff;
+        border: 1px solid #ff7b72;
+    }
+    
+    .signal-card-up { 
+        background: linear-gradient(135deg, #0e4429, #1b7a43); 
+        padding: 4px; 
+        border-radius: 5px; 
+        text-align: center; 
+        color: white; 
+        font-weight: bold; 
+        border: 1px solid #2ea043;
+        margin-bottom: 3px;
+    }
+    .signal-card-down { 
+        background: linear-gradient(135deg, #541212, #8c2020); 
+        padding: 4px; 
+        border-radius: 5px; 
+        text-align: center; 
+        color: white; 
+        font-weight: bold; 
+        border: 1px solid #da3633;
+        margin-bottom: 3px;
+    }
+    .signal-card-wait { 
+        background: linear-gradient(135deg, #593e02, #946903); 
+        padding: 4px; 
+        border-radius: 5px; 
+        text-align: center; 
+        color: white; 
+        font-weight: bold; 
+        border: 1px solid #bb8009;
+        margin-bottom: 3px;
+    }
+    .status-bar {
+        background: #161b22;
+        padding: 5px 8px;
+        border-radius: 5px;
+        border: 1px solid #30363d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 3px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    .indicator-row { 
+        background: #121824; 
+        padding: 2px 6px; 
+        border-radius: 4px; 
+        margin-bottom: 2px; 
+        border: 1px solid #1f293d; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        font-size: 10px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Quotex Header UI
-st.markdown("""
-    <div class="top-header">
-        <div>
-            <div style="font-size: 10px; color: #8492a6; font-weight: bold;">DEMO ACCOUNT</div>
-            <div class="acc-balance">$9,871.99</div>
-        </div>
-        <button style="background: #00ecb7; color: #000; border: none; padding: 6px 14px; font-weight: bold; border-radius: 4px; cursor: pointer;">Deposit</button>
-    </div>
-""", unsafe_allow_html=True)
+if 'selected_pair' not in st.session_state:
+    st.session_state.selected_pair = "EURUSD=X"
 
-# Time Selector
-st.radio("Timeframe", ["1m", "2m", "5m"], horizontal=True)
+query_params = st.query_params
+if "pair" in query_params:
+    st.session_state.selected_pair = query_params["pair"]
 
-# Signal Box Display
-st.markdown("""
-    <div class="card-box">
-        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #8492a6; margin-bottom: 8px;">
-            <span>EURUSD (1m)</span>
-            <span style="color: #00ecb7;">1.14692 (+0.01%)</span>
-        </div>
-        <div class="signal-btn-up">UP</div>
-    </div>
-""", unsafe_allow_html=True)
+# Top header with Reboot & Refresh options
+c_title, c_ref, c_boot = st.columns([2.5, 1, 1])
+with c_title:
+    st.markdown("<h6 style='margin:0; color:#58a6ff;'>⚡ TERMINAL</h6>", unsafe_allow_html=True)
+with c_ref:
+    if st.button("🔄", use_container_width=True, help="Refresh Data"):
+        st.cache_data.clear()
+        st.rerun()
+with c_boot:
+    if st.button("🔌 Reboot", use_container_width=True, help="Reboot Terminal"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.cache_data.clear()
+        st.rerun()
 
-# Market State
-st.markdown("""
-    <div class="card-box" style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold;">
-        <div>State: <span style="color: #00ecb7;">UPTREND 📈</span></div>
-        <div>Conf: <span style="color: #f5a623;">HIGH 🔥</span></div>
-    </div>
-""", unsafe_allow_html=True)
+# Render Pairs Grid
+pairs = [
+    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
+    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
+    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
+    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
+]
 
-# Technical Indicators
-st.markdown("""
-    <div class="card-box">
-        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222b3d; font-size: 12px;">
-            <span style="color: #8492a6;">SMA 20</span>
-            <span>1.14659 🟢</span>
+grid_html = '<div class="pairs-grid">'
+for name, ticker in pairs:
+    is_active = (st.session_state.selected_pair == ticker)
+    active_class = " pair-btn-active" if is_active else ""
+    grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
+grid_html += '</div>'
+
+st.markdown(grid_html, unsafe_allow_html=True)
+selected_asset = st.session_state.selected_pair
+
+# Timeframe compact radio
+timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
+
+@st.cache_data(ttl=5)
+def load_data(ticker, interval_val):
+    try:
+        df = yf.download(ticker, period="1d", interval=interval_val, progress=False)
+        if df.empty or len(df) < 20:
+            return None
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        return df
+    except:
+        return None
+
+df = load_data(selected_asset, timeframe)
+
+if df is None:
+    st.error("Data error")
+else:
+    close = df['Close']
+    current_price = close.iloc[-1]
+    prev_price = close.iloc[-2]
+    price_change = current_price - prev_price
+    price_change_pct = (price_change / prev_price) * 100
+
+    # Indicators
+    sma_20 = close.rolling(20).mean().iloc[-1]
+    ema_12 = close.ewm(span=12).mean().iloc[-1]
+    
+    # Bollinger Bands
+    bb_std = close.rolling(20).std().iloc[-1]
+    bb_upper = sma_20 + (bb_std * 2)
+    bb_lower = sma_20 - (bb_std * 2)
+    
+    delta = close.diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.rolling(14).mean().iloc[-1]
+    avg_loss = loss.rolling(14).mean().iloc[-1]
+    rs = avg_gain / (avg_loss + 1e-10)
+    rsi_14 = 100 - (100 / (1 + rs))
+
+    exp1 = close.ewm(span=12, adjust=False).mean()
+    exp2 = close.ewm(span=26, adjust=False).mean()
+    macd_val = (exp1 - exp2).iloc[-1]
+    sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
+    macd_status = "Bullish" if macd_val > sig_val else "Bearish"
+
+    # Market State & Confidence
+    if rsi_14 > 55 and macd_status == "Bullish":
+        market_state = "UPTREND 📈"
+        confidence = "HIGH 🔥"
+        signal_type = "UP"
+    elif rsi_14 < 45 and macd_status == "Bearish":
+        market_state = "DOWNTREND 📉"
+        confidence = "HIGH 🔥"
+        signal_type = "DOWN"
+    else:
+        market_state = "SIDEWAYS ↔️"
+        confidence = "LOW ⚠️"
+        signal_type = "HOLD"
+
+    # Price banner
+    st.markdown(f"""
+        <div style="background: #121824; padding: 3px 6px; border-radius: 4px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
+            <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
+            <span style="color: {'#3fb950' if price_change >= 0 else '#f85149'}; font-weight:bold;">
+                {current_price:.5f} ({'+' if price_change >= 0 else ''}{price_change_pct:.2f}%)
+            </span>
         </div>
-        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222b3d; font-size: 12px;">
-            <span style="color: #8492a6;">EMA 12</span>
-            <span>1.14683 🟢</span>
+    """, unsafe_allow_html=True)
+
+    # Signal Card
+    if signal_type == "UP":
+        st.markdown('<div class="signal-card-up"><h3 style="margin:0; font-size:16px;">UP</h3></div>', unsafe_allow_html=True)
+    elif signal_type == "DOWN":
+        st.markdown('<div class="signal-card-down"><h3 style="margin:0; font-size:16px;">DOWN</h3></div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:14px;">HOLD</h3></div>', unsafe_allow_html=True)
+
+    # Proper Status Bar (Market State & Confidence)
+    st.markdown(f"""
+        <div class="status-bar">
+            <span>State: <span style="color: {'#3fb950' if 'UP' in market_state else '#f85149' if 'DOWN' in market_state else '#f0b429'};">{market_state}</span></span>
+            <span>Conf: <span style="color: #58a6ff;">{confidence}</span></span>
         </div>
-        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222b3d; font-size: 12px;">
-            <span style="color: #8492a6;">BB Lower/Upper</span>
-            <span>1.1459 / 1.1473 🟢</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222b3d; font-size: 12px;">
-            <span style="color: #8492a6;">RSI (14)</span>
-            <span>64.7 🟢</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px;">
-            <span style="color: #8492a6;">MACD</span>
-            <span>Bullish 🟢</span>
-        </div>
-    </div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
+    # Indicators compact list
+    indicators = [
+        ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
+        ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
+        ("BB Lower/Upper", f"{bb_lower:.4f} / {bb_upper:.4f}", "🟢" if current_price >= bb_lower else "🔴"),
+        ("RSI (14)", f"{rsi_14:.1f}", "🟢" if rsi_14 > 50 else "🔴"),
+        ("MACD", macd_status, "🟢" if macd_status == "Bullish" else "🔴")
+    ]
+
+    for name, val, status in indicators:
+        st.markdown(f"""
+            <div class="indicator-row">
+                <span style="color: #8b949e;">{name}</span>
+                <span><b style="color: #ffffff; margin-right: 3px;">{val}</b> {status}</span>
+            </div>
+        """, unsafe_allow_html=True)
