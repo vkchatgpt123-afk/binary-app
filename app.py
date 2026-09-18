@@ -1,7 +1,7 @@
 import streamlit as st
 
-# Page Configuration
-st.set_page_config(page_title="Quotex Signal Bot Pro", page_width="centered")
+# Page Configuration (Corrected layout parameter)
+st.set_page_config(page_title="Quotex Signal Bot Pro", layout="centered")
 
 # Custom Quotex Styling & Layout
 st.markdown("""
@@ -74,9 +74,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Time Selector
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.radio("Timeframe", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
+st.radio("Timeframe", ["1m", "2m", "5m"], horizontal=True)
 
 # Signal Box Display
 st.markdown("""
