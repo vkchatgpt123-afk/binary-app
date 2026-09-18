@@ -5,29 +5,34 @@ import numpy as np
 
 st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="centered")
 
+# Upar do line blank chhodne ke liye
+st.markdown("<br><br>", unsafe_allow_html=True)
+
 st.markdown("""
     <style>
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 0.1rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
     
     .pairs-flex {
         display: flex;
         flex-wrap: wrap;
-        gap: 3px;
-        margin-bottom: 4px;
+        gap: 4px;
+        margin-bottom: 6px;
+        justify-content: space-between;
     }
     .pair-link {
-        flex: 1 1 22%;
+        flex: 0 0 23.5%;
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 5px 2px;
+        padding: 6px 2px;
         text-align: center;
         border-radius: 4px;
         font-size: 10px;
         font-weight: bold;
         text-decoration: none;
         box-sizing: border-box;
+        margin-bottom: 4px;
     }
     .pair-link-active {
         background: #2563eb !important;
@@ -86,7 +91,7 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs in a compact Flexbox layout (No vertical stacking, fully visible)
+# 1. All 8 Pairs in a strict 4-column flex layout (2 rows of 4)
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
