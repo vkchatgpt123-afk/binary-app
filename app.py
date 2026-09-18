@@ -10,6 +10,31 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
     
+    .pairs-flex {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-bottom: 4px;
+    }
+    .pair-link {
+        flex: 1 1 22%;
+        background: #1f2937;
+        color: #ffffff;
+        border: 1px solid #374151;
+        padding: 5px 2px;
+        text-align: center;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: bold;
+        text-decoration: none;
+        box-sizing: border-box;
+    }
+    .pair-link-active {
+        background: #2563eb !important;
+        border: 1px solid #60a5fa !important;
+        color: #ffffff !important;
+    }
+    
     .signal-card-up { background: #10b981; padding: 6px; border-radius: 6px; text-align: center; color: white; font-weight: bold; margin: 4px 0; }
     .signal-card-down { background: #ef4444; padding: 6px; border-radius: 6px; text-align: center; color: white; font-weight: bold; margin: 4px 0; }
     .signal-card-wait { background: #f59e0b; padding: 6px; border-radius: 6px; text-align: center; color: white; font-weight: bold; margin: 4px 0; }
@@ -43,6 +68,10 @@ st.markdown("""
 if 'selected_pair' not in st.session_state:
     st.session_state.selected_pair = "EURUSD=X"
 
+query_params = st.query_params
+if "pair" in query_params:
+    st.session_state.selected_pair = query_params["pair"]
+
 selected_asset = st.session_state.selected_pair
 
 @st.cache_data(ttl=5)
@@ -57,25 +86,21 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs using Native Streamlit Columns (2 Rows of 4 Buttons)
-row1_tickers = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
-row2_tickers = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
+# 1. All 8 Pairs in a compact Flexbox layout (No vertical stacking, fully visible)
+pairs = [
+    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
+    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
+    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
+    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
+]
 
-cols1 = st.columns(4)
-for i, (name, ticker) in enumerate(row1_tickers):
-    is_active = selected_asset == ticker
-    btn_type = "primary" if is_active else "secondary"
-    if cols1[i].button(name, key=f"p_{ticker}", use_container_width=True, type=btn_type):
-        st.session_state.selected_pair = ticker
-        st.rerun()
+html_code = '<div class="pairs-flex">'
+for name, ticker in pairs:
+    active_class = " pair-link-active" if selected_asset == ticker else ""
+    html_code += f'<a href="?pair={ticker}" class="pair-link{active_class}">{name}</a>'
+html_code += '</div>'
 
-cols2 = st.columns(4)
-for i, (name, ticker) in enumerate(row2_tickers):
-    is_active = selected_asset == ticker
-    btn_type = "primary" if is_active else "secondary"
-    if cols2[i].button(name, key=f"p_{ticker}", use_container_width=True, type=btn_type):
-        st.session_state.selected_pair = ticker
-        st.rerun()
+st.markdown(html_code, unsafe_allow_html=True)
 
 # 2. Timeframe Selection
 st.markdown("<div style='margin-top: 4px;'></div>", unsafe_allow_html=True)
