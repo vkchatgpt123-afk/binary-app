@@ -13,18 +13,18 @@ st.markdown("""
     .pairs-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
-        margin-bottom: 8px;
+        gap: 5px;
+        margin-bottom: 5px;
         margin-top: 4px;
     }
     .pair-btn {
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 6px 2px;
+        padding: 5px 2px;
         text-align: center;
         border-radius: 6px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: bold;
         text-decoration: none;
         display: block;
@@ -120,16 +120,12 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs Grid Box
-pairs = [
-    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
-    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
-    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
-    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
-]
+# 1. All 8 Pairs in 2 Rows (Row 1 & Row 2)
+row1_pairs = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
+row2_pairs = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
 
 grid_html = '<div class="pairs-grid">'
-for name, ticker in pairs:
+for name, ticker in row1_pairs + row2_pairs:
     is_active = (selected_asset == ticker)
     active_class = " pair-btn-active" if is_active else ""
     grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
@@ -137,11 +133,10 @@ grid_html += '</div>'
 
 st.markdown(grid_html, unsafe_allow_html=True)
 
-# 2. Timeframe Selection (1m, 2m, 5m with gap)
+# 2. Timeframe Selection (Single Place with Gap)
 st.markdown("<div style='margin-top: 6px;'></div>", unsafe_allow_html=True)
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
-# Map timeframe string to yfinance interval
 tf_map = {"1m": "1m", "2m": "2m", "5m": "5m"}
 df = load_data(selected_asset, tf_map[timeframe])
 
@@ -205,7 +200,7 @@ elif signal_type == "DOWN":
 else:
     st.markdown('<div class="signal-card-wait"><h2 style="margin:0; font-size:18px;">HOLD</h2></div>', unsafe_allow_html=True)
 
-# 4. Status Bar (Without Share option)
+# 4. Status Bar
 st.markdown(f"""
     <div class="status-bar">
         <span>State: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
@@ -231,7 +226,7 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 6. Auto-Refresh Option (Including 60s)[span_2](start_span)[span_2](end_span)
+# 6. Auto-Refresh Option (60s included)[span_2](start_span)[span_2](end_span)
 auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
 
 # 7. Reboot Terminal Option (Last)
