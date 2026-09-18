@@ -13,15 +13,15 @@ st.markdown("""
     .pairs-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 5px;
-        margin-bottom: 5px;
+        gap: 4px;
+        margin-bottom: 4px;
         margin-top: 4px;
     }
     .pair-btn {
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 5px 2px;
+        padding: 5px 1px;
         text-align: center;
         border-radius: 6px;
         font-size: 10px;
@@ -120,21 +120,23 @@ def load_data(ticker, interval_val):
     except:
         return None
 
-# 1. All 8 Pairs in 2 Rows (Row 1 & Row 2)
-row1_pairs = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
-row2_pairs = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
+# 1. All 8 Pairs in Two Separate Rows for Perfect Visibility[span_2](start_span)[span_2](end_span)
+row1 = [("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X")]
+row2 = [("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")]
 
-grid_html = '<div class="pairs-grid">'
-for name, ticker in row1_pairs + row2_pairs:
-    is_active = (selected_asset == ticker)
-    active_class = " pair-btn-active" if is_active else ""
-    grid_html += f'<a href="?pair={ticker}" class="pair-btn{active_class}">{name}</a>'
-grid_html += '</div>'
+def render_grid(pairs_list):
+    html = '<div class="pairs-grid">'
+    for name, ticker in pairs_list:
+        active = " pair-btn-active" if selected_asset == ticker else ""
+        html += f'<a href="?pair={ticker}" class="pair-btn{active}">{name}</a>'
+    html += '</div>'
+    return html
 
-st.markdown(grid_html, unsafe_allow_html=True)
+st.markdown(render_grid(row1), unsafe_allow_html=True)
+st.markdown(render_grid(row2), unsafe_allow_html=True)
 
-# 2. Timeframe Selection (Single Place with Gap)
-st.markdown("<div style='margin-top: 6px;'></div>", unsafe_allow_html=True)
+# 2. Single Timeframe Selection with Proper Gap[span_3](start_span)[span_3](end_span)
+st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
 timeframe = st.radio("TF", ["1m", "2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 tf_map = {"1m": "1m", "2m": "2m", "5m": "5m"}
@@ -226,7 +228,7 @@ if df is not None:
             </div>
         """, unsafe_allow_html=True)
 
-# 6. Auto-Refresh Option (60s included)[span_2](start_span)[span_2](end_span)
+# 6. Auto-Refresh Option[span_4](start_span)[span_4](end_span)
 auto_refresh = st.selectbox("Auto Refresh", ["60s", "1 min", "2 min", "5 min"], label_visibility="collapsed")
 
 # 7. Reboot Terminal Option (Last)
