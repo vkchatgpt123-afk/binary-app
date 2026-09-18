@@ -5,10 +5,11 @@ import numpy as np
 
 st.set_page_config(page_title="Pro Reversal Terminal", page_icon="⚡", layout="centered")
 
+# Custom CSS for Professional Neon Glow UI & Layout
 st.markdown("""
     <style>
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 2.2rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
     .pairs-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
     .pairs-row { display: flex; justify-content: space-between; gap: 4px; }
@@ -39,7 +40,7 @@ st.markdown("""
         font-weight: 900; 
         font-size: 20px; 
         margin: 4px 0; 
-        box-shadow: 0 0 15px rgba(16, 185, 129, 0.7);
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.9);
         border: 1px solid #34d399;
     }
     .signal-down { 
@@ -51,7 +52,7 @@ st.markdown("""
         font-weight: 900; 
         font-size: 20px; 
         margin: 4px 0; 
-        box-shadow: 0 0 15px rgba(239, 68, 68, 0.7);
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.9);
         border: 1px solid #f87171;
     }
     .signal-hold { 
@@ -64,6 +65,7 @@ st.markdown("""
         font-weight: 800; 
         font-size: 16px; 
         margin: 4px 0; 
+        box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
     }
     
     .status-bar {
@@ -140,13 +142,15 @@ st.markdown(f'''
     </div>
 ''', unsafe_allow_html=True)
 
-# Kept only 2m and 5m as requested
 timeframe = st.radio("TF", ["2m", "5m"], horizontal=True, label_visibility="collapsed")
 
 df = load_data(selected_asset, timeframe)
 
 checks_down = {}
 checks_up = {}
+signal_type = "HOLD"
+market_state = "FILTERING NOISE / WAIT ⏳"
+confidence = "ZERO RISK MODE"
 total_candles = 0
 atr_last = 0.0
 
@@ -256,12 +260,15 @@ st.markdown(f"""
 
 if signal_type == "UP":
     st.markdown('<div class="signal-up">🚀 BUY / REVERSAL UP 🟢</div>', unsafe_allow_html=True)
+    # Audio Beep Script for UP Signal
+    st.markdown('<audio autoplay="true"><source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg"></audio>', unsafe_allow_html=True)
 elif signal_type == "DOWN":
     st.markdown('<div class="signal-down">🔻 SELL / REVERSAL DOWN 🔴</div>', unsafe_allow_html=True)
+    # Audio Beep Script for DOWN Signal
+    st.markdown('<audio autoplay="true"><source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg"></audio>', unsafe_allow_html=True)
 else:
     st.markdown('<div class="signal-hold">🛡️ NO TRADE - WAITING FOR SETUP</div>', unsafe_allow_html=True)
 
-# Status and Filter matched to indicator row size style
 st.markdown(f"""
     <div class="status-bar">
         <span style="color: #9ca3af;">Status: <span style="color: {'#34d399' if 'UP' in market_state else '#f87171' if 'DOWN' in market_state else '#fbbf24'};">{market_state}</span></span>
