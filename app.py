@@ -32,16 +32,20 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Expanded Currency Pairs List
+# Timeframe Selector Wapas Jod Diya Gaya Hai
+timeframe = st.radio("Timeframe", ["1 Min", "2 Min", "5 Min"], horizontal=True)
+
+# Currency Pairs List
 selected_asset = st.sidebar.selectbox("Select Currency Pair", [
     "EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDJPY=X", 
     "USDCAD=X", "NZDUSD=X", "EURJPY=X", "GBPJPY=X"
 ])
 
 @st.cache_data(ttl=15)
-def load_data(ticker):
+def load_data(ticker, interval_val):
     try:
-        df = yf.download(ticker, period="1d", interval="1m", progress=False)
+        # Timeframe ke mutabiq interval set hoga
+        df = yf.download(ticker, period="1d", interval=interval_val, progress=False)
         if df.empty or len(df) < 20:
             return None
         if isinstance(df.columns, pd.MultiIndex):
@@ -50,10 +54,14 @@ def load_data(ticker):
     except:
         return None
 
-df = load_data(selected_asset)
+# Interval mapping
+interval_map = {"1 Min": "1m", "2 Min": "2m", "5 Min": "5m"}
+current_interval = interval_map.get(timeframe, "1m")
+
+df = load_data(selected_asset, current_interval)
 
 if df is None:
-    st.error("⚠️ Data fetch karne me samasya aa rahi hai.")
+    st.error("⚠️ Data fetch karne me samasya aa rahi hai ya interval available nahi hai.")
 else:
     close = df['Close']
     current_price = close.iloc[-1]
@@ -91,8 +99,8 @@ else:
         market_state, confidence, signal_type = "SIDEWAYS", "LOW", "HOLD"
 
     st.markdown(f"""
-        <div style="background: #161b22; padding: 12px; border-radius: 10px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <div><h4 style="margin:0; color: #8b949e;">{selected_asset.replace('=X', '')} (Live)</h4></div>
+        <div style="background: #161b22; padding: 12px; border-radius: 10px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; margin-top: 10px;">
+            <div><h4 style="margin:0; color: #8b949e;">{selected_asset.replace('=X', '')} ({timeframe})</h4></div>
             <div style="text-align: right;">
                 <h3 style="margin:0; color: #ffffff;">{current_price:.5f}</h3>
                 <span style="color: {'#3fb950' if price_change >= 0 else '#f85149'}; font-size: 13px; font-weight: bold;">
@@ -151,8 +159,8 @@ else:
         <div style="background: #161b22; padding: 12px; border-radius: 8px; border: 1px solid #30363d;">
             <p style="margin:0; font-weight:bold; color: #58a6ff; font-size: 13px;">💡 Rules:</p>
             <ul style="margin:5px 0 0 0; padding-left: 15px; font-size: 12px; color: #8b949e;">
+                <li>Timeframe options (1 Min, 2 Min, 5 Min) wapas add kar diye gaye hain.</li>
                 <li>Page automatically har 60 seconds me refresh hoga.</li>
-                <li>Strictly NO Martingale, 1-2% risk per trade.</li>
             </ul>
         </div>
     """, unsafe_allow_html=True)
