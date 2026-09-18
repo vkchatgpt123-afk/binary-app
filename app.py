@@ -14,17 +14,17 @@ st.markdown("""
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 6px;
-        margin-bottom: 10px;
-        margin-top: 5px;
+        gap: 5px;
+        margin-bottom: 6px;
+        margin-top: 2px;
     }
     .pair-btn {
         background: #1f2937;
         color: #ffffff;
         border: 1px solid #374151;
-        padding: 5px 10px;
+        padding: 4px 8px;
         text-align: center;
-        border-radius: 15px;
+        border-radius: 12px;
         font-size: 10px;
         font-weight: bold;
         text-decoration: none;
@@ -135,7 +135,10 @@ all_pairs = [
     ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
 ]
 
-def render_pill_row(pairs):
+top_3_pairs = all_pairs[:3]
+remaining_5_pairs = all_pairs[3:]
+
+def render_pill_group(pairs):
     html = '<div class="pairs-container">'
     for name, ticker in pairs:
         active = " pair-btn-active" if selected_asset == ticker else ""
@@ -143,9 +146,13 @@ def render_pill_row(pairs):
     html += '</div>'
     return html
 
-st.markdown(render_pill_row(all_pairs), unsafe_allow_html=True)
+col_tf, col_pairs3 = st.columns([1.2, 2.8])
+with col_tf:
+    timeframe = st.radio("TF", ["2m", "5m"], horizontal=True, label_visibility="collapsed")
+with col_pairs3:
+    st.markdown(render_pill_group(top_3_pairs), unsafe_allow_html=True)
 
-timeframe = st.radio("TF", ["2m", "5m"], horizontal=True, label_visibility="collapsed")
+st.markdown(render_pill_group(remaining_5_pairs), unsafe_allow_html=True)
 
 df = load_data(selected_asset, timeframe)
 
