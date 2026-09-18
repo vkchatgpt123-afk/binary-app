@@ -2,29 +2,28 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import time
 
 st.set_page_config(page_title="Pro Trading Terminal", page_icon="⚡", layout="centered")
 
 st.markdown("""
     <style>
     .stApp { background: #0b0e14; color: #ffffff; font-family: sans-serif; }
-    .block-container { padding-top: 0.4rem !important; padding-bottom: 0.4rem !important; max-width: 100% !important; }
+    .block-container { padding-top: 0.3rem !important; padding-bottom: 0.3rem !important; max-width: 100% !important; }
     
     .pairs-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 4px;
-        margin-bottom: 4px;
+        gap: 3px;
+        margin-bottom: 3px;
     }
     .pair-btn {
         background: #161b22;
         color: #c9d1d9;
         border: 1px solid #30363d;
-        padding: 5px 2px;
+        padding: 4px 2px;
         text-align: center;
         border-radius: 4px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: bold;
         text-decoration: none;
         display: block;
@@ -37,37 +36,49 @@ st.markdown("""
     
     .signal-card-up { 
         background: linear-gradient(135deg, #0e4429, #1b7a43); 
-        padding: 6px; 
-        border-radius: 6px; 
+        padding: 4px; 
+        border-radius: 5px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
         border: 1px solid #2ea043;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
     }
     .signal-card-down { 
         background: linear-gradient(135deg, #541212, #8c2020); 
-        padding: 6px; 
-        border-radius: 6px; 
+        padding: 4px; 
+        border-radius: 5px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
         border: 1px solid #da3633;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
     }
     .signal-card-wait { 
         background: linear-gradient(135deg, #593e02, #946903); 
-        padding: 6px; 
-        border-radius: 6px; 
+        padding: 4px; 
+        border-radius: 5px; 
         text-align: center; 
         color: white; 
         font-weight: bold; 
         border: 1px solid #bb8009;
-        margin-bottom: 4px;
+        margin-bottom: 3px;
+    }
+    .status-bar {
+        background: #161b22;
+        padding: 5px 8px;
+        border-radius: 5px;
+        border: 1px solid #30363d;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 3px;
+        font-size: 11px;
+        font-weight: bold;
     }
     .indicator-row { 
         background: #121824; 
-        padding: 3px 6px; 
+        padding: 2px 6px; 
         border-radius: 4px; 
         margin-bottom: 2px; 
         border: 1px solid #1f293d; 
@@ -86,15 +97,22 @@ query_params = st.query_params
 if "pair" in query_params:
     st.session_state.selected_pair = query_params["pair"]
 
-# Top row compact header with live indicator status
-c_title, c_ref = st.columns([3, 1])
+# Top header with Reboot & Refresh options
+c_title, c_ref, c_boot = st.columns([2.5, 1, 1])
 with c_title:
-    st.markdown("<h6 style='margin:0; color:#58a6ff;'>⚡ PRO TERMINAL <span style='color:#3fb950; font-size:9px;'>● LIVE</span></h6>", unsafe_allow_html=True)
+    st.markdown("<h6 style='margin:0; color:#58a6ff;'>⚡ TERMINAL</h6>", unsafe_allow_html=True)
 with c_ref:
-    if st.button("🔄", use_container_width=True):
+    if st.button("🔄", use_container_width=True, help="Refresh Data"):
+        st.cache_data.clear()
+        st.rerun()
+with c_boot:
+    if st.button("🔌 Reboot", use_container_width=True, help="Reboot Terminal"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.cache_data.clear()
         st.rerun()
 
-# Render Pairs in Grid
+# Render Pairs Grid
 pairs = [
     ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
     ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"), 
@@ -138,11 +156,11 @@ else:
     price_change = current_price - prev_price
     price_change_pct = (price_change / prev_price) * 100
 
-    # Technical Indicators Calculations
+    # Indicators
     sma_20 = close.rolling(20).mean().iloc[-1]
     ema_12 = close.ewm(span=12).mean().iloc[-1]
     
-    # Bollinger Bands (20, 2)
+    # Bollinger Bands
     bb_std = close.rolling(20).std().iloc[-1]
     bb_upper = sma_20 + (bb_std * 2)
     bb_lower = sma_20 - (bb_std * 2)
@@ -161,23 +179,23 @@ else:
     sig_val = (exp1 - exp2).ewm(span=9, adjust=False).mean().iloc[-1]
     macd_status = "Bullish" if macd_val > sig_val else "Bearish"
 
-    # Market State & Confidence Logic
+    # Market State & Confidence
     if rsi_14 > 55 and macd_status == "Bullish":
-        market_state = "UPTREND"
+        market_state = "UPTREND 📈"
         confidence = "HIGH 🔥"
         signal_type = "UP"
     elif rsi_14 < 45 and macd_status == "Bearish":
-        market_state = "DOWNTREND"
+        market_state = "DOWNTREND 📉"
         confidence = "HIGH 🔥"
         signal_type = "DOWN"
     else:
-        market_state = "SIDEWAYS"
+        market_state = "SIDEWAYS ↔️"
         confidence = "LOW ⚠️"
         signal_type = "HOLD"
 
     # Price banner
     st.markdown(f"""
-        <div style="background: #121824; padding: 4px 6px; border-radius: 4px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
+        <div style="background: #121824; padding: 3px 6px; border-radius: 4px; border: 1px solid #1f293d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
             <span><b>{selected_asset.replace('=X', '')}</b> ({timeframe})</span>
             <span style="color: {'#3fb950' if price_change >= 0 else '#f85149'}; font-weight:bold;">
                 {current_price:.5f} ({'+' if price_change >= 0 else ''}{price_change_pct:.2f}%)
@@ -185,28 +203,28 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Signal Card (UP / DOWN)
+    # Signal Card
     if signal_type == "UP":
-        st.markdown('<div class="signal-card-up"><h3 style="margin:0; font-size:18px;">UP</h3></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-up"><h3 style="margin:0; font-size:16px;">UP</h3></div>', unsafe_allow_html=True)
     elif signal_type == "DOWN":
-        st.markdown('<div class="signal-card-down"><h3 style="margin:0; font-size:18px;">DOWN</h3></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-down"><h3 style="margin:0; font-size:16px;">DOWN</h3></div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:16px;">HOLD</h3></div>', unsafe_allow_html=True)
+        st.markdown('<div class="signal-card-wait"><h3 style="margin:0; font-size:14px;">HOLD</h3></div>', unsafe_allow_html=True)
 
-    # Status Bar: Market State & Confidence Bar
+    # Proper Status Bar (Market State & Confidence)
     st.markdown(f"""
-        <div style="background: #161b22; padding: 4px 8px; border-radius: 4px; border: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 10px;">
-            <span>State: <b style="color: {'#3fb950' if market_state=='UPTREND' else '#f85149' if market_state=='DOWNTREND' else '#f0b429'};">{market_state}</b></span>
-            <span>Conf: <b style="color: #58a6ff;">{confidence}</b></span>
+        <div class="status-bar">
+            <span>State: <span style="color: {'#3fb950' if 'UP' in market_state else '#f85149' if 'DOWN' in market_state else '#f0b429'};">{market_state}</span></span>
+            <span>Conf: <span style="color: #58a6ff;">{confidence}</span></span>
         </div>
     """, unsafe_allow_html=True)
 
-    # Indicators compact (including Bollinger Bands)
+    # Indicators compact list
     indicators = [
         ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
         ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
         ("BB Lower/Upper", f"{bb_lower:.4f} / {bb_upper:.4f}", "🟢" if current_price >= bb_lower else "🔴"),
-        ("RSI", f"{rsi_14:.1f}", "🟢" if rsi_14 > 50 else "🔴"),
+        ("RSI (14)", f"{rsi_14:.1f}", "🟢" if rsi_14 > 50 else "🔴"),
         ("MACD", macd_status, "🟢" if macd_status == "Bullish" else "🔴")
     ]
 
