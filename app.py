@@ -10,6 +10,13 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
+    /* Force columns to stay side-by-side (50% each) even on mobile screens */
+    div[data-testid="column"] {
+        width: 50% !important;
+        flex: 1 1 50% !important;
+        min-width: 50% !important;
+    }
+    
     /* Custom Styling for Selectboxes: White text and Blue selection */
     div[data-baseweb="select"] > div {
         background-color: #1f2937 !important;
@@ -103,7 +110,7 @@ all_pairs_dict = {
     "EURJPY": "EURJPY=X", "GBPJPY": "GBPJPY=X"
 }
 
-# Upar 50-50% space me Pair aur Timeframe boxes fit kiye hain
+# 50-50% layout fix for mobile view
 col_pair, col_tf = st.columns(2)
 with col_pair:
     selected_name = st.selectbox("Select Pair", list(all_pairs_dict.keys()), label_visibility="collapsed")
