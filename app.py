@@ -5,852 +5,350 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V3.6
-# ULTRA COMPACT • BRIGHT • FULL INFORMATION
+# SIGNAL TERMINAL V3.7 — MOBILE STABLE FIX
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V3.6",
+    page_title="Signal Terminal V3.7",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# ULTRA COMPACT CSS
+# ULTRA COMPACT CSS (NO HIDING, FULLY VISIBLE)
 # =========================================================
 
 st.markdown("""
 <style>
-
-/* ---------- APP ---------- */
-
 .stApp {
-    background:
-        radial-gradient(
-            circle at top,
-            #123d63 0%,
-            #071522 48%,
-            #03070c 100%
-        );
+    background: radial-gradient(circle at top, #123d63 0%, #071522 48%, #03070c 100%);
+    color: white;
 }
 
 .block-container {
     max-width: 410px !important;
-    padding: 0.05rem 0.12rem 0.08rem 0.12rem !important;
+    padding: 0.2rem 0.4rem 0.5rem 0.4rem !important;
 }
 
-/* ---------- ALL TEXT ---------- */
-
-p {
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1 !important;
-}
-
-/* ---------- TITLE ---------- */
-
-h1 {
-    font-size: 17px !important;
-    line-height: 18px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    text-align: center !important;
-    color: #ffffff !important;
-}
-
-/* ---------- CAPTION ---------- */
-
-[data-testid="stCaptionContainer"] {
-    font-size: 7px !important;
-    line-height: 8px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* ---------- COLUMNS ---------- */
-
-[data-testid="column"] {
-    padding-left: 1px !important;
-    padding-right: 1px !important;
-}
-
-/* ---------- SELECT ---------- */
-
-[data-testid="stSelectbox"] {
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-[data-testid="stSelectbox"] label {
-    font-size: 7px !important;
-    line-height: 8px !important;
-    margin: 0 !important;
-    color: #4de7ff !important;
-    font-weight: 900 !important;
-}
-
-div[data-baseweb="select"] {
-    min-height: 25px !important;
-    height: 25px !important;
-    border-radius: 5px !important;
-}
-
+/* Compact Selectboxes */
 div[data-baseweb="select"] > div {
-    min-height: 25px !important;
-    height: 25px !important;
-    padding: 0 5px !important;
-}
-
-/* ---------- ALERT / SIGNAL ---------- */
-
-div[data-testid="stAlert"] {
-    min-height: 25px !important;
-    padding: 3px 5px !important;
-    margin: 2px 0 !important;
-    border-radius: 6px !important;
-    font-size: 10px !important;
-    line-height: 11px !important;
-    font-weight: 900 !important;
-}
-
-/* ---------- METRICS ---------- */
-
-div[data-testid="stMetric"] {
-    min-height: 34px !important;
-    height: 34px !important;
-    padding: 1px 2px !important;
-    margin: 0 !important;
-    border-radius: 5px !important;
+    background-color: #111827 !important;
+    color: white !important;
     border: 1px solid #24dfff !important;
-    background:
-        linear-gradient(
-            135deg,
-            #102d47,
-            #123a58
-        ) !important;
-    box-shadow: 0 0 4px rgba(0,220,255,.15);
-}
-
-div[data-testid="stMetricLabel"] {
-    font-size: 6px !important;
-    line-height: 7px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    color: #64eaff !important;
-}
-
-div[data-testid="stMetricValue"] {
-    font-size: 10px !important;
-    line-height: 11px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    color: #ffffff !important;
-    font-weight: 900 !important;
-}
-
-/* ---------- BUTTON ---------- */
-
-div.stButton {
-    margin: 1px 0 !important;
-}
-
-div.stButton > button {
-    min-height: 23px !important;
-    height: 23px !important;
-    padding: 0 !important;
-    margin: 0 !important;
     border-radius: 5px !important;
-    font-size: 9px !important;
-    font-weight: 900 !important;
-    background:
-        linear-gradient(
-            90deg,
-            #00c6ff,
-            #0072ff
-        ) !important;
+    min-height: 28px !important;
+}
+div[data-baseweb="select"] span {
+    color: white !important;
+    font-size: 11px !important;
 }
 
-/* ---------- HR ---------- */
-
-hr {
-    margin: 1px 0 !important;
-    padding: 0 !important;
+/* Header */
+.header-box {
+    background: #111827;
+    border: 1px solid #24dfff;
+    border-radius: 6px;
+    padding: 4px 8px;
+    text-align: center;
+    font-size: 10px;
+    color: #64eaff;
+    margin-bottom: 4px;
+    margin-top: 4px;
 }
 
-/* ---------- SPACE CONTROL ---------- */
-
-div[data-testid="stVerticalBlock"] {
-    gap: 0.12rem !important;
+/* Signal Box */
+.signal {
+    border-radius: 6px;
+    padding: 6px 4px;
+    margin: 3px 0;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 900;
 }
 
+.up {
+    background: #064e3b;
+    border: 1px solid #10b981;
+    color: #6ee7b7;
+}
+
+.down {
+    background: #7f1d1d;
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+}
+
+.wait {
+    background: #1f1a0a;
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+}
+
+/* Status Bar */
+.status {
+    background: #111827;
+    border: 1px solid #24dfff;
+    border-radius: 5px;
+    padding: 4px 6px;
+    margin: 3px 0;
+    text-align: center;
+    font-size: 10px;
+}
+
+.reason {
+    color: #9ca3af;
+    font-size: 9px;
+    margin-top: 1px;
+}
+
+/* Metrics List Rows */
+.metric {
+    background: #111827;
+    border: 1px solid #24dfff;
+    border-radius: 5px;
+    padding: 4px 8px;
+    margin: 2px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-title {
+    color: #64eaff;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.metric-value {
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Footer */
+.footer {
+    color: #6b7280;
+    text-align: center;
+    font-size: 8px;
+    margin-top: 4px;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# TITLE
-# =========================================================
-
-st.title("📊 SIGNAL TERMINAL V3.6")
-
-# =========================================================
-# PAIRS / TIME
+# PAIRS & TIME
 # =========================================================
 
 PAIRS = {
-    "EUR/USD": "EURUSD=X",
-    "GBP/USD": "GBPUSD=X",
-    "USD/JPY": "USDJPY=X",
-    "AUD/USD": "AUDUSD=X",
-    "USD/CAD": "USDCAD=X",
-    "NZD/USD": "NZDUSD=X",
-    "EUR/JPY": "EURJPY=X",
-    "GBP/JPY": "GBPJPY=X"
+    "EUR/USD": "EURUSD=X", "GBP/USD": "GBPUSD=X",
+    "USD/JPY": "USDJPY=X", "AUD/USD": "AUDUSD=X",
+    "USD/CAD": "USDCAD=X", "NZD/USD": "NZDUSD=X",
+    "EUR/JPY": "EURJPY=X", "GBP/JPY": "GBPJPY=X"
 }
 
 TIMEFRAMES = {
-    "5m": "5m",
-    "15m": "15m",
-    "30m": "30m",
-    "1H": "60m"
+    "5m": "5m", "15m": "15m", "30m": "30m", "1H": "60m"
 }
 
-c1, c2 = st.columns(2)
-
-with c1:
-    pair = st.selectbox(
-        "PAIR",
-        list(PAIRS.keys())
-    )
-
-with c2:
-    timeframe = st.selectbox(
-        "TIME",
-        list(TIMEFRAMES.keys())
-    )
+# Vertical Dropdowns (100% Visible on Mobile)
+pair = st.selectbox("SELECT PAIR", list(PAIRS.keys()))
+timeframe = st.selectbox("SELECT TIMEFRAME", list(TIMEFRAMES.keys()))
 
 symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
 
 # =========================================================
-# DATA
+# DATA LOADING
 # =========================================================
 
 @st.cache_data(ttl=20)
 def get_data(symbol, interval):
-
     try:
-
-        df = yf.download(
-            symbol,
-            period="7d",
-            interval=interval,
-            progress=False,
-            auto_adjust=False,
-            threads=False
-        )
-
-        if df is None or df.empty:
-            return None
-
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
-
-        needed = [
-            "Open",
-            "High",
-            "Low",
-            "Close"
-        ]
-
-        if not all(
-            x in df.columns
-            for x in needed
-        ):
-            return None
-
-        df = df[needed].dropna()
-
-        df = df.loc[
-            ~df.index.duplicated(
-                keep="last"
-            )
-        ]
-
-        return df
-
+        df = yf.download(symbol, period="7d", interval=interval, progress=False, auto_adjust=False, threads=False)
+        if df is None or df.empty: return None
+        if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+        needed = ["Open", "High", "Low", "Close"]
+        if not all(x in df.columns for x in needed): return None
+        return df[needed].dropna().loc[~df.index.duplicated(keep="last")]
     except Exception:
         return None
 
-# =========================================================
-# RSI
-# =========================================================
-
 def calculate_rsi(close, period=14):
-
     delta = close.diff()
-
     gain = delta.clip(lower=0)
-
     loss = -delta.clip(upper=0)
-
-    avg_gain = gain.ewm(
-        alpha=1 / period,
-        adjust=False,
-        min_periods=period
-    ).mean()
-
-    avg_loss = loss.ewm(
-        alpha=1 / period,
-        adjust=False,
-        min_periods=period
-    ).mean()
-
-    rs = (
-        avg_gain /
-        avg_loss.replace(
-            0,
-            np.nan
-        )
-    )
-
-    return (
-        100 -
-        100 / (1 + rs)
-    ).fillna(50)
-
-# =========================================================
-# ANALYSIS
-# =========================================================
+    avg_gain = gain.ewm(alpha=1/period, adjust=False, min_periods=period).mean()
+    avg_loss = loss.ewm(alpha=1/period, adjust=False, min_periods=period).mean()
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    return (100 - 100 / (1 + rs)).fillna(50)
 
 def analyze(df):
-
-    if len(df) < 150:
-        return None
-
+    if len(df) < 150: return None
     d = df.copy()
+    close, high, low, op = d["Close"], d["High"], d["Low"], d["Open"]
 
-    close = d["Close"]
-    high = d["High"]
-    low = d["Low"]
-    op = d["Open"]
+    d["EMA12"] = close.ewm(span=12, adjust=False).mean()
+    d["EMA26"] = close.ewm(span=26, adjust=False).mean()
+    d["EMA50"] = close.ewm(span=50, adjust=False).mean()
+    d["SMA20"] = close.rolling(20).mean()
+    d["RSI"] = calculate_rsi(close)
+    d["MACD"] = d["EMA12"] - d["EMA26"]
+    d["MACD_SIGNAL"] = d["MACD"].ewm(span=9, adjust=False).mean()
+    d["MACD_HIST"] = d["MACD"] - d["MACD_SIGNAL"]
 
-    # EMA
-    d["EMA12"] = close.ewm(
-        span=12,
-        adjust=False
-    ).mean()
+    std = close.rolling(20).std()
+    d["BB_UPPER"] = d["SMA20"] + 2 * std
+    d["BB_LOWER"] = d["SMA20"] - 2 * std
 
-    d["EMA26"] = close.ewm(
-        span=26,
-        adjust=False
-    ).mean()
-
-    d["EMA50"] = close.ewm(
-        span=50,
-        adjust=False
-    ).mean()
-
-    # SMA
-    d["SMA20"] = close.rolling(
-        20
-    ).mean()
-
-    # RSI
-    d["RSI"] = calculate_rsi(
-        close
-    )
-
-    # MACD
-    d["MACD"] = (
-        d["EMA12"] -
-        d["EMA26"]
-    )
-
-    d["MACD_SIGNAL"] = (
-        d["MACD"]
-        .ewm(
-            span=9,
-            adjust=False
-        )
-        .mean()
-    )
-
-    d["MACD_HIST"] = (
-        d["MACD"] -
-        d["MACD_SIGNAL"]
-    )
-
-    # Bollinger
-    std = close.rolling(
-        20
-    ).std()
-
-    d["BB_UPPER"] = (
-        d["SMA20"] +
-        2 * std
-    )
-
-    d["BB_LOWER"] = (
-        d["SMA20"] -
-        2 * std
-    )
-
-    # ATR
     prev_close = close.shift(1)
+    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    d["ATR14"] = tr.ewm(alpha=1/14, adjust=False, min_periods=14).mean()
 
-    tr = pd.concat(
-        [
-            high - low,
-            (high - prev_close).abs(),
-            (low - prev_close).abs()
-        ],
-        axis=1
-    ).max(axis=1)
-
-    d["ATR14"] = tr.ewm(
-        alpha=1 / 14,
-        adjust=False,
-        min_periods=14
-    ).mean()
-
-    # Candle
-    candle_range = (
-        high - low
-    ).replace(
-        0,
-        np.nan
-    )
-
-    d["BODY"] = (
-        (close - op).abs()
-        / candle_range
-    )
-
-    d["LOCATION"] = (
-        (close - low)
-        / candle_range
-    )
+    candle_range = (high - low).replace(0, np.nan)
+    d["BODY"] = (close - op).abs() / candle_range
+    d["LOCATION"] = (close - low) / candle_range
 
     d = d.dropna()
+    if len(d) < 100: return None
 
-    if len(d) < 100:
-        return None
-
-    # CLOSED CANDLE
     c = d.iloc[-2]
     p = d.iloc[-3]
 
     price = float(c["Close"])
-
-    ema12 = float(c["EMA12"])
-    ema26 = float(c["EMA26"])
-    ema50 = float(c["EMA50"])
-
+    ema12, ema26, ema50 = float(c["EMA12"]), float(c["EMA26"]), float(c["EMA50"])
     sma20 = float(c["SMA20"])
-
-    rsi = float(c["RSI"])
-    prev_rsi = float(p["RSI"])
-
-    macd = float(c["MACD"])
-    macd_sig = float(c["MACD_SIGNAL"])
-
-    hist = float(c["MACD_HIST"])
-    prev_hist = float(p["MACD_HIST"])
-
-    bb_up = float(c["BB_UPPER"])
-    bb_low = float(c["BB_LOWER"])
-
+    rsi, prev_rsi = float(c["RSI"]), float(p["RSI"])
+    macd, macd_sig = float(c["MACD"]), float(c["MACD_SIGNAL"])
+    hist, prev_hist = float(c["MACD_HIST"]), float(p["MACD_HIST"])
+    bb_up, bb_low = float(c["BB_UPPER"]), float(c["BB_LOWER"])
     atr = float(c["ATR14"])
+    body, location = float(c["BODY"]), float(c["LOCATION"])
 
-    body = float(c["BODY"])
-    location = float(c["LOCATION"])
-
-    # =====================================================
-    # TREND
-    # =====================================================
-
-    gap = abs(
-        ema12 - ema26
-    )
-
-    strength = (
-        gap / atr
-        if atr > 0
-        else 0
-    )
-
+    gap = abs(ema12 - ema26)
+    strength = gap / atr if atr > 0 else 0
     strong = strength >= 0.15
 
-    if (
-        ema12 > ema26
-        and ema26 > ema50
-        and price > ema50
-        and strong
-    ):
-
+    if ema12 > ema26 and ema26 > ema50 and price > ema50 and strong:
         market = "UPTREND"
-
-    elif (
-        ema12 < ema26
-        and ema26 < ema50
-        and price < ema50
-        and strong
-    ):
-
+    elif ema12 < ema26 and ema26 < ema50 and price < ema50 and strong:
         market = "DOWNTREND"
-
     else:
-
         market = "SIDEWAYS"
 
-    # =====================================================
-    # UP FILTERS
-    # =====================================================
-
     up = [
-
         market == "UPTREND",
-
-        ema12 > ema26
-        and ema26 > ema50,
-
-        45 <= rsi <= 68
-        and rsi > prev_rsi,
-
-        macd > macd_sig
-        and hist > prev_hist,
-
-        price > ema12
-        and price > sma20,
-
-        price > sma20
-        and price < bb_up,
-
-        c["Close"] > c["Open"]
-        and body >= 0.45
-        and location >= 0.65,
-
-        atr > 0
-        and strength >= 0.15
+        ema12 > ema26 and ema26 > ema50,
+        45 <= rsi <= 68 and rsi > prev_rsi,
+        macd > macd_sig and hist > prev_hist,
+        price > ema12 and price > sma20,
+        price > sma20 and price < bb_up,
+        c["Close"] > c["Open"] and body >= 0.45 and location >= 0.65,
+        atr > 0 and strength >= 0.15
     ]
 
-    # =====================================================
-    # DOWN FILTERS
-    # =====================================================
-
     down = [
-
         market == "DOWNTREND",
-
-        ema12 < ema26
-        and ema26 < ema50,
-
-        32 <= rsi <= 55
-        and rsi < prev_rsi,
-
-        macd < macd_sig
-        and hist < prev_hist,
-
-        price < ema12
-        and price < sma20,
-
-        price < sma20
-        and price > bb_low,
-
-        c["Close"] < c["Open"]
-        and body >= 0.45
-        and location <= 0.35,
-
-        atr > 0
-        and strength >= 0.15
+        ema12 < ema26 and ema26 < ema50,
+        32 <= rsi <= 55 and rsi < prev_rsi,
+        macd < macd_sig and hist < prev_hist,
+        price < ema12 and price < sma20,
+        price < sma20 and price > bb_low,
+        c["Close"] < c["Open"] and body >= 0.45 and location <= 0.35,
+        atr > 0 and strength >= 0.15
     ]
 
     up_score = sum(up)
-
     down_score = sum(down)
 
-    # =====================================================
-    # SIGNAL
-    # =====================================================
-
-    signal = "NO TRADE"
-
-    reason = "Confirmation incomplete"
-
-    if (
-        market == "UPTREND"
-        and up_score >= 6
-        and up[2]
-        and up[3]
-        and up[4]
-    ):
-
-        signal = "UP"
-        reason = "Bullish confirmation"
-
-    elif (
-        market == "DOWNTREND"
-        and down_score >= 6
-        and down[2]
-        and down[3]
-        and down[4]
-    ):
-
-        signal = "DOWN"
-        reason = "Bearish confirmation"
-
+    signal, reason = "NO TRADE", "Confirmation incomplete"
+    if market == "UPTREND" and up_score >= 6 and up[2] and up[3] and up[4]:
+        signal, reason = "UP", "Bullish confirmation"
+    elif market == "DOWNTREND" and down_score >= 6 and down[2] and down[3] and down[4]:
+        signal, reason = "DOWN", "Bearish confirmation"
     elif market == "SIDEWAYS":
-
         reason = "Sideways market"
-
-    elif abs(
-        up_score - down_score
-    ) <= 1:
-
+    elif abs(up_score - down_score) <= 1:
         reason = "Signals balanced"
 
-    if up_score >= down_score:
-        selected = up
-        side = "UP"
-    else:
-        selected = down
-        side = "DOWN"
-
-    names = [
-        "T",
-        "EMA",
-        "RSI",
-        "MACD",
-        "P",
-        "BB",
-        "C",
-        "V"
-    ]
-
-    filters = " ".join(
-        f"{n}{'✓' if x else '×'}"
-        for n, x in zip(
-            names,
-            selected
-        )
-    )
+    selected = up if up_score >= down_score else down
+    side = "UP" if up_score >= down_score else "DOWN"
+    names = ["T", "EMA", "RSI", "MACD", "P", "BB", "C", "V"]
+    filters = " ".join(f"{n}{'✓' if x else '×'}" for n, x in zip(names, selected))
 
     return {
-        "signal": signal,
-        "reason": reason,
-        "market": market,
-        "up": up_score,
-        "down": down_score,
-        "side": side,
-        "filters": filters,
-        "price": price,
-        "rsi": rsi,
-        "atr": atr,
-        "ema12": ema12,
-        "ema26": ema26,
-        "ema50": ema50,
+        "signal": signal, "reason": reason, "market": market,
+        "up": up_score, "down": down_score, "side": side, "filters": filters,
+        "price": price, "rsi": rsi, "atr": atr, "ema12": ema12, "ema26": ema26, "ema50": ema50,
         "time": d.index[-2]
     }
 
 # =========================================================
-# RUN
+# RUN EXECUTION
 # =========================================================
 
-df = get_data(
-    symbol,
-    interval
-)
-
-if df is None:
-
-    st.error(
-        "⚠️ DATA UNAVAILABLE"
-    )
-
-    st.stop()
-
-if len(df) < 150:
-
-    st.error(
-        "⚠️ NOT ENOUGH DATA"
-    )
-
+df = get_data(symbol, interval)
+if df is None or len(df) < 150:
+    st.error("⚠️ DATA UNAVAILABLE OR INSUFFICIENT")
     st.stop()
 
 r = analyze(df)
-
 if r is None:
-
-    st.error(
-        "⚠️ ANALYSIS ERROR"
-    )
-
+    st.error("⚠️ ANALYSIS ERROR")
     st.stop()
 
-# =========================================================
-# DATA AGE
-# =========================================================
-
 closed_time = r["time"]
-
 try:
-
     if closed_time.tzinfo is None:
-        closed_time = closed_time.replace(
-            tzinfo=timezone.utc
-        )
-
-    age = (
-        datetime.now(timezone.utc)
-        - closed_time
-    ).total_seconds() / 60
-
+        closed_time = closed_time.replace(tzinfo=timezone.utc)
+    age = (datetime.now(timezone.utc) - closed_time).total_seconds() / 60
 except Exception:
-
     age = 999999
 
-if timeframe == "5m":
-    max_age = 20
-elif timeframe == "15m":
-    max_age = 45
-elif timeframe == "30m":
-    max_age = 75
-else:
-    max_age = 150
-
+max_age = 20 if timeframe == "5m" else (45 if timeframe == "15m" else (75 if timeframe == "30m" else 150))
 stale = age > max_age
 
-# =========================================================
-# HEADER
-# =========================================================
+# Header Info
+st.markdown(f'<div class="header-box">💱 {pair} • ⏱️ {timeframe} • 🔒 CLOSED</div>', unsafe_allow_html=True)
 
-st.caption(
-    f"💱 {pair} • ⏱️ {timeframe} • 🔒 CLOSED"
-)
-
-# =========================================================
-# SIGNAL
-# =========================================================
-
+# Signal Box
 if stale:
-
-    st.warning(
-        "🕐 DATA STALE — NO SIGNAL"
-    )
-
+    st.markdown('<div class="signal wait">🕐 DATA STALE — NO SIGNAL</div>', unsafe_allow_html=True)
 elif r["signal"] == "UP":
-
-    st.success(
-        "🟢 UP SIGNAL"
-    )
-
+    st.markdown('<div class="signal up">🟢 UP SIGNAL</div>', unsafe_allow_html=True)
 elif r["signal"] == "DOWN":
-
-    st.error(
-        "🔴 DOWN SIGNAL"
-    )
-
+    st.markdown('<div class="signal down">🔴 DOWN SIGNAL</div>', unsafe_allow_html=True)
 else:
+    st.markdown('<div class="signal wait">🛡️ NO TRADE</div>', unsafe_allow_html=True)
 
-    st.warning(
-        "🛡️ NO TRADE"
-    )
+# Market Status
+st.markdown(f"""
+    <div class="status">
+        <b>{r['market']}</b> | 🟢 {r['up']}/8 • 🔴 {r['down']}/8
+        <div class="reason">{r['reason']}</div>
+    </div>
+""", unsafe_allow_html=True)
 
-# =========================================================
-# MARKET
-# =========================================================
+# Compact Metrics Rows (No Columns, Clean Stack)
+st.markdown(f"""
+    <div class="metric"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>
+    <div class="metric"><div class="metric-title">RSI</div><div class="metric-value">{r['rsi']:.1f}</div></div>
+    <div class="metric"><div class="metric-title">ATR</div><div class="metric-value">{r['atr']:.5f}</div></div>
+    <div class="metric"><div class="metric-title">EMA12</div><div class="metric-value">{r['ema12']:.5f}</div></div>
+    <div class="metric"><div class="metric-title">EMA26</div><div class="metric-value">{r['ema26']:.5f}</div></div>
+    <div class="metric"><div class="metric-title">EMA50</div><div class="metric-value">{r['ema50']:.5f}</div></div>
+""", unsafe_allow_html=True)
 
-st.write(
-    f"🌐 **{r['market']}** • "
-    f"🟢 {r['up']}/8 • "
-    f"🔴 {r['down']}/8 • "
-    f"💡 {r['reason']}"
-)
+# Filters Row
+st.markdown(f"""
+    <div class="status">
+        <b>Filters ({r['side']}):</b> {r['filters']}
+    </div>
+""", unsafe_allow_html=True)
 
-# =========================================================
-# PRICE / RSI / ATR
-# =========================================================
-
-a, b, c = st.columns(3)
-
-with a:
-    st.metric(
-        "PRICE",
-        f"{r['price']:.5f}"
-    )
-
-with b:
-    st.metric(
-        "RSI",
-        f"{r['rsi']:.1f}"
-    )
-
-with c:
-    st.metric(
-        "ATR",
-        f"{r['atr']:.5f}"
-    )
-
-# =========================================================
-# EMA
-# =========================================================
-
-a, b, c = st.columns(3)
-
-with a:
-    st.metric(
-        "EMA12",
-        f"{r['ema12']:.5f}"
-    )
-
-with b:
-    st.metric(
-        "EMA26",
-        f"{r['ema26']:.5f}"
-    )
-
-with c:
-    st.metric(
-        "EMA50",
-        f"{r['ema50']:.5f}"
-    )
-
-# =========================================================
-# FILTERS
-# =========================================================
-
-st.write(
-    f"🔎 {r['side']} • {r['filters']}"
-)
-
-# =========================================================
-# AGE + CLOSED TIME
-# =========================================================
-
-if stale:
-
-    st.caption(
-        f"🕐 AGE {age:.0f}m • 🔒 {closed_time}"
-    )
-
-else:
-
-    st.caption(
-        f"🟢 AGE {age:.1f}m • 🔒 {closed_time}"
-    )
-
-# =========================================================
-# REFRESH
-# =========================================================
-
-if st.button(
-    "🔄 REFRESH"
-):
-
+# Refresh Button
+if st.button("🔄 REFRESH DATA", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
-st.caption(
-    "Manual • Closed Candle • No Auto Trading"
-)
+st.markdown(f'<div class="footer">Age: {age:.1f}m | Closed: {closed_time}</div>', unsafe_allow_html=True)
