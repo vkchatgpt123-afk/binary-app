@@ -4,69 +4,151 @@ import pandas as pd
 import numpy as np
 
 # =========================================================
-# SIGNAL TERMINAL V2
+# SIGNAL TERMINAL V2 — COMPACT MOBILE
 # Analysis only — NO auto trading
 # =========================================================
 
 st.set_page_config(
     page_title="Signal Terminal V2",
     page_icon="📊",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# ---------------------- UI ----------------------
+# =========================================================
+# COMPACT PROFESSIONAL UI
+# =========================================================
 
 st.markdown("""
 <style>
+
 .stApp {
-    background: #0b0f19;
-    color: white;
+    background: #080c14;
+    color: #ffffff;
 }
 
 .block-container {
-    max-width: 900px;
-    padding-top: 1rem;
+    max-width: 620px;
+    padding-top: 0.45rem;
+    padding-bottom: 0.5rem;
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
 }
 
-.card {
-    background: #111827;
-    border: 1px solid #263244;
-    border-radius: 8px;
-    padding: 9px 12px;
-    margin: 5px 0;
+h1 {
+    font-size: 1.35rem !important;
+    margin-bottom: 0.15rem !important;
 }
 
-.signal-up,
-.signal-down,
-.signal-hold {
-    padding: 14px;
-    border-radius: 10px;
-    text-align: center;
-    font-weight: 900;
-    font-size: 22px;
-    margin: 8px 0;
+h2 {
+    font-size: 1rem !important;
 }
 
-.signal-up {
-    background: #065f46;
-    border: 1px solid #34d399;
+h3 {
+    font-size: 0.9rem !important;
 }
 
-.signal-down {
-    background: #991b1b;
-    border: 1px solid #f87171;
-}
-
-.signal-hold {
-    background: #1f2937;
-    border: 1px solid #fbbf24;
-    color: #fbbf24;
+p {
+    margin-bottom: 0.25rem !important;
 }
 
 .small {
     color: #9ca3af;
+    font-size: 10px;
+}
+
+.topbar {
+    background: #111827;
+    border: 1px solid #263244;
+    border-radius: 9px;
+    padding: 7px 9px;
+    margin: 4px 0;
     font-size: 12px;
 }
+
+.signal {
+    padding: 13px 8px;
+    border-radius: 11px;
+    text-align: center;
+    font-weight: 900;
+    font-size: 27px;
+    margin: 6px 0;
+}
+
+.signal-up {
+    background: #064e3b;
+    border: 1px solid #10b981;
+    color: #6ee7b7;
+}
+
+.signal-down {
+    background: #7f1d1d;
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+}
+
+.signal-hold {
+    background: #27220d;
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+}
+
+.status-card {
+    background: #111827;
+    border: 1px solid #263244;
+    border-radius: 9px;
+    padding: 7px 9px;
+    margin: 4px 0;
+    font-size: 11px;
+}
+
+.metric {
+    background: #111827;
+    border: 1px solid #263244;
+    border-radius: 8px;
+    padding: 6px 5px;
+    text-align: center;
+    margin: 2px 0;
+}
+
+.metric-label {
+    color: #9ca3af;
+    font-size: 9px;
+}
+
+.metric-value {
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.check {
+    background: #111827;
+    border: 1px solid #263244;
+    border-radius: 7px;
+    padding: 5px 7px;
+    margin: 2px 0;
+    font-size: 10px;
+}
+
+.footer {
+    color: #6b7280;
+    font-size: 9px;
+    text-align: center;
+    margin-top: 5px;
+}
+
+div[data-testid="stVerticalBlock"] {
+    gap: 0.15rem;
+}
+
+div[data-testid="stHorizontalBlock"] {
+    gap: 0.35rem;
+}
+
+button {
+    min-height: 34px !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -92,10 +174,10 @@ PAIRS = {
 # =========================================================
 
 TIMEFRAMES = {
-    "5 min": "5m",
-    "15 min": "15m",
-    "30 min": "30m",
-    "1 hour": "60m",
+    "5m": "5m",
+    "15m": "15m",
+    "30m": "30m",
+    "1H": "60m",
 }
 
 
@@ -103,11 +185,13 @@ TIMEFRAMES = {
 # HEADER
 # =========================================================
 
-st.title("📊 Signal Terminal V2")
+st.markdown(
+    "### 📊 SIGNAL TERMINAL V2"
+)
 
-st.caption(
-    "Closed-candle analysis • No auto trading • "
-    "No Martingale • No guaranteed profit"
+st.markdown(
+    '<div class="small">Closed-candle analysis • Manual use only</div>',
+    unsafe_allow_html=True
 )
 
 
@@ -115,46 +199,26 @@ st.caption(
 # PAIR + TIMEFRAME
 # =========================================================
 
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([1.5, 1])
 
 with col1:
     selected_pair = st.selectbox(
-        "Currency Pair",
+        "Pair",
         list(PAIRS.keys()),
-        index=0
+        index=0,
+        label_visibility="collapsed"
     )
 
 with col2:
     selected_tf = st.selectbox(
-        "Timeframe",
+        "TF",
         list(TIMEFRAMES.keys()),
-        index=0
+        index=0,
+        label_visibility="collapsed"
     )
-
 
 ticker = PAIRS[selected_pair]
 interval = TIMEFRAMES[selected_tf]
-
-
-# =========================================================
-# REFRESH SETTINGS
-# =========================================================
-
-col3, col4 = st.columns(2)
-
-with col3:
-    auto_refresh = st.toggle(
-        "Auto Refresh",
-        value=True
-    )
-
-with col4:
-    refresh_seconds = st.selectbox(
-        "Refresh",
-        [30, 60, 120, 300],
-        index=1,
-        format_func=lambda x: f"{x} seconds"
-    )
 
 
 # =========================================================
@@ -178,7 +242,6 @@ def load_data(symbol, interval_value):
         if df is None or df.empty:
             return None
 
-        # New yfinance versions can return MultiIndex columns
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
@@ -205,7 +268,6 @@ def load_data(symbol, interval_value):
         return df
 
     except Exception:
-
         return None
 
 
@@ -233,7 +295,10 @@ def calculate_rsi(close, period=14):
         min_periods=period
     ).mean()
 
-    avg_loss = avg_loss.replace(0, np.nan)
+    avg_loss = avg_loss.replace(
+        0,
+        np.nan
+    )
 
     rs = avg_gain / avg_loss
 
@@ -257,7 +322,6 @@ def calculate_indicators(df):
     low = data["Low"]
     open_price = data["Open"]
 
-    # EMA
     data["EMA12"] = close.ewm(
         span=12,
         adjust=False
@@ -273,16 +337,15 @@ def calculate_indicators(df):
         adjust=False
     ).mean()
 
-    # SMA
-    data["SMA20"] = close.rolling(20).mean()
+    data["SMA20"] = close.rolling(
+        20
+    ).mean()
 
-    # RSI
     data["RSI"] = calculate_rsi(
         close,
         14
     )
 
-    # MACD
     macd = (
         data["EMA12"]
         - data["EMA26"]
@@ -295,8 +358,9 @@ def calculate_indicators(df):
         adjust=False
     ).mean()
 
-    # Bollinger Bands
-    std = close.rolling(20).std()
+    std = close.rolling(
+        20
+    ).std()
 
     data["BB_UPPER"] = (
         data["SMA20"]
@@ -308,7 +372,6 @@ def calculate_indicators(df):
         - (2 * std)
     )
 
-    # ATR
     previous_close = close.shift(1)
 
     true_range = pd.concat(
@@ -326,17 +389,18 @@ def calculate_indicators(df):
         min_periods=14
     ).mean()
 
-    # Candle structure
     candle_range = (
         high - low
-    ).replace(0, np.nan)
+    ).replace(
+        0,
+        np.nan
+    )
 
     data["BODY_PCT"] = (
         (close - open_price).abs()
         / candle_range
     )
 
-    # Where candle closed inside its range
     data["CLOSE_LOCATION"] = (
         (close - low)
         / candle_range
@@ -359,14 +423,8 @@ def analyze_market(df):
     if len(data) < 80:
         return None
 
-    # -----------------------------------------------------
-    # IMPORTANT:
-    # Last row can still be forming.
-    # We deliberately use the previous CLOSED candle.
-    # -----------------------------------------------------
-
+    # CLOSED CANDLE
     candle = data.iloc[-2]
-
     previous = data.iloc[-3]
 
     close = float(candle["Close"])
@@ -386,14 +444,6 @@ def analyze_market(df):
 
     atr = float(candle["ATR14"])
 
-    bb_upper = float(
-        candle["BB_UPPER"]
-    )
-
-    bb_lower = float(
-        candle["BB_LOWER"]
-    )
-
     body_pct = float(
         candle["BODY_PCT"]
     )
@@ -412,11 +462,13 @@ def analyze_market(df):
 
     strong_trend = (
         atr > 0
-        and ema_gap >= (0.12 * atr)
+        and ema_gap >= (
+            0.12 * atr
+        )
     )
 
     # -----------------------------------------------------
-    # MARKET REGIME
+    # MARKET STATE
     # -----------------------------------------------------
 
     if (
@@ -437,7 +489,7 @@ def analyze_market(df):
 
     else:
 
-        market_state = "SIDEWAYS / UNCLEAR"
+        market_state = "SIDEWAYS"
 
 
     # -----------------------------------------------------
@@ -449,18 +501,12 @@ def analyze_market(df):
         previous["Close"]
         < previous["Open"]
 
-        and
-
-        candle["Close"]
+        and candle["Close"]
         > candle["Open"]
 
-        and
+        and close_location >= 0.65
 
-        close_location >= 0.65
-
-        and
-
-        body_pct >= 0.35
+        and body_pct >= 0.35
     )
 
 
@@ -469,18 +515,12 @@ def analyze_market(df):
         previous["Close"]
         > previous["Open"]
 
-        and
-
-        candle["Close"]
+        and candle["Close"]
         < candle["Open"]
 
-        and
+        and close_location <= 0.35
 
-        close_location <= 0.35
-
-        and
-
-        body_pct >= 0.35
+        and body_pct >= 0.35
     )
 
 
@@ -491,42 +531,44 @@ def analyze_market(df):
     up_checks = [
 
         (
-            "Bullish reversal candle",
+            "Reversal",
             bool(bullish_reversal)
         ),
 
         (
-            "RSI recovering",
+            "RSI",
             bool(
                 rsi > 35
-                and rsi > float(previous["RSI"])
+                and rsi >
+                float(previous["RSI"])
             )
         ),
 
         (
-            "MACD improving",
+            "MACD",
             bool(
                 macd > macd_signal
-                and macd > float(previous["MACD"])
+                and macd >
+                float(previous["MACD"])
             )
         ),
 
         (
-            "Price above SMA20",
+            "SMA20",
             bool(
                 close > sma20
             )
         ),
 
         (
-            "Price above EMA12",
+            "EMA12",
             bool(
                 close > ema12
             )
         ),
 
         (
-            "Usable volatility",
+            "Volatility",
             bool(
                 atr > 0
             )
@@ -541,42 +583,44 @@ def analyze_market(df):
     down_checks = [
 
         (
-            "Bearish reversal candle",
+            "Reversal",
             bool(bearish_reversal)
         ),
 
         (
-            "RSI falling",
+            "RSI",
             bool(
                 rsi < 65
-                and rsi < float(previous["RSI"])
+                and rsi <
+                float(previous["RSI"])
             )
         ),
 
         (
-            "MACD weakening",
+            "MACD",
             bool(
                 macd < macd_signal
-                and macd < float(previous["MACD"])
+                and macd <
+                float(previous["MACD"])
             )
         ),
 
         (
-            "Price below SMA20",
+            "SMA20",
             bool(
                 close < sma20
             )
         ),
 
         (
-            "Price below EMA12",
+            "EMA12",
             bool(
                 close < ema12
             )
         ),
 
         (
-            "Usable volatility",
+            "Volatility",
             bool(
                 atr > 0
             )
@@ -601,13 +645,8 @@ def analyze_market(df):
 
     signal = "NO TRADE"
 
-    reason = (
-        "Setup is not strong enough."
-    )
+    reason = "Waiting for stronger setup."
 
-
-    # Conservative rule:
-    # Trend must agree AND minimum 5/6 checks.
     if (
         market_state == "UPTREND"
         and up_score >= 5
@@ -616,10 +655,8 @@ def analyze_market(df):
         signal = "UP"
 
         reason = (
-            f"Trend + confirmation "
-            f"({up_score}/6)"
+            f"UP setup {up_score}/6"
         )
-
 
     elif (
         market_state == "DOWNTREND"
@@ -629,16 +666,13 @@ def analyze_market(df):
         signal = "DOWN"
 
         reason = (
-            f"Trend + confirmation "
-            f"({down_score}/6)"
+            f"DOWN setup {down_score}/6"
         )
 
-
-    elif market_state == "SIDEWAYS / UNCLEAR":
+    elif market_state == "SIDEWAYS":
 
         reason = (
-            "Sideways/unclear market "
-            "— filtered."
+            "Sideways market filtered"
         )
 
 
@@ -690,19 +724,13 @@ def analyze_market(df):
         "atr":
             atr,
 
-        "bb_lower":
-            bb_lower,
-
-        "bb_upper":
-            bb_upper,
-
         "closed_time":
             data.index[-2]
     }
 
 
 # =========================================================
-# LOAD DATA
+# LOAD
 # =========================================================
 
 df = load_data(
@@ -710,84 +738,45 @@ df = load_data(
     interval
 )
 
-
 if df is None:
 
     st.error(
-        "⚠️ Market data unavailable. "
-        "Try another timeframe or pair."
+        "⚠️ Market data unavailable."
     )
 
     st.stop()
-
 
 if len(df) < 100:
 
     st.error(
-        "⚠️ Not enough candles "
-        "for safe analysis."
+        "⚠️ Not enough candles."
     )
 
     st.stop()
 
-
 result = analyze_market(df)
-
 
 if result is None:
 
     st.error(
-        "⚠️ Not enough clean data."
+        "⚠️ Analysis unavailable."
     )
 
     st.stop()
 
 
 # =========================================================
-# SIGNAL DISPLAY
-# =========================================================
-
-if result["signal"] == "UP":
-
-    st.markdown(
-        '<div class="signal-up">'
-        '🟢 UP — CONFIRMED SETUP'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-
-elif result["signal"] == "DOWN":
-
-    st.markdown(
-        '<div class="signal-down">'
-        '🔴 DOWN — CONFIRMED SETUP'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-
-else:
-
-    st.markdown(
-        '<div class="signal-hold">'
-        '🛡️ NO TRADE — WAIT'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-
-# =========================================================
-# MARKET STATUS
+# TOP STATUS
 # =========================================================
 
 st.markdown(
     f"""
-    <div class="card">
-        <b>Pair:</b> {selected_pair}<br>
-        <b>Timeframe:</b> {selected_tf}<br>
-        <b>Market:</b> {result["market_state"]}<br>
-        <b>Reason:</b> {result["reason"]}
+    <div class="topbar">
+        <b>{selected_pair}</b>
+        &nbsp; • &nbsp;
+        <b>{selected_tf}</b>
+        &nbsp; • &nbsp;
+        CLOSED CANDLE
     </div>
     """,
     unsafe_allow_html=True
@@ -795,130 +784,37 @@ st.markdown(
 
 
 # =========================================================
-# INDICATORS
+# MAIN SIGNAL
 # =========================================================
-
-st.markdown("### 📌 Indicators")
-
-
-indicator_rows = [
-
-    (
-        "Current Price",
-        f'{result["close"]:.5f}'
-    ),
-
-    (
-        "SMA 20",
-        f'{result["sma20"]:.5f}'
-    ),
-
-    (
-        "EMA 12",
-        f'{result["ema12"]:.5f}'
-    ),
-
-    (
-        "EMA 26",
-        f'{result["ema26"]:.5f}'
-    ),
-
-    (
-        "EMA 50",
-        f'{result["ema50"]:.5f}'
-    ),
-
-    (
-        "RSI 14",
-        f'{result["rsi"]:.1f}'
-    ),
-
-    (
-        "MACD / Signal",
-        f'{result["macd"]:.6f} / '
-        f'{result["macd_signal"]:.6f}'
-    ),
-
-    (
-        "ATR 14",
-        f'{result["atr"]:.6f}'
-    ),
-
-    (
-        "BB Lower / Upper",
-        f'{result["bb_lower"]:.5f} / '
-        f'{result["bb_upper"]:.5f}'
-    )
-]
-
-
-for name, value in indicator_rows:
-
-    st.markdown(
-        f"""
-        <div class="card">
-            <span class="small">
-                {name}
-            </span>
-            <br>
-            <b>{value}</b>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-
-# =========================================================
-# SIGNAL CHECKS
-# =========================================================
-
-st.markdown(
-    "### 🔎 Signal Checks"
-)
-
 
 if result["signal"] == "UP":
 
-    checks = result["up_checks"]
-
+    st.markdown(
+        """
+        <div class="signal signal-up">
+            🟢 UP
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 elif result["signal"] == "DOWN":
 
-    checks = result["down_checks"]
-
+    st.markdown(
+        """
+        <div class="signal signal-down">
+            🔴 DOWN
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 else:
 
-    # Show whichever direction currently has
-    # stronger evidence, without issuing a signal.
-    if (
-        result["up_score"]
-        >= result["down_score"]
-    ):
-
-        checks = result["up_checks"]
-
-    else:
-
-        checks = result["down_checks"]
-
-
-for check_name, passed in checks:
-
-    status = (
-        "PASS ✅"
-        if passed
-        else
-        "WAIT ❌"
-    )
-
     st.markdown(
-        f"""
-        <div class="card">
-            {check_name}
-            <b style="float:right;">
-                {status}
-            </b>
+        """
+        <div class="signal signal-hold">
+            🛡️ NO TRADE
         </div>
         """,
         unsafe_allow_html=True
@@ -926,13 +822,155 @@ for check_name, passed in checks:
 
 
 # =========================================================
-# CLOSED CANDLE NOTICE
+# MARKET + SCORE
+# =========================================================
+
+if result["signal"] == "UP":
+
+    score_text = (
+        f'UP {result["up_score"]}/6'
+    )
+
+elif result["signal"] == "DOWN":
+
+    score_text = (
+        f'DOWN {result["down_score"]}/6'
+    )
+
+else:
+
+    score_text = (
+        f'UP {result["up_score"]}/6'
+        f' • '
+        f'DOWN {result["down_score"]}/6'
+    )
+
+
+st.markdown(
+    f"""
+    <div class="status-card">
+        <b>Market:</b> {result["market_state"]}
+        &nbsp;&nbsp; | &nbsp;&nbsp;
+        <b>Score:</b> {score_text}
+        <br>
+        <span class="small">
+            {result["reason"]}
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# KEY NUMBERS ONLY
+# =========================================================
+
+m1, m2, m3, m4 = st.columns(4)
+
+with m1:
+    st.markdown(
+        f"""
+        <div class="metric">
+            <div class="metric-label">PRICE</div>
+            <div class="metric-value">
+                {result["close"]:.5f}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with m2:
+    st.markdown(
+        f"""
+        <div class="metric">
+            <div class="metric-label">RSI</div>
+            <div class="metric-value">
+                {result["rsi"]:.1f}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with m3:
+    st.markdown(
+        f"""
+        <div class="metric">
+            <div class="metric-label">EMA12</div>
+            <div class="metric-value">
+                {result["ema12"]:.5f}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with m4:
+    st.markdown(
+        f"""
+        <div class="metric">
+            <div class="metric-label">EMA26</div>
+            <div class="metric-value">
+                {result["ema26"]:.5f}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# =========================================================
+# SIGNAL CHECKS — ONLY WHEN NEEDED
+# =========================================================
+
+with st.expander("🔎 Signal Checks"):
+
+    if result["signal"] == "UP":
+        checks = result["up_checks"]
+
+    elif result["signal"] == "DOWN":
+        checks = result["down_checks"]
+
+    else:
+
+        if (
+            result["up_score"]
+            >= result["down_score"]
+        ):
+            checks = result["up_checks"]
+        else:
+            checks = result["down_checks"]
+
+
+    for name, passed in checks:
+
+        status = (
+            "✅"
+            if passed
+            else
+            "—"
+        )
+
+        st.markdown(
+            f"""
+            <div class="check">
+                {status} {name}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+# =========================================================
+# CLOSED CANDLE TIME
 # =========================================================
 
 st.markdown(
     f"""
-    <div class="small">
-        🔒 Signal calculated from CLOSED candle:
+    <div class="footer">
+        🔒 Closed candle:
         {result["closed_time"]}
     </div>
     """,
@@ -941,17 +979,27 @@ st.markdown(
 
 
 # =========================================================
-# MANUAL REFRESH
+# REFRESH
 # =========================================================
 
-if st.button(
-    "🔄 Refresh Now",
-    use_container_width=True
-):
+c1, c2 = st.columns(2)
 
-    st.cache_data.clear()
+with c1:
 
-    st.rerun()
+    if st.button(
+        "🔄 Refresh",
+        use_container_width=True
+    ):
+
+        st.cache_data.clear()
+        st.rerun()
+
+with c2:
+
+    auto_refresh = st.toggle(
+        "Auto",
+        value=True
+    )
 
 
 # =========================================================
@@ -959,6 +1007,8 @@ if st.button(
 # =========================================================
 
 if auto_refresh:
+
+    refresh_seconds = 60
 
     st.markdown(
         f"""
@@ -970,36 +1020,30 @@ if auto_refresh:
         unsafe_allow_html=True
     )
 
-    st.caption(
-        f"🔄 Auto Refresh ON — "
-        f"every {refresh_seconds} seconds"
-    )
-
-else:
-
-    st.caption(
-        "Auto Refresh OFF"
+    st.markdown(
+        '<div class="footer">🔄 Auto: 60s</div>',
+        unsafe_allow_html=True
     )
 
 
 # =========================================================
-# SAFETY INFORMATION
+# SAFETY
 # =========================================================
 
-with st.expander(
-    "⚠️ Important"
-):
+with st.expander("⚠️ Safety"):
 
     st.write(
         """
-        This terminal is an analysis/backtesting aid only.
+        Analysis only.
 
-        • No automatic trading
+        • No auto trading
         • No Martingale
-        • No guaranteed accuracy
         • No guaranteed profit
-        • Weak/unclear markets are filtered
-        • Signals use a closed candle
-        • Demo testing should be done before any real-money use
+        • Closed-candle signal
+        • Sideways market filtered
+        • Demo testing first
+
+        Data source: Yahoo Finance.
+        This is not Quotex OTC feed data.
         """
     )
