@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.4 — ULTIMATE SINGLE SCREEN CLEAN FIX
+# SIGNAL TERMINAL V4.5 — FINAL POLISHED SINGLE SCREEN
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.4",
+    page_title="Signal Terminal V4.5",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# COMPACT CSS FOR SINGLE-SCREEN MOBILE FIT
+# PERFECTED CSS FOR NO OVERFLOW & MOBILE FIT
 # =========================================================
 
 st.markdown("""
@@ -28,15 +28,15 @@ st.markdown("""
 
 .block-container {
     max-width: 410px !important;
-    padding: 0.05rem 0.25rem 0.25rem 0.25rem !important;
+    padding: 0.05rem 0.2rem 0.2rem 0.2rem !important;
 }
 
-/* Force 50-50 for Pair & Timeframe */
+/* Force 50-50 for Pair & Timeframe without overflow */
 div[data-testid="column"] {
     width: 50% !important;
     flex: 1 1 50% !important;
     min-width: 50% !important;
-    padding: 0px 2px !important;
+    padding: 0px 1px !important;
 }
 
 div[data-testid="stHorizontalBlock"] {
@@ -55,7 +55,7 @@ div[data-baseweb="select"] > div {
 }
 div[data-baseweb="select"] span {
     color: #64ffda !important;
-    font-size: 8.5px !important;
+    font-size: 8px !important;
     font-weight: bold;
 }
 
@@ -208,9 +208,9 @@ TIMEFRAMES = {
 
 col_pair, col_tf = st.columns(2)
 with col_pair:
-    pair = st.selectbox("PAIR", list(PAIRS.keys()))
+    pair = st.selectbox("PAIR", list(PAIRS.keys()), label_visibility="collapsed")
 with col_tf:
-    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()))
+    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()), label_visibility="collapsed")
 
 symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
@@ -278,7 +278,9 @@ def analyze(df):
     rsi, prev_rsi = float(c["RSI"]), float(p["RSI"])
     macd, macd_sig = float(c["MACD"]), float(c["MACD_SIGNAL"])
     hist, prev_hist = float(c["MACD_HIST"]), float(p["MACD_HIST"])
-    bb_up, bb_low = float(c["BB_UPPER"]), float(c["BB_LOWER"])
+    bb_up, bb_low = float(c["BB_UPPER"], c["BB_LOWER"]) if 'c["BB_LOWER"]' else (float(c["BB_UPPER"]), float(c["BB_LOWER"]))
+    bb_low = float(c["BB_LOWER"])
+    bb_up = float(c["BB_UPPER"])
     atr = float(c["ATR14"])
     body, location = float(c["BODY"]), float(c["LOCATION"])
 
@@ -328,8 +330,16 @@ def analyze(df):
     elif abs(up_score - down_score) <= 1:
         reason = "Signals balanced"
 
-    selected = up if up_score >= down_score else down
-    side = "UP" if up_score >= down_score else "DOWN"
+    # Align indicators view based on market trend or highest score logically
+    if market == "DOWNTREND":
+        side = "DOWN"
+        selected = down
+    elif market == "UPTREND":
+        side = "UP"
+        selected = up
+    else:
+        side = "UP" if up_score >= down_score else "DOWN"
+        selected = up if up_score >= down_score else down
     
     names = ["Trend", "EMA", "RSI", "MACD", "Price", "BB", "Candle", "Vol"]
     indicator_details = []
