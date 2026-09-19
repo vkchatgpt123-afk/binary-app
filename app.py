@@ -10,7 +10,7 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    /* Custom Styling for Selectboxes to make text white and selection blue */
+    /* Custom Styling for Selectboxes: White text and Blue selection */
     div[data-baseweb="select"] > div {
         background-color: #1f2937 !important;
         color: #ffffff !important;
@@ -103,7 +103,7 @@ all_pairs_dict = {
     "EURJPY": "EURJPY=X", "GBPJPY": "GBPJPY=X"
 }
 
-# Upar wale hisse ko half karke pairs aur timeframe ka box fit kiya hai
+# Upar 50-50% space me Pair aur Timeframe boxes fit kiye hain
 col_pair, col_tf = st.columns(2)
 with col_pair:
     selected_name = st.selectbox("Select Pair", list(all_pairs_dict.keys()), label_visibility="collapsed")
