@@ -4,19 +4,20 @@ import pandas as pd
 import numpy as np
 
 # =========================================================
-# SIGNAL TERMINAL V3.2
-# Native Streamlit UI - No HTML
-# Closed Candle • Manual Analysis
+# SIGNAL TERMINAL V3.3
+# TRUE SINGLE-SCREEN MOBILE
+# Closed Candle • Manual Analysis • No Auto Trading
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V3.2",
+    page_title="Signal Terminal V3.3",
     page_icon="📊",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# PAGE STYLE
+# COMPACT MOBILE STYLE
 # =========================================================
 
 st.markdown("""
@@ -26,51 +27,70 @@ st.markdown("""
 }
 
 .block-container {
-    max-width: 520px;
-    padding: 0.4rem 0.5rem 0.6rem 0.5rem;
+    max-width: 430px;
+    padding: 0.20rem 0.30rem 0.20rem 0.30rem;
 }
 
-[data-testid="stMetric"] {
-    background-color: #111827;
-    border: 1px solid #263244;
-    border-radius: 7px;
-    padding: 5px;
+h1 {
+    font-size: 20px !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-[data-testid="stMetricLabel"] {
-    font-size: 9px !important;
+h2, h3 {
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-[data-testid="stMetricValue"] {
+p {
+    margin: 2px 0 !important;
+}
+
+div[data-testid="stMetric"] {
+    padding: 3px !important;
+    min-height: 48px !important;
+}
+
+div[data-testid="stMetricLabel"] {
+    font-size: 8px !important;
+}
+
+div[data-testid="stMetricValue"] {
     font-size: 14px !important;
 }
 
 div.stButton > button {
     width: 100%;
-    border-radius: 7px;
-    font-weight: 800;
+    min-height: 32px;
+    padding: 2px 5px;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 div[data-testid="stSelectbox"] {
-    margin-bottom: -5px;
+    margin-bottom: -10px;
+}
+
+.stAlert {
+    padding: 7px !important;
+    margin: 4px 0 !important;
+}
+
+hr {
+    margin: 4px 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
-
 
 # =========================================================
 # TITLE
 # =========================================================
 
-st.title("📊 SIGNAL TERMINAL V3.2")
-
-st.caption(
-    "Manual Analysis • Closed Candle • No Auto Trading"
-)
-
+st.title("📊 SIGNAL TERMINAL V3.3")
+st.caption("Manual • Closed Candle • No Auto Trading")
 
 # =========================================================
-# PAIRS / TIMEFRAMES
+# PAIR / TIMEFRAME
 # =========================================================
 
 PAIRS = {
@@ -91,24 +111,24 @@ TIMEFRAMES = {
     "1H": "60m"
 }
 
-
 c1, c2 = st.columns(2)
 
 with c1:
     pair = st.selectbox(
         "PAIR",
-        list(PAIRS.keys())
+        list(PAIRS.keys()),
+        index=0
     )
 
 with c2:
     timeframe = st.selectbox(
-        "TIMEFRAME",
-        list(TIMEFRAMES.keys())
+        "TIME",
+        list(TIMEFRAMES.keys()),
+        index=0
     )
 
 symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
-
 
 # =========================================================
 # DATA
@@ -145,17 +165,17 @@ def get_data(symbol, interval):
             return None
 
         df = df[needed].copy()
+
         df = df.dropna()
 
         df = df.loc[
-            ~df.index.duplicated(
-                keep="last"
-            )
+            ~df.index.duplicated(keep="last")
         ]
 
         return df
 
     except Exception:
+
         return None
 
 
@@ -211,7 +231,10 @@ def analyze(df):
     low = data["Low"]
     open_price = data["Open"]
 
+    # -------------------------
     # EMA
+    # -------------------------
+
     data["EMA12"] = close.ewm(
         span=12,
         adjust=False
@@ -227,47 +250,64 @@ def analyze(df):
         adjust=False
     ).mean()
 
+    # -------------------------
     # SMA
-    data["SMA20"] = close.rolling(
-        20
-    ).mean()
+    # -------------------------
 
+    data["SMA20"] = close.rolling(20).mean()
+
+    # -------------------------
     # RSI
+    # -------------------------
+
     data["RSI"] = calculate_rsi(
         close,
         14
     )
 
+    # -------------------------
     # MACD
+    # -------------------------
+
     data["MACD"] = (
-        data["EMA12"]
-        - data["EMA26"]
+        data["EMA12"] -
+        data["EMA26"]
     )
 
     data["MACD_SIGNAL"] = (
-        data["MACD"].ewm(
+        data["MACD"]
+        .ewm(
             span=9,
             adjust=False
-        ).mean()
+        )
+        .mean()
     )
 
     data["MACD_HIST"] = (
-        data["MACD"]
-        - data["MACD_SIGNAL"]
+        data["MACD"] -
+        data["MACD_SIGNAL"]
     )
 
-    # Bollinger
+    # -------------------------
+    # Bollinger Bands
+    # -------------------------
+
     std = close.rolling(20).std()
 
     data["BB_UPPER"] = (
-        data["SMA20"] + 2 * std
+        data["SMA20"] +
+        2 * std
     )
 
     data["BB_LOWER"] = (
-        data["SMA20"] - 2 * std
+        data["SMA20"] -
+        2 * std
     )
 
+    # -------------------------
     # ATR
+    # -------------------------
+
     previous_close = close.shift(1)
 
     tr = pd.concat(
@@ -285,7 +325,10 @@ def analyze(df):
         min_periods=14
     ).mean()
 
+    # -------------------------
     # Candle
+    # -------------------------
+
     candle_range = (
         high - low
     ).replace(
@@ -308,26 +351,35 @@ def analyze(df):
     if len(data) < 100:
         return None
 
-    # =====================================================
-    # CLOSED CANDLE
-    # =====================================================
+    # IMPORTANT:
+    # -1 = currently forming candle
+    # -2 = last CLOSED candle
 
     candle = data.iloc[-2]
+
     previous = data.iloc[-3]
+
+    # =====================================================
+    # VALUES
+    # =====================================================
 
     price = float(candle["Close"])
 
     ema12 = float(candle["EMA12"])
+
     ema26 = float(candle["EMA26"])
+
     ema50 = float(candle["EMA50"])
 
     sma20 = float(candle["SMA20"])
 
     rsi = float(candle["RSI"])
+
     prev_rsi = float(previous["RSI"])
 
     macd = float(candle["MACD"])
-    signal_line = float(
+
+    macd_signal = float(
         candle["MACD_SIGNAL"]
     )
 
@@ -378,7 +430,7 @@ def analyze(df):
     )
 
     # =====================================================
-    # MARKET STATE
+    # MARKET REGIME
     # =====================================================
 
     if (
@@ -404,7 +456,7 @@ def analyze(df):
         market = "SIDEWAYS"
 
     # =====================================================
-    # UP CONDITIONS
+    # UP FILTERS
     # =====================================================
 
     up_trend = (
@@ -422,7 +474,7 @@ def analyze(df):
     )
 
     up_macd = (
-        macd > signal_line
+        macd > macd_signal
         and macd_hist > prev_hist
     )
 
@@ -437,8 +489,8 @@ def analyze(df):
     )
 
     up_candle = (
-        candle["Close"]
-        > candle["Open"]
+        candle["Close"] >
+        candle["Open"]
         and body_pct >= 0.45
         and close_location >= 0.65
     )
@@ -449,7 +501,7 @@ def analyze(df):
     )
 
     # =====================================================
-    # DOWN CONDITIONS
+    # DOWN FILTERS
     # =====================================================
 
     down_trend = (
@@ -467,7 +519,7 @@ def analyze(df):
     )
 
     down_macd = (
-        macd < signal_line
+        macd < macd_signal
         and macd_hist < prev_hist
     )
 
@@ -482,8 +534,8 @@ def analyze(df):
     )
 
     down_candle = (
-        candle["Close"]
-        < candle["Open"]
+        candle["Close"] <
+        candle["Open"]
         and body_pct >= 0.45
         and close_location <= 0.35
     )
@@ -494,49 +546,42 @@ def analyze(df):
     )
 
     # =====================================================
-    # FILTER LIST
+    # SCORE
     # =====================================================
 
     up_filters = [
-        ("Trend", up_trend),
-        ("EMA Structure", up_ema),
-        ("RSI Momentum", up_rsi),
-        ("MACD Momentum", up_macd),
-        ("Price Structure", up_price),
-        ("Bollinger Position", up_bb),
-        ("Candle Strength", up_candle),
-        ("Volatility", up_volatility)
+        up_trend,
+        up_ema,
+        up_rsi,
+        up_macd,
+        up_price,
+        up_bb,
+        up_candle,
+        up_volatility
     ]
 
     down_filters = [
-        ("Trend", down_trend),
-        ("EMA Structure", down_ema),
-        ("RSI Momentum", down_rsi),
-        ("MACD Momentum", down_macd),
-        ("Price Structure", down_price),
-        ("Bollinger Position", down_bb),
-        ("Candle Strength", down_candle),
-        ("Volatility", down_volatility)
+        down_trend,
+        down_ema,
+        down_rsi,
+        down_macd,
+        down_price,
+        down_bb,
+        down_candle,
+        down_volatility
     ]
 
-    # Scores
-    up_score = sum(
-        value for _, value in up_filters
-    )
+    up_score = sum(up_filters)
 
-    down_score = sum(
-        value for _, value in down_filters
-    )
+    down_score = sum(down_filters)
 
     # =====================================================
-    # FINAL SIGNAL
+    # SIGNAL
     # =====================================================
 
     signal = "NO TRADE"
 
-    reason = (
-        "Waiting for stronger confirmation."
-    )
+    reason = "Waiting for confirmation."
 
     if (
         market == "UPTREND"
@@ -549,8 +594,7 @@ def analyze(df):
         signal = "UP"
 
         reason = (
-            f"Strong bullish setup "
-            f"{up_score}/8"
+            f"Bullish confirmation {up_score}/8"
         )
 
     elif (
@@ -564,14 +608,13 @@ def analyze(df):
         signal = "DOWN"
 
         reason = (
-            f"Strong bearish setup "
-            f"{down_score}/8"
+            f"Bearish confirmation {down_score}/8"
         )
 
     elif market == "SIDEWAYS":
 
         reason = (
-            "Sideways market filtered."
+            "Sideways market — NO TRADE"
         )
 
     elif abs(
@@ -579,39 +622,75 @@ def analyze(df):
     ) <= 1:
 
         reason = (
-            "Signals too balanced."
+            "Signals too balanced"
         )
 
     # =====================================================
-    # RETURN
+    # FILTER COMPACT SYMBOLS
     # =====================================================
+
+    names = [
+        "T",
+        "EMA",
+        "RSI",
+        "MACD",
+        "P",
+        "BB",
+        "C",
+        "V"
+    ]
+
+    if signal == "UP":
+
+        active_filters = up_filters
+        direction = "UP"
+
+    elif signal == "DOWN":
+
+        active_filters = down_filters
+        direction = "DOWN"
+
+    else:
+
+        if up_score >= down_score:
+
+            active_filters = up_filters
+            direction = "UP"
+
+        else:
+
+            active_filters = down_filters
+            direction = "DOWN"
+
+    compact_filters = " ".join(
+        f"{name}{'✓' if value else '×'}"
+        for name, value in zip(
+            names,
+            active_filters
+        )
+    )
 
     return {
         "signal": signal,
         "reason": reason,
         "market": market,
-
         "up_score": up_score,
         "down_score": down_score,
-
-        "up_filters": up_filters,
-        "down_filters": down_filters,
-
         "price": price,
+        "rsi": rsi,
+        "atr": atr,
         "ema12": ema12,
         "ema26": ema26,
         "ema50": ema50,
         "sma20": sma20,
-
-        "rsi": rsi,
-        "atr": atr,
-
-        "closed_time": data.index[-2]
+        "closed_time": data.index[-2],
+        "filters": compact_filters,
+        "direction": direction
     }
 
 
 # =========================================================
-# GET DATA
+# LOAD DATA
 # =========================================================
 
 df = get_data(
@@ -622,7 +701,7 @@ df = get_data(
 if df is None:
 
     st.error(
-        "⚠️ Market data unavailable."
+        "⚠️ Market data unavailable"
     )
 
     st.stop()
@@ -630,7 +709,7 @@ if df is None:
 if len(df) < 150:
 
     st.error(
-        "⚠️ Not enough candle data."
+        "⚠️ Not enough candle data"
     )
 
     st.stop()
@@ -640,20 +719,19 @@ result = analyze(df)
 if result is None:
 
     st.error(
-        "⚠️ Analysis error."
+        "⚠️ Analysis error"
     )
 
     st.stop()
 
 
 # =========================================================
-# MARKET HEADER
+# TERMINAL
 # =========================================================
 
 st.info(
-    f"**{pair}**  •  **{timeframe}**  •  🔒 CLOSED CANDLE"
+    f"**{pair}**  •  **{timeframe}**  •  🔒 CLOSED"
 )
-
 
 # =========================================================
 # SIGNAL
@@ -661,152 +739,113 @@ st.info(
 
 if result["signal"] == "UP":
 
-    st.success(
-        "🟢 UP SIGNAL"
-    )
+    st.success("🟢  UP SIGNAL")
 
 elif result["signal"] == "DOWN":
 
-    st.error(
-        "🔴 DOWN SIGNAL"
-    )
+    st.error("🔴  DOWN SIGNAL")
 
 else:
 
-    st.warning(
-        "🛡️ NO TRADE"
-    )
+    st.warning("🛡️  NO TRADE")
 
 
 # =========================================================
-# STATUS
+# MARKET + SCORE
 # =========================================================
 
 st.write(
-    f"**MARKET:** {result['market']}   |   "
-    f"**UP:** {result['up_score']}/8   |   "
-    f"**DOWN:** {result['down_score']}/8"
+    f"**{result['market']}**   "
+    f"| UP **{result['up_score']}/8** "
+    f"| DOWN **{result['down_score']}/8**"
 )
 
 st.caption(
     result["reason"]
 )
 
-
 # =========================================================
-# METRICS
+# COMPACT METRICS
 # =========================================================
 
-m1, m2, m3 = st.columns(3)
+a, b, c = st.columns(3)
 
-with m1:
+with a:
     st.metric(
         "PRICE",
         f"{result['price']:.5f}"
     )
 
-with m2:
+with b:
     st.metric(
-        "RSI 14",
+        "RSI",
         f"{result['rsi']:.1f}"
     )
 
-with m3:
+with c:
     st.metric(
-        "ATR 14",
+        "ATR",
         f"{result['atr']:.5f}"
     )
 
 
-m4, m5, m6 = st.columns(3)
+a, b, c = st.columns(3)
 
-with m4:
+with a:
     st.metric(
-        "EMA 12",
+        "EMA12",
         f"{result['ema12']:.5f}"
     )
 
-with m5:
+with b:
     st.metric(
-        "EMA 26",
+        "EMA26",
         f"{result['ema26']:.5f}"
     )
 
-with m6:
+with c:
     st.metric(
-        "EMA 50",
+        "EMA50",
         f"{result['ema50']:.5f}"
     )
 
-
 # =========================================================
-# FILTERS
+# COMPACT FILTERS
 # =========================================================
 
-st.subheader(
-    "🔎 Confirmation Filters"
+st.write(
+    f"**FILTERS ({result['direction']})**"
 )
 
-if result["signal"] == "UP":
+st.caption(
+    "T=Trend • EMA=Structure • RSI=Momentum • "
+    "MACD=Momentum • P=Price • BB=Bollinger • "
+    "C=Candle • V=Volatility"
+)
 
-    filters = result["up_filters"]
+st.write(
+    result["filters"]
+)
 
-elif result["signal"] == "DOWN":
+# =========================================================
+# CLOSED CANDLE
+# =========================================================
 
-    filters = result["down_filters"]
+closed_time = result["closed_time"]
 
-else:
-
-    if (
-        result["up_score"]
-        >= result["down_score"]
-    ):
-        filters = result["up_filters"]
-        direction = "UP"
-    else:
-        filters = result["down_filters"]
-        direction = "DOWN"
-
-    st.caption(
-        f"Showing stronger side: {direction}"
-    )
-
-
-for name, passed in filters:
-
-    if passed:
-
-        st.write(
-            f"✅ {name}"
-        )
-
-    else:
-
-        st.write(
-            f"❌ {name}"
-        )
-
+st.caption(
+    f"🔒 Closed: {closed_time}"
+)
 
 # =========================================================
 # REFRESH
 # =========================================================
 
-if st.button(
-    "🔄 REFRESH MARKET"
-):
+if st.button("🔄 REFRESH"):
 
     st.cache_data.clear()
 
     st.rerun()
-
-
-# =========================================================
-# FOOTER
-# =========================================================
-
-st.caption(
-    f"Closed candle: {result['closed_time']}"
-)
 
 st.caption(
     "Manual analysis only • No auto trading"
