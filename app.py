@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 # =========================================================
-# SIGNAL TERMINAL V2 — ULTRA CLEAN MOBILE LAYOUT
+# SIGNAL TERMINAL V2 — CLEAN MOBILE FIXED LAYOUT
 # =========================================================
 
 st.set_page_config(
@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# MOBILE UI & LAYOUT FIXES
+# MOBILE UI & CSS FIX
 # =========================================================
 
 st.markdown("""
@@ -30,19 +30,12 @@ st.markdown("""
     padding: 0.4rem 0.5rem 1rem 0.5rem !important;
 }
 
-/* Force Pair and Timeframe to ALWAYS stay Side-by-Side on Mobile */
-[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 6px !important;
+/* Specific CSS only for Pair/TF horizontal layout to avoid breaking metrics */
+div.row-widget.stHorizontal {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
     align-items: center;
-}
-
-[data-testid="column"] {
-    width: auto !important;
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
 }
 
 /* Compact Selectboxes */
@@ -63,11 +56,12 @@ div[data-baseweb="select"] span {
     background: #111827;
     border: 1px solid #263244;
     border-radius: 8px;
-    padding: 4px 8px;
+    padding: 6px 8px;
     text-align: center;
     font-size: 11px;
     color: #9ca3af;
     margin-bottom: 6px;
+    margin-top: 4px;
 }
 
 /* Signal Box */
@@ -120,19 +114,20 @@ div[data-baseweb="select"] span {
     background: #111827;
     border: 1px solid #263244;
     border-radius: 6px;
-    padding: 4px 2px;
+    padding: 6px 4px;
     text-align: center;
+    margin-bottom: 4px;
 }
 
 .metric-title {
     color: #9ca3af;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: bold;
 }
 
 .metric-value {
     color: white;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: bold;
 }
 
@@ -141,9 +136,9 @@ div[data-baseweb="select"] span {
     background: #111827;
     border: 1px solid #263244;
     border-radius: 6px;
-    padding: 4px 8px;
+    padding: 6px 8px;
     margin: 2px 0;
-    font-size: 10px;
+    font-size: 11px;
     display: flex;
     justify-content: space-between;
 }
@@ -173,10 +168,10 @@ TIMEFRAMES = {
 }
 
 # =========================================================
-# SIDE-BY-SIDE SELECTORS (FIXED)
+# SIDE-BY-SIDE SELECTORS
 # =========================================================
 
-c1, c2 = st.columns([1.8, 1])
+c1, c2 = st.columns([2, 1])
 
 with c1:
     selected_pair = st.selectbox("Pair", list(PAIRS.keys()), label_visibility="collapsed")
@@ -312,7 +307,7 @@ if result is None:
 # Header status bar
 st.markdown(f"""
     <div class="header-box">
-        <b>{selected_pair}</b> • <b>{selected_tf}</b> • 🔒 CLOSED CANDLE
+        <b>{selected_pair}</b> &nbsp;•&nbsp; <b>{selected_tf}</b> &nbsp;•&nbsp; 🔒 CLOSED CANDLE
     </div>
 """, unsafe_allow_html=True)
 
@@ -334,15 +329,13 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 4 Key Metrics in a single compact row
-col1, col2, col3, col4 = st.columns(4)
-with col1:
+# 4 Key Metrics in a clean 2x2 grid or stacked properly for mobile
+m1, m2 = st.columns(2)
+with m1:
     st.markdown(f'<div class="metric"><div class="metric-title">PRICE</div><div class="metric-value">{result["close"]:.5f}</div></div>', unsafe_allow_html=True)
-with col2:
-    st.markdown(f'<div class="metric"><div class="metric-title">RSI</div><div class="metric-value">{result["rsi"]:.1f}</div></div>', unsafe_allow_html=True)
-with col3:
     st.markdown(f'<div class="metric"><div class="metric-title">EMA12</div><div class="metric-value">{result["ema12"]:.5f}</div></div>', unsafe_allow_html=True)
-with col4:
+with m2:
+    st.markdown(f'<div class="metric"><div class="metric-title">RSI</div><div class="metric-value">{result["rsi"]:.1f}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric"><div class="metric-title">EMA26</div><div class="metric-value">{result["ema26"]:.5f}</div></div>', unsafe_allow_html=True)
 
 # Checks Expander
