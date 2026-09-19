@@ -2,42 +2,49 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
+from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V3.3
-# TRUE SINGLE-SCREEN MOBILE
-# Closed Candle • Manual Analysis • No Auto Trading
+# SIGNAL TERMINAL V3.4
+# BRIGHT COLORFUL • MOBILE • SINGLE SCREEN
+# CLOSED CANDLE • MANUAL ONLY • NO AUTO TRADING
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V3.3",
+    page_title="Signal Terminal V3.4",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# COMPACT MOBILE STYLE
+# BRIGHT MOBILE CSS
 # =========================================================
 
 st.markdown("""
 <style>
+
 .stApp {
-    background-color: #070b12;
+    background: linear-gradient(
+        135deg,
+        #06111f 0%,
+        #102a43 45%,
+        #071a2b 100%
+    );
 }
 
 .block-container {
     max-width: 430px;
-    padding: 0.20rem 0.30rem 0.20rem 0.30rem;
+    padding: 0.18rem 0.30rem 0.20rem 0.30rem;
 }
+
+/* TITLE */
 
 h1 {
-    font-size: 20px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-h2, h3 {
+    color: #ffffff !important;
+    font-size: 21px !important;
+    font-weight: 900 !important;
+    text-align: center;
     margin: 0 !important;
     padding: 0 !important;
 }
@@ -46,39 +53,84 @@ p {
     margin: 2px 0 !important;
 }
 
+/* CAPTION */
+
+[data-testid="stCaptionContainer"] {
+    color: #b9eaff !important;
+    font-size: 9px !important;
+}
+
+/* SELECT BOX */
+
+div[data-baseweb="select"] {
+    background-color: #13263a !important;
+    border-radius: 8px !important;
+}
+
+div[data-testid="stSelectbox"] label {
+    color: #7de8ff !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+}
+
+/* METRICS */
+
 div[data-testid="stMetric"] {
-    padding: 3px !important;
-    min-height: 48px !important;
+    background: linear-gradient(
+        135deg,
+        #102a43,
+        #173f5f
+    );
+    border: 1px solid #35d9ff;
+    border-radius: 9px;
+    padding: 4px !important;
+    min-height: 47px !important;
+    box-shadow: 0 0 7px rgba(0,220,255,0.18);
 }
 
 div[data-testid="stMetricLabel"] {
+    color: #7de8ff !important;
     font-size: 8px !important;
+    font-weight: 800 !important;
 }
 
 div[data-testid="stMetricValue"] {
+    color: #ffffff !important;
     font-size: 14px !important;
+    font-weight: 900 !important;
 }
+
+/* ALERT BOX */
+
+div[data-testid="stAlert"] {
+    border-radius: 10px !important;
+    padding: 7px !important;
+    margin: 4px 0 !important;
+    font-weight: 900 !important;
+}
+
+/* BUTTON */
 
 div.stButton > button {
     width: 100%;
     min-height: 32px;
-    padding: 2px 5px;
-    font-size: 12px;
-    font-weight: 700;
+    border-radius: 9px;
+    background: linear-gradient(
+        90deg,
+        #00d4ff,
+        #007bff
+    );
+    color: white;
+    border: 0;
+    font-weight: 900;
 }
 
-div[data-testid="stSelectbox"] {
-    margin-bottom: -10px;
-}
-
-.stAlert {
-    padding: 7px !important;
-    margin: 4px 0 !important;
-}
+/* REMOVE EXTRA SPACE */
 
 hr {
-    margin: 4px 0 !important;
+    margin: 3px 0 !important;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -86,11 +138,11 @@ hr {
 # TITLE
 # =========================================================
 
-st.title("📊 SIGNAL TERMINAL V3.3")
-st.caption("Manual • Closed Candle • No Auto Trading")
+st.title("📊 SIGNAL TERMINAL V3.4")
+st.caption("⚡ BRIGHT MODE  •  🔒 CLOSED CANDLE  •  MANUAL ONLY")
 
 # =========================================================
-# PAIR / TIMEFRAME
+# PAIRS
 # =========================================================
 
 PAIRS = {
@@ -116,15 +168,13 @@ c1, c2 = st.columns(2)
 with c1:
     pair = st.selectbox(
         "PAIR",
-        list(PAIRS.keys()),
-        index=0
+        list(PAIRS.keys())
     )
 
 with c2:
     timeframe = st.selectbox(
         "TIME",
-        list(TIMEFRAMES.keys()),
-        index=0
+        list(TIMEFRAMES.keys())
     )
 
 symbol = PAIRS[pair]
@@ -154,22 +204,27 @@ def get_data(symbol, interval):
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        needed = [
+        required = [
             "Open",
             "High",
             "Low",
             "Close"
         ]
 
-        if not all(x in df.columns for x in needed):
+        if not all(
+            x in df.columns
+            for x in required
+        ):
             return None
 
-        df = df[needed].copy()
+        df = df[required].copy()
 
         df = df.dropna()
 
         df = df.loc[
-            ~df.index.duplicated(keep="last")
+            ~df.index.duplicated(
+                keep="last"
+            )
         ]
 
         return df
@@ -178,18 +233,24 @@ def get_data(symbol, interval):
 
         return None
 
-
 # =========================================================
 # RSI
 # =========================================================
 
-def calculate_rsi(close, period=14):
+def calculate_rsi(
+    close,
+    period=14
+):
 
     delta = close.diff()
 
-    gain = delta.clip(lower=0)
+    gain = delta.clip(
+        lower=0
+    )
 
-    loss = -delta.clip(upper=0)
+    loss = -delta.clip(
+        upper=0
+    )
 
     avg_gain = gain.ewm(
         alpha=1 / period,
@@ -214,7 +275,6 @@ def calculate_rsi(close, period=14):
 
     return rsi.fillna(50)
 
-
 # =========================================================
 # ANALYSIS
 # =========================================================
@@ -231,9 +291,7 @@ def analyze(df):
     low = data["Low"]
     open_price = data["Open"]
 
-    # -------------------------
     # EMA
-    # -------------------------
 
     data["EMA12"] = close.ewm(
         span=12,
@@ -250,28 +308,24 @@ def analyze(df):
         adjust=False
     ).mean()
 
-    # -------------------------
     # SMA
-    # -------------------------
 
-    data["SMA20"] = close.rolling(20).mean()
+    data["SMA20"] = close.rolling(
+        20
+    ).mean()
 
-    # -------------------------
     # RSI
-    # -------------------------
 
     data["RSI"] = calculate_rsi(
         close,
         14
     )
 
-    # -------------------------
     # MACD
-    # -------------------------
 
     data["MACD"] = (
-        data["EMA12"] -
-        data["EMA26"]
+        data["EMA12"]
+        - data["EMA26"]
     )
 
     data["MACD_SIGNAL"] = (
@@ -284,37 +338,39 @@ def analyze(df):
     )
 
     data["MACD_HIST"] = (
-        data["MACD"] -
-        data["MACD_SIGNAL"]
+        data["MACD"]
+        - data["MACD_SIGNAL"]
     )
 
-    # -------------------------
-    # Bollinger Bands
-    # -------------------------
+    # Bollinger
 
-    std = close.rolling(20).std()
+    std = close.rolling(
+        20
+    ).std()
 
     data["BB_UPPER"] = (
-        data["SMA20"] +
-        2 * std
+        data["SMA20"]
+        + 2 * std
     )
 
     data["BB_LOWER"] = (
-        data["SMA20"] -
-        2 * std
+        data["SMA20"]
+        - 2 * std
     )
 
-    # -------------------------
     # ATR
-    # -------------------------
 
     previous_close = close.shift(1)
 
     tr = pd.concat(
         [
             high - low,
-            (high - previous_close).abs(),
-            (low - previous_close).abs()
+            (
+                high - previous_close
+            ).abs(),
+            (
+                low - previous_close
+            ).abs()
         ],
         axis=1
     ).max(axis=1)
@@ -325,9 +381,7 @@ def analyze(df):
         min_periods=14
     ).mean()
 
-    # -------------------------
-    # Candle
-    # -------------------------
+    # Candle strength
 
     candle_range = (
         high - low
@@ -337,7 +391,9 @@ def analyze(df):
     )
 
     data["BODY_PCT"] = (
-        (close - open_price).abs()
+        (
+            close - open_price
+        ).abs()
         / candle_range
     )
 
@@ -351,33 +407,44 @@ def analyze(df):
     if len(data) < 100:
         return None
 
-    # IMPORTANT:
-    # -1 = currently forming candle
-    # -2 = last CLOSED candle
+    # =====================================================
+    # LAST CLOSED CANDLE
+    # =====================================================
 
     candle = data.iloc[-2]
-
     previous = data.iloc[-3]
 
-    # =====================================================
-    # VALUES
-    # =====================================================
+    price = float(
+        candle["Close"]
+    )
 
-    price = float(candle["Close"])
+    ema12 = float(
+        candle["EMA12"]
+    )
 
-    ema12 = float(candle["EMA12"])
+    ema26 = float(
+        candle["EMA26"]
+    )
 
-    ema26 = float(candle["EMA26"])
+    ema50 = float(
+        candle["EMA50"]
+    )
 
-    ema50 = float(candle["EMA50"])
+    sma20 = float(
+        candle["SMA20"]
+    )
 
-    sma20 = float(candle["SMA20"])
+    rsi = float(
+        candle["RSI"]
+    )
 
-    rsi = float(candle["RSI"])
+    prev_rsi = float(
+        previous["RSI"]
+    )
 
-    prev_rsi = float(previous["RSI"])
-
-    macd = float(candle["MACD"])
+    macd = float(
+        candle["MACD"]
+    )
 
     macd_signal = float(
         candle["MACD_SIGNAL"]
@@ -430,7 +497,7 @@ def analyze(df):
     )
 
     # =====================================================
-    # MARKET REGIME
+    # MARKET
     # =====================================================
 
     if (
@@ -456,124 +523,128 @@ def analyze(df):
         market = "SIDEWAYS"
 
     # =====================================================
-    # UP FILTERS
-    # =====================================================
-
-    up_trend = (
-        market == "UPTREND"
-    )
-
-    up_ema = (
-        ema12 > ema26
-        and ema26 > ema50
-    )
-
-    up_rsi = (
-        45 <= rsi <= 68
-        and rsi > prev_rsi
-    )
-
-    up_macd = (
-        macd > macd_signal
-        and macd_hist > prev_hist
-    )
-
-    up_price = (
-        price > ema12
-        and price > sma20
-    )
-
-    up_bb = (
-        price > sma20
-        and price < bb_upper
-    )
-
-    up_candle = (
-        candle["Close"] >
-        candle["Open"]
-        and body_pct >= 0.45
-        and close_location >= 0.65
-    )
-
-    up_volatility = (
-        atr > 0
-        and trend_strength >= 0.15
-    )
-
-    # =====================================================
-    # DOWN FILTERS
-    # =====================================================
-
-    down_trend = (
-        market == "DOWNTREND"
-    )
-
-    down_ema = (
-        ema12 < ema26
-        and ema26 < ema50
-    )
-
-    down_rsi = (
-        32 <= rsi <= 55
-        and rsi < prev_rsi
-    )
-
-    down_macd = (
-        macd < macd_signal
-        and macd_hist < prev_hist
-    )
-
-    down_price = (
-        price < ema12
-        and price < sma20
-    )
-
-    down_bb = (
-        price < sma20
-        and price > bb_lower
-    )
-
-    down_candle = (
-        candle["Close"] <
-        candle["Open"]
-        and body_pct >= 0.45
-        and close_location <= 0.35
-    )
-
-    down_volatility = (
-        atr > 0
-        and trend_strength >= 0.15
-    )
-
-    # =====================================================
-    # SCORE
+    # UP
     # =====================================================
 
     up_filters = [
-        up_trend,
-        up_ema,
-        up_rsi,
-        up_macd,
-        up_price,
-        up_bb,
-        up_candle,
-        up_volatility
+
+        (
+            "T",
+            market == "UPTREND"
+        ),
+
+        (
+            "EMA",
+            ema12 > ema26
+            and ema26 > ema50
+        ),
+
+        (
+            "RSI",
+            45 <= rsi <= 68
+            and rsi > prev_rsi
+        ),
+
+        (
+            "MACD",
+            macd > macd_signal
+            and macd_hist > prev_hist
+        ),
+
+        (
+            "P",
+            price > ema12
+            and price > sma20
+        ),
+
+        (
+            "BB",
+            price > sma20
+            and price < bb_upper
+        ),
+
+        (
+            "C",
+            candle["Close"]
+            > candle["Open"]
+            and body_pct >= 0.45
+            and close_location >= 0.65
+        ),
+
+        (
+            "V",
+            atr > 0
+            and trend_strength >= 0.15
+        )
     ]
+
+    # =====================================================
+    # DOWN
+    # =====================================================
 
     down_filters = [
-        down_trend,
-        down_ema,
-        down_rsi,
-        down_macd,
-        down_price,
-        down_bb,
-        down_candle,
-        down_volatility
+
+        (
+            "T",
+            market == "DOWNTREND"
+        ),
+
+        (
+            "EMA",
+            ema12 < ema26
+            and ema26 < ema50
+        ),
+
+        (
+            "RSI",
+            32 <= rsi <= 55
+            and rsi < prev_rsi
+        ),
+
+        (
+            "MACD",
+            macd < macd_signal
+            and macd_hist < prev_hist
+        ),
+
+        (
+            "P",
+            price < ema12
+            and price < sma20
+        ),
+
+        (
+            "BB",
+            price < sma20
+            and price > bb_lower
+        ),
+
+        (
+            "C",
+            candle["Close"]
+            < candle["Open"]
+            and body_pct >= 0.45
+            and close_location <= 0.35
+        ),
+
+        (
+            "V",
+            atr > 0
+            and trend_strength >= 0.15
+        )
     ]
 
-    up_score = sum(up_filters)
+    up_score = sum(
+        value
+        for _, value
+        in up_filters
+    )
 
-    down_score = sum(down_filters)
+    down_score = sum(
+        value
+        for _, value
+        in down_filters
+    )
 
     # =====================================================
     # SIGNAL
@@ -586,35 +657,35 @@ def analyze(df):
     if (
         market == "UPTREND"
         and up_score >= 6
-        and up_rsi
-        and up_macd
-        and up_price
+        and up_filters[2][1]
+        and up_filters[3][1]
+        and up_filters[4][1]
     ):
 
         signal = "UP"
 
         reason = (
-            f"Bullish confirmation {up_score}/8"
+            f"Bullish setup {up_score}/8"
         )
 
     elif (
         market == "DOWNTREND"
         and down_score >= 6
-        and down_rsi
-        and down_macd
-        and down_price
+        and down_filters[2][1]
+        and down_filters[3][1]
+        and down_filters[4][1]
     ):
 
         signal = "DOWN"
 
         reason = (
-            f"Bearish confirmation {down_score}/8"
+            f"Bearish setup {down_score}/8"
         )
 
     elif market == "SIDEWAYS":
 
         reason = (
-            "Sideways market — NO TRADE"
+            "Sideways → NO TRADE"
         )
 
     elif abs(
@@ -626,48 +697,35 @@ def analyze(df):
         )
 
     # =====================================================
-    # FILTER COMPACT SYMBOLS
+    # COMPACT FILTERS
     # =====================================================
-
-    names = [
-        "T",
-        "EMA",
-        "RSI",
-        "MACD",
-        "P",
-        "BB",
-        "C",
-        "V"
-    ]
 
     if signal == "UP":
 
-        active_filters = up_filters
+        selected = up_filters
         direction = "UP"
 
     elif signal == "DOWN":
 
-        active_filters = down_filters
+        selected = down_filters
         direction = "DOWN"
 
     else:
 
         if up_score >= down_score:
 
-            active_filters = up_filters
+            selected = up_filters
             direction = "UP"
 
         else:
 
-            active_filters = down_filters
+            selected = down_filters
             direction = "DOWN"
 
-    compact_filters = " ".join(
+    compact_filters = "  ".join(
         f"{name}{'✓' if value else '×'}"
-        for name, value in zip(
-            names,
-            active_filters
-        )
+        for name, value
+        in selected
     )
 
     return {
@@ -682,15 +740,13 @@ def analyze(df):
         "ema12": ema12,
         "ema26": ema26,
         "ema50": ema50,
-        "sma20": sma20,
-        "closed_time": data.index[-2],
         "filters": compact_filters,
-        "direction": direction
+        "direction": direction,
+        "closed_time": data.index[-2]
     }
 
-
 # =========================================================
-# LOAD DATA
+# GET DATA
 # =========================================================
 
 df = get_data(
@@ -701,7 +757,7 @@ df = get_data(
 if df is None:
 
     st.error(
-        "⚠️ Market data unavailable"
+        "⚠️ MARKET DATA UNAVAILABLE"
     )
 
     st.stop()
@@ -709,7 +765,7 @@ if df is None:
 if len(df) < 150:
 
     st.error(
-        "⚠️ Not enough candle data"
+        "⚠️ NOT ENOUGH CANDLES"
     )
 
     st.stop()
@@ -719,75 +775,140 @@ result = analyze(df)
 if result is None:
 
     st.error(
-        "⚠️ Analysis error"
+        "⚠️ ANALYSIS ERROR"
     )
 
     st.stop()
 
+# =========================================================
+# DATA FRESHNESS
+# =========================================================
+
+closed_time = result["closed_time"]
+
+try:
+
+    if closed_time.tzinfo is None:
+
+        closed_time = closed_time.replace(
+            tzinfo=timezone.utc
+        )
+
+    now_utc = datetime.now(
+        timezone.utc
+    )
+
+    age_minutes = (
+        now_utc - closed_time
+    ).total_seconds() / 60
+
+except Exception:
+
+    age_minutes = 999999
 
 # =========================================================
-# TERMINAL
+# STALE DATA PROTECTION
+# =========================================================
+
+# Approximate maximum age allowed.
+# If data is too old, block UP/DOWN.
+
+if timeframe == "5m":
+    max_age = 20
+elif timeframe == "15m":
+    max_age = 45
+elif timeframe == "30m":
+    max_age = 75
+else:
+    max_age = 150
+
+data_stale = age_minutes > max_age
+
+if data_stale:
+
+    result["signal"] = "DATA STALE"
+
+    result["reason"] = (
+        f"Data is {age_minutes:.0f} min old"
+    )
+
+# =========================================================
+# HEADER
 # =========================================================
 
 st.info(
-    f"**{pair}**  •  **{timeframe}**  •  🔒 CLOSED"
+    f"💱 **{pair}**   •   ⏱️ **{timeframe}**   •   🔒 **CLOSED**"
 )
 
 # =========================================================
-# SIGNAL
+# SIGNAL DISPLAY
 # =========================================================
 
 if result["signal"] == "UP":
 
-    st.success("🟢  UP SIGNAL")
+    st.success(
+        "🟢  UP SIGNAL"
+    )
 
 elif result["signal"] == "DOWN":
 
-    st.error("🔴  DOWN SIGNAL")
+    st.error(
+        "🔴  DOWN SIGNAL"
+    )
+
+elif result["signal"] == "DATA STALE":
+
+    st.warning(
+        "🕐  DATA STALE — NO SIGNAL"
+    )
 
 else:
 
-    st.warning("🛡️  NO TRADE")
-
+    st.warning(
+        "🛡️  NO TRADE"
+    )
 
 # =========================================================
 # MARKET + SCORE
 # =========================================================
 
 st.write(
-    f"**{result['market']}**   "
-    f"| UP **{result['up_score']}/8** "
-    f"| DOWN **{result['down_score']}/8**"
+    f"🌐 **{result['market']}**   |   "
+    f"🟢 UP **{result['up_score']}/8**   |   "
+    f"🔴 DOWN **{result['down_score']}/8**"
 )
 
 st.caption(
-    result["reason"]
+    f"💡 {result['reason']}"
 )
 
 # =========================================================
-# COMPACT METRICS
+# PRICE / RSI / ATR
 # =========================================================
 
 a, b, c = st.columns(3)
 
 with a:
     st.metric(
-        "PRICE",
+        "💰 PRICE",
         f"{result['price']:.5f}"
     )
 
 with b:
     st.metric(
-        "RSI",
+        "📈 RSI",
         f"{result['rsi']:.1f}"
     )
 
 with c:
     st.metric(
-        "ATR",
+        "⚡ ATR",
         f"{result['atr']:.5f}"
     )
 
+# =========================================================
+# EMA
+# =========================================================
 
 a, b, c = st.columns(3)
 
@@ -810,43 +931,59 @@ with c:
     )
 
 # =========================================================
-# COMPACT FILTERS
+# FILTERS
 # =========================================================
 
 st.write(
-    f"**FILTERS ({result['direction']})**"
-)
-
-st.caption(
-    "T=Trend • EMA=Structure • RSI=Momentum • "
-    "MACD=Momentum • P=Price • BB=Bollinger • "
-    "C=Candle • V=Volatility"
+    f"🔎 **FILTERS — {result['direction']}**"
 )
 
 st.write(
     result["filters"]
 )
 
+st.caption(
+    "T Trend • EMA Structure • RSI • MACD • "
+    "P Price • BB Bollinger • C Candle • V Volatility"
+)
+
 # =========================================================
-# CLOSED CANDLE
+# DATA AGE
 # =========================================================
 
-closed_time = result["closed_time"]
+if data_stale:
+
+    st.warning(
+        f"🕐 DATA AGE: {age_minutes:.0f} min — "
+        f"signal blocked"
+    )
+
+else:
+
+    st.caption(
+        f"🟢 Data age: {age_minutes:.1f} min"
+    )
+
+# =========================================================
+# CLOSED TIME
+# =========================================================
 
 st.caption(
-    f"🔒 Closed: {closed_time}"
+    f"🔒 Closed candle: {closed_time}"
 )
 
 # =========================================================
 # REFRESH
 # =========================================================
 
-if st.button("🔄 REFRESH"):
+if st.button(
+    "🔄 REFRESH MARKET"
+):
 
     st.cache_data.clear()
 
     st.rerun()
 
 st.caption(
-    "Manual analysis only • No auto trading"
+    "⚠️ Manual analysis only • No auto trading"
 )
