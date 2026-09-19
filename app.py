@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 # =========================================================
-# SIGNAL TERMINAL V2 — CLEAN MOBILE FIXED LAYOUT
+# SIGNAL TERMINAL V2 — 100% MOBILE STABLE LAYOUT
 # =========================================================
 
 st.set_page_config(
@@ -30,21 +30,13 @@ st.markdown("""
     padding: 0.4rem 0.5rem 1rem 0.5rem !important;
 }
 
-/* Specific CSS only for Pair/TF horizontal layout to avoid breaking metrics */
-div.row-widget.stHorizontal {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    align-items: center;
-}
-
 /* Compact Selectboxes */
 div[data-baseweb="select"] > div {
     background-color: #111827 !important;
     color: white !important;
     border: 1px solid #263244 !important;
     border-radius: 6px !important;
-    min-height: 36px !important;
+    min-height: 38px !important;
 }
 div[data-baseweb="select"] span {
     color: white !important;
@@ -61,7 +53,7 @@ div[data-baseweb="select"] span {
     font-size: 11px;
     color: #9ca3af;
     margin-bottom: 6px;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 /* Signal Box */
@@ -109,19 +101,21 @@ div[data-baseweb="select"] span {
     margin-top: 2px;
 }
 
-/* Metrics Grid */
+/* Metrics List Rows */
 .metric {
     background: #111827;
     border: 1px solid #263244;
     border-radius: 6px;
-    padding: 6px 4px;
-    text-align: center;
-    margin-bottom: 4px;
+    padding: 6px 10px;
+    margin: 3px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .metric-title {
     color: #9ca3af;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: bold;
 }
 
@@ -168,15 +162,11 @@ TIMEFRAMES = {
 }
 
 # =========================================================
-# SIDE-BY-SIDE SELECTORS
+# VERTICAL SELECTORS (MOBILE SAFE)
 # =========================================================
 
-c1, c2 = st.columns([2, 1])
-
-with c1:
-    selected_pair = st.selectbox("Pair", list(PAIRS.keys()), label_visibility="collapsed")
-with c2:
-    selected_tf = st.selectbox("TF", list(TIMEFRAMES.keys()), label_visibility="collapsed")
+selected_pair = st.selectbox("Select Pair", list(PAIRS.keys()))
+selected_tf = st.selectbox("Select Timeframe", list(TIMEFRAMES.keys()))
 
 ticker = PAIRS[selected_pair]
 interval = TIMEFRAMES[selected_tf]
@@ -329,14 +319,13 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 4 Key Metrics in a clean 2x2 grid or stacked properly for mobile
-m1, m2 = st.columns(2)
-with m1:
-    st.markdown(f'<div class="metric"><div class="metric-title">PRICE</div><div class="metric-value">{result["close"]:.5f}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric"><div class="metric-title">EMA12</div><div class="metric-value">{result["ema12"]:.5f}</div></div>', unsafe_allow_html=True)
-with m2:
-    st.markdown(f'<div class="metric"><div class="metric-title">RSI</div><div class="metric-value">{result["rsi"]:.1f}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric"><div class="metric-title">EMA26</div><div class="metric-value">{result["ema26"]:.5f}</div></div>', unsafe_allow_html=True)
+# Clean Mobile Metrics Rows
+st.markdown(f"""
+    <div class="metric"><div class="metric-title">PRICE</div><div class="metric-value">{result["close"]:.5f}</div></div>
+    <div class="metric"><div class="metric-title">EMA12</div><div class="metric-value">{result["ema12"]:.5f}</div></div>
+    <div class="metric"><div class="metric-title">EMA26</div><div class="metric-value">{result["ema26"]:.5f}</div></div>
+    <div class="metric"><div class="metric-title">RSI</div><div class="metric-value">{result["rsi"]:.1f}</div></div>
+""", unsafe_allow_html=True)
 
 # Checks Expander
 with st.expander("🔎 Institutional Filters"):
