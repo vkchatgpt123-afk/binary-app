@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -6,7 +5,7 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.4 — ULTIMATE SINGLE-SCREEN LAYOUT
+# SIGNAL TERMINAL V4.4 — ULTIMATE SINGLE SCREEN CLEAN FIX
 # =========================================================
 
 st.set_page_config(
@@ -17,31 +16,22 @@ st.set_page_config(
 )
 
 # =========================================================
-# CSS FOR FORCED SINGLE-SCREEN VIEW & NEON THEME
+# COMPACT CSS FOR SINGLE-SCREEN MOBILE FIT
 # =========================================================
 
 st.markdown("""
 <style>
-/* Prevent scrolling and enforce a compact single screen layout */
-html, body, [data-testid="stAppViewContainer"] {
-    background: radial-gradient(circle at top, #1a4b7c 0%, #0a192f 50%, #02060d 100%) !important;
-    color: white !important;
-    overflow: hidden !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
+.stApp {
+    background: radial-gradient(circle at top, #1a4b7c 0%, #0a192f 50%, #02060d 100%);
+    color: white;
 }
 
 .block-container {
-    max-width: 400px !important;
-    padding: 0.2rem 0.4rem !important;
-    margin: 0 auto !important;
-    height: 100vh !important;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    max-width: 410px !important;
+    padding: 0.05rem 0.25rem 0.25rem 0.25rem !important;
 }
 
-/* Force Streamlit columns to stay strictly 50-50 side-by-side */
+/* Force 50-50 for Pair & Timeframe */
 div[data-testid="column"] {
     width: 50% !important;
     flex: 1 1 50% !important;
@@ -53,8 +43,6 @@ div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 4px;
-    margin-bottom: 2px;
 }
 
 /* Compact Selectboxes */
@@ -64,15 +52,14 @@ div[data-baseweb="select"] > div {
     border: 1px solid #64ffda !important;
     border-radius: 4px !important;
     min-height: 22px !important;
-    height: 26px !important;
 }
 div[data-baseweb="select"] span {
     color: #64ffda !important;
-    font-size: 8px !important;
+    font-size: 8.5px !important;
     font-weight: bold;
 }
 
-/* Header Box */
+/* Header */
 .header-box {
     background: #112240;
     border: 1px solid #64ffda;
@@ -81,20 +68,20 @@ div[data-baseweb="select"] span {
     text-align: center;
     font-size: 8.5px;
     color: #64ffda;
-    font-weight: bold;
     margin-bottom: 2px;
+    margin-top: 1px;
+    font-weight: bold;
 }
 
 /* Highlighted Signal Box */
 .signal {
     border-radius: 5px;
-    padding: 4px;
+    padding: 4px 3px;
     margin: 2px 0;
     text-align: center;
     font-size: 13px;
     font-weight: 900;
-    box-shadow: 0 0 8px rgba(100,255,218,0.3);
-    letter-spacing: 0.5px;
+    box-shadow: 0 0 8px rgba(255,255,255,0.2);
 }
 
 .up {
@@ -133,20 +120,20 @@ div[data-baseweb="select"] span {
     margin-top: 0px;
 }
 
-/* Metrics Grid (50-50 Pairs) */
+/* Metrics Grid */
 .metrics-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 2px;
     margin: 2px 0;
 }
 
 .metric-card {
-    flex: 1 1 calc(50% - 3px);
+    flex: 1 1 calc(50% - 2px);
     background: #112240;
     border: 1px solid #64ffda;
-    border-radius: 4px;
-    padding: 2px 4px;
+    border-radius: 3px;
+    padding: 2px 3px;
     text-align: center;
 }
 
@@ -162,7 +149,7 @@ div[data-baseweb="select"] span {
     font-weight: 900;
 }
 
-/* Detailed Indicators Grid Box (2x4 Grid layout) */
+/* Detailed Indicators Grid Box */
 .indicators-container {
     background: #112240;
     border: 1px solid #64ffda;
@@ -180,34 +167,19 @@ div[data-baseweb="select"] span {
 }
 
 .ind-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 2px;
 }
 
 .ind-item {
+    flex: 1 1 calc(25% - 2px);
     background: #0a192f;
-    border-radius: 3px;
+    border-radius: 2px;
     padding: 2px 1px;
     text-align: center;
     font-size: 7px;
     font-weight: bold;
-    border: 1px solid rgba(100,255,218,0.15);
-}
-
-/* Compact Refresh Button */
-.stButton > button {
-    width: 100% !important;
-    background-color: #112240 !important;
-    color: #64ffda !important;
-    border: 1px solid #64ffda !important;
-    border-radius: 4px !important;
-    padding: 2px !important;
-    font-size: 8.5px !important;
-    font-weight: bold !important;
-    min-height: 24px !important;
-    height: 26px !important;
-    margin-top: 2px;
 }
 
 .footer {
@@ -220,7 +192,7 @@ div[data-baseweb="select"] span {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# PAIRS & TIMEFRAME DEFINITIONS
+# PAIRS & TIMEFRAME
 # =========================================================
 
 PAIRS = {
@@ -244,7 +216,7 @@ symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
 
 # =========================================================
-# DATA FETCHING & TECHNICAL ANALYSIS ENGINE
+# DATA LOADING & ANALYSIS
 # =========================================================
 
 @st.cache_data(ttl=20)
@@ -359,13 +331,12 @@ def analyze(df):
     selected = up if up_score >= down_score else down
     side = "UP" if up_score >= down_score else "DOWN"
     
-    # Detailed Indicator Grid mapping
-    names = ["Trend", "EMA", "RSI", "MACD", "Price", "Bollinger", "Candle", "Volume"]
+    names = ["Trend", "EMA", "RSI", "MACD", "Price", "BB", "Candle", "Vol"]
     indicator_details = []
     for name, status in zip(names, selected):
         icon = "✅" if status else "❌"
         color = "#64ffda" if status else "#ff6b6b"
-        indicator_details.append(f'<div class="ind-item" style="color: {color};">{name}<br>{icon}</div>')
+        indicator_details.append(f'<div class="ind-item" style="color: {color};">{name}: {icon}</div>')
 
     return {
         "signal": signal, "reason": reason, "market": market,
@@ -376,7 +347,7 @@ def analyze(df):
     }
 
 # =========================================================
-# EXECUTION & SINGLE-SCREEN UI RENDERING
+# RUN EXECUTION
 # =========================================================
 
 df = get_data(symbol, interval)
@@ -421,7 +392,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Metrics Grid (50-50 format)
+# Metrics Grid (50-50)
 st.markdown(f"""
     <div class="metrics-grid">
         <div class="metric-card"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>
@@ -436,7 +407,7 @@ st.markdown(f"""
 # Detailed Indicators Grid Box
 st.markdown(f"""
     <div class="indicators-container">
-        <div class="ind-title">INDICATOR DETAILS ({r['side']})</div>
+        <div class="ind-title">INDICATORS ({r['side']})</div>
         <div class="ind-grid">
             {r['indicators']}
         </div>
@@ -444,9 +415,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Refresh Button
-if st.button("🔄 REFRESH DATA"):
+if st.button("🔄 REFRESH DATA", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
 st.markdown(f'<div class="footer">Age: {age:.1f}m | Closed: {closed_time}</div>', unsafe_allow_html=True)
-```
