@@ -5,24 +5,24 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V3.8 — ULTRA COMPACT SINGLE SCREEN
+# SIGNAL TERMINAL V3.9 — ULTIMATE BRIGHT SINGLE SCREEN
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V3.8",
+    page_title="Signal Terminal V3.9",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# ULTRA COMPACT CSS (SINGLE SCREEN FIT)
+# BRIGHT & ULTRA COMPACT CSS (50-50 GRID FIT)
 # =========================================================
 
 st.markdown("""
 <style>
 .stApp {
-    background: radial-gradient(circle at top, #123d63 0%, #071522 48%, #03070c 100%);
+    background: radial-gradient(circle at top, #1a4b7c 0%, #0a192f 50%, #02060d 100%);
     color: white;
 }
 
@@ -33,111 +33,116 @@ st.markdown("""
 
 /* Compact Selectboxes */
 div[data-baseweb="select"] > div {
-    background-color: #111827 !important;
+    background-color: #112240 !important;
     color: white !important;
-    border: 1px solid #24dfff !important;
+    border: 1px solid #64ffda !important;
     border-radius: 4px !important;
-    min-height: 26px !important;
+    min-height: 25px !important;
 }
 div[data-baseweb="select"] span {
-    color: white !important;
+    color: #64ffda !important;
     font-size: 10px !important;
+    font-weight: bold;
 }
 
 /* Header */
 .header-box {
-    background: #111827;
-    border: 1px solid #24dfff;
+    background: #112240;
+    border: 1px solid #64ffda;
     border-radius: 5px;
     padding: 3px 6px;
     text-align: center;
     font-size: 9px;
-    color: #64eaff;
+    color: #64ffda;
     margin-bottom: 2px;
     margin-top: 2px;
+    font-weight: bold;
 }
 
-/* Signal Box */
+/* Highly Highlighted Signal Box */
 .signal {
-    border-radius: 5px;
-    padding: 4px 2px;
+    border-radius: 6px;
+    padding: 6px 4px;
     margin: 2px 0;
     text-align: center;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 900;
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
 }
 
 .up {
-    background: #064e3b;
-    border: 1px solid #10b981;
-    color: #6ee7b7;
+    background: #00b09b;
+    border: 2px solid #64ffda;
+    color: #ffffff;
 }
 
 .down {
-    background: #7f1d1d;
-    border: 1px solid #ef4444;
-    color: #fca5a5;
+    background: #ff416c;
+    border: 2px solid #ff4b2b;
+    color: #ffffff;
 }
 
 .wait {
-    background: #1f1a0a;
-    border: 1px solid #f59e0b;
-    color: #fbbf24;
+    background: #f7b733;
+    border: 2px solid #fc4a1a;
+    color: #111111;
 }
 
 /* Status Bar */
 .status {
-    background: #111827;
-    border: 1px solid #24dfff;
+    background: #112240;
+    border: 1px solid #64ffda;
     border-radius: 4px;
     padding: 3px 5px;
     margin: 2px 0;
     text-align: center;
     font-size: 9px;
+    font-weight: bold;
 }
 
 .reason {
-    color: #9ca3af;
+    color: #a8b2d1;
     font-size: 8px;
     margin-top: 1px;
 }
 
-/* Metrics Grid Boxes */
+/* Metrics 50-50 Grid Boxes */
 .metric-box {
-    background: #111827;
-    border: 1px solid #24dfff;
+    background: #112240;
+    border: 1px solid #64ffda;
     border-radius: 4px;
-    padding: 3px 5px;
+    padding: 3px 4px;
     margin: 2px 0;
     text-align: center;
 }
 
 .metric-title {
-    color: #64eaff;
+    color: #8892b0;
     font-size: 8px;
     font-weight: bold;
 }
 
 .metric-value {
-    color: white;
+    color: #ffffff;
     font-size: 10px;
-    font-weight: bold;
+    font-weight: 900;
 }
 
 /* Filters Box */
 .filters-box {
-    background: #111827;
-    border: 1px solid #24dfff;
+    background: #112240;
+    border: 1px solid #64ffda;
     border-radius: 4px;
-    padding: 3px 6px;
+    padding: 3px 5px;
     margin: 2px 0;
     text-align: center;
-    font-size: 9px;
+    font-size: 8.5px;
     color: #e2e8f0;
+    font-weight: bold;
 }
 
 .footer {
-    color: #6b7280;
+    color: #8892b0;
     text-align: center;
     font-size: 7px;
     margin-top: 2px;
@@ -319,7 +324,7 @@ stale = age > max_age
 # Header Info
 st.markdown(f'<div class="header-box">💱 {pair} • ⏱️ {timeframe} • 🔒 CLOSED</div>', unsafe_allow_html=True)
 
-# Signal Box
+# Highlighted Signal Box
 if stale:
     st.markdown('<div class="signal wait">🕐 DATA STALE — NO SIGNAL</div>', unsafe_allow_html=True)
 elif r["signal"] == "UP":
@@ -337,7 +342,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Compact Metrics in 2x2 Grid Columns to Save Height
+# 50-50 Grid for Metrics to fit single screen perfectly
 col1, col2 = st.columns(2)
 with col1:
     st.markdown(f'<div class="metric-box"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>', unsafe_allow_html=True)
@@ -348,10 +353,10 @@ with col2:
     st.markdown(f'<div class="metric-box"><div class="metric-title">EMA12</div><div class="metric-value">{r['ema12']:.5f}</div></div>', unsafe_allow_html=True)
     st.markdown(f'<div class="metric-box"><div class="metric-title">EMA50</div><div class="metric-value">{r['ema50']:.5f}</div></div>', unsafe_allow_html=True)
 
-# Filters Box (Compact & Single Line)
+# Filters Box
 st.markdown(f"""
     <div class="filters-box">
-        <b>Filters ({r['side']}):</b> {r['filters']}
+        Filters ({r['side']}): {r['filters']}
     </div>
 """, unsafe_allow_html=True)
 
