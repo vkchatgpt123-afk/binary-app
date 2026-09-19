@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.5 — FINAL POLISHED SINGLE SCREEN
+# SIGNAL TERMINAL V4.6 — ERROR FREE FINAL CODE
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.5",
+    page_title="Signal Terminal V4.6",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# PERFECTED CSS FOR NO OVERFLOW & MOBILE FIT
+# COMPACT CSS FOR SINGLE-SCREEN MOBILE FIT
 # =========================================================
 
 st.markdown("""
@@ -278,9 +278,8 @@ def analyze(df):
     rsi, prev_rsi = float(c["RSI"]), float(p["RSI"])
     macd, macd_sig = float(c["MACD"]), float(c["MACD_SIGNAL"])
     hist, prev_hist = float(c["MACD_HIST"]), float(p["MACD_HIST"])
-    bb_up, bb_low = float(c["BB_UPPER"], c["BB_LOWER"]) if 'c["BB_LOWER"]' else (float(c["BB_UPPER"]), float(c["BB_LOWER"]))
-    bb_low = float(c["BB_LOWER"])
     bb_up = float(c["BB_UPPER"])
+    bb_low = float(c["BB_LOWER"])
     atr = float(c["ATR14"])
     body, location = float(c["BODY"]), float(c["LOCATION"])
 
@@ -330,7 +329,6 @@ def analyze(df):
     elif abs(up_score - down_score) <= 1:
         reason = "Signals balanced"
 
-    # Align indicators view based on market trend or highest score logically
     if market == "DOWNTREND":
         side = "DOWN"
         selected = down
