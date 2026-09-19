@@ -10,27 +10,30 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    /* Force horizontal block to never wrap on mobile */
+    /* Ensure side-by-side layout without hiding */
     [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 10px;
+        gap: 8px;
     }
-    
-    /* Force columns to strictly stay 50% each side-by-side */
     [data-testid="column"] {
-        width: 50% !important;
         flex: 1 1 50% !important;
-        min-width: 50% !important;
+        width: 50% !important;
+        min-width: 0 !important;
     }
     
-    /* Custom Styling for Selectboxes: White text and Blue selection */
+    /* Compact Selectbox Styling with White Text & Blue Selection */
     div[data-baseweb="select"] > div {
         background-color: #1f2937 !important;
         color: #ffffff !important;
         border-color: #374151 !important;
+        min-height: 34px !important;
+        padding: 0px 4px !important;
     }
     div[data-baseweb="select"] span {
         color: #ffffff !important;
+        font-size: 13px !important;
     }
     div[data-baseweb="popover"] div[aria-selected="true"] {
         background-color: #2563eb !important;
@@ -116,6 +119,7 @@ all_pairs_dict = {
     "EURJPY": "EURJPY=X", "GBPJPY": "GBPJPY=X"
 }
 
+# Compact side-by-side dropdowns in half-half space
 col_pair, col_tf = st.columns(2)
 with col_pair:
     selected_name = st.selectbox("Select Pair", list(all_pairs_dict.keys()), label_visibility="collapsed")
@@ -281,7 +285,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 indicators = [
-    ("SMA 20", f"{sma_20:.5f}", "🟢" if current_profile > sma_20 else "🔴") if 'current_profile' in locals() else ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
+    ("SMA 20", f"{sma_20:.5f}", "🟢" if current_price > sma_20 else "🔴"),
     ("EMA 12", f"{ema_12:.5f}", "🟢" if current_price > ema_12 else "🔴"),
     ("BB Lower/Upper", f"{bb_lower:.4f} / {bb_upper:.4f}", "🟢" if current_price >= bb_lower else "🔴"),
     ("RSI (14)", f"{rsi_14:.1f}", "🟢" if rsi_14 > 50 else "🔴"),
