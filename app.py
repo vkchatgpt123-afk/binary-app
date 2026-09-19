@@ -10,30 +10,14 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    /* Ensure side-by-side layout without hiding */
-    [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 8px;
-    }
-    [data-testid="column"] {
-        flex: 1 1 50% !important;
-        width: 50% !important;
-        min-width: 0 !important;
-    }
-    
-    /* Compact Selectbox Styling with White Text & Blue Selection */
+    /* Clean Selectbox Styling with White Text & Blue Selection */
     div[data-baseweb="select"] > div {
         background-color: #1f2937 !important;
         color: #ffffff !important;
         border-color: #374151 !important;
-        min-height: 34px !important;
-        padding: 0px 4px !important;
     }
     div[data-baseweb="select"] span {
         color: #ffffff !important;
-        font-size: 13px !important;
     }
     div[data-baseweb="popover"] div[aria-selected="true"] {
         background-color: #2563eb !important;
@@ -119,14 +103,14 @@ all_pairs_dict = {
     "EURJPY": "EURJPY=X", "GBPJPY": "GBPJPY=X"
 }
 
-# Compact side-by-side dropdowns in half-half space
+# Native side-by-side columns with visible labels to prevent hiding
 col_pair, col_tf = st.columns(2)
 with col_pair:
-    selected_name = st.selectbox("Select Pair", list(all_pairs_dict.keys()), label_visibility="collapsed")
+    selected_name = st.selectbox("Pair", list(all_pairs_dict.keys()))
 selected_asset = all_pairs_dict[selected_name]
 
 with col_tf:
-    timeframe_label = st.selectbox("Select Timeframe", ["1m", "2m", "5m", "10m"], index=1, label_visibility="collapsed")
+    timeframe_label = st.selectbox("Timeframe", ["1m", "2m", "5m", "10m"], index=1)
 
 timeframe_map = {"1m": "1m", "2m": "2m", "5m": "5m", "10m": "10m"}
 timeframe = timeframe_map[timeframe_label]
@@ -323,7 +307,7 @@ for name, val in data_rows:
         </div>
     """, unsafe_allow_html=True)
 
-refresh_rate = st.selectbox("Refresh Rate", ["60s", "30s", "2m", "5m"], label_visibility="collapsed")
+refresh_rate = st.selectbox("Refresh Rate", ["60s", "30s", "2m", "5m"])
 
 if st.button("🔌 Reboot Terminal", use_container_width=True):
     for key in list(st.session_state.keys()):
