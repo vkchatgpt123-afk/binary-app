@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 # =========================================================
-# SIGNAL TERMINAL V2 — ULTRA COMPACT SINGLE-SCREEN LAYOUT
+# SIGNAL TERMINAL V2 — FINAL STABLE MOBILE LAYOUT
 # =========================================================
 
 st.set_page_config(
@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# ULTRA-COMPACT MOBILE CSS (EVERYTHING ON ONE SCREEN)
+# COMPACT CSS (NO HIDING, EVERYTHING VISIBLE)
 # =========================================================
 
 st.markdown("""
@@ -36,7 +36,7 @@ div[data-baseweb="select"] > div {
     color: white !important;
     border: 1px solid #263244 !important;
     border-radius: 4px !important;
-    min-height: 30px !important;
+    min-height: 32px !important;
 }
 div[data-baseweb="select"] span {
     color: white !important;
@@ -56,7 +56,7 @@ div[data-baseweb="select"] span {
     margin-top: 2px;
 }
 
-/* Signal Box - Super Compact */
+/* Signal Box */
 .signal {
     border-radius: 6px;
     padding: 6px 4px;
@@ -101,7 +101,7 @@ div[data-baseweb="select"] span {
     margin-top: 1px;
 }
 
-/* Metrics 2x2 Grid Boxes */
+/* Metrics Grid Boxes */
 .metric-box {
     background: #111827;
     border: 1px solid #263244;
@@ -160,11 +160,11 @@ TIMEFRAMES = {
 }
 
 # =========================================================
-# COMPACT SELECTORS
+# VERTICAL SELECTORS (FIXED: NO HIDING)
 # =========================================================
 
-selected_pair = st.selectbox("Select Pair", list(PAIRS.keys()), label_visibility="collapsed")
-selected_tf = st.selectbox("Select Timeframe", list(TIMEFRAMES.keys()), label_visibility="collapsed")
+selected_pair = st.selectbox("Pair", list(PAIRS.keys()))
+selected_tf = st.selectbox("Timeframe", list(TIMEFRAMES.keys()))
 
 ticker = PAIRS[selected_pair]
 interval = TIMEFRAMES[selected_tf]
@@ -279,7 +279,7 @@ def analyze_market(df):
     }
 
 # =========================================================
-# RENDER OUTPUT (SINGLE SCREEN FIT)
+# RENDER OUTPUT
 # =========================================================
 
 df = load_data(ticker, interval)
@@ -317,7 +317,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Metrics in Compact 2x2 Grid Columns to save vertical space
+# Metrics 2x2 Grid Columns
 col1, col2 = st.columns(2)
 with col1:
     st.markdown(f'<div class="metric-box"><div class="metric-title">PRICE</div><div class="metric-value">{result["close"]:.5f}</div></div>', unsafe_allow_html=True)
