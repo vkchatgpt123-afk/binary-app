@@ -5,111 +5,183 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V3.5
-# COMPACT • BRIGHT • FULL INFORMATION
-# CLOSED CANDLE • MANUAL ONLY
+# SIGNAL TERMINAL V3.6
+# ULTRA COMPACT • BRIGHT • FULL INFORMATION
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V3.5",
+    page_title="Signal Terminal V3.6",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# COMPACT BRIGHT DESIGN
+# ULTRA COMPACT CSS
 # =========================================================
 
 st.markdown("""
 <style>
+
+/* ---------- APP ---------- */
+
 .stApp {
     background:
-        radial-gradient(circle at top, #12395a 0%, #07111d 55%, #03070c 100%);
+        radial-gradient(
+            circle at top,
+            #123d63 0%,
+            #071522 48%,
+            #03070c 100%
+        );
 }
 
 .block-container {
-    max-width: 420px;
-    padding: 0.12rem 0.20rem 0.15rem 0.20rem;
+    max-width: 410px !important;
+    padding: 0.05rem 0.12rem 0.08rem 0.12rem !important;
 }
 
-h1 {
-    font-size: 18px !important;
-    text-align: center !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    color: #ffffff !important;
-}
+/* ---------- ALL TEXT ---------- */
 
 p {
     margin: 0 !important;
-    line-height: 1.05 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
 }
+
+/* ---------- TITLE ---------- */
+
+h1 {
+    font-size: 17px !important;
+    line-height: 18px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: center !important;
+    color: #ffffff !important;
+}
+
+/* ---------- CAPTION ---------- */
 
 [data-testid="stCaptionContainer"] {
-    font-size: 8px !important;
-    line-height: 1 !important;
-    color: #bdefff !important;
+    font-size: 7px !important;
+    line-height: 8px !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
+/* ---------- COLUMNS ---------- */
+
+[data-testid="column"] {
+    padding-left: 1px !important;
+    padding-right: 1px !important;
+}
+
+/* ---------- SELECT ---------- */
+
 [data-testid="stSelectbox"] {
-    margin-bottom: -13px !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 [data-testid="stSelectbox"] label {
-    font-size: 8px !important;
-    font-weight: 900 !important;
+    font-size: 7px !important;
+    line-height: 8px !important;
+    margin: 0 !important;
     color: #4de7ff !important;
+    font-weight: 900 !important;
 }
 
 div[data-baseweb="select"] {
-    min-height: 30px !important;
-    border-radius: 7px !important;
-    background: #10263a !important;
+    min-height: 25px !important;
+    height: 25px !important;
+    border-radius: 5px !important;
 }
 
+div[data-baseweb="select"] > div {
+    min-height: 25px !important;
+    height: 25px !important;
+    padding: 0 5px !important;
+}
+
+/* ---------- ALERT / SIGNAL ---------- */
+
+div[data-testid="stAlert"] {
+    min-height: 25px !important;
+    padding: 3px 5px !important;
+    margin: 2px 0 !important;
+    border-radius: 6px !important;
+    font-size: 10px !important;
+    line-height: 11px !important;
+    font-weight: 900 !important;
+}
+
+/* ---------- METRICS ---------- */
+
 div[data-testid="stMetric"] {
-    min-height: 42px !important;
-    padding: 2px 3px !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 1px 2px !important;
     margin: 0 !important;
-    border-radius: 7px !important;
-    border: 1px solid #25d9ff !important;
-    background: linear-gradient(135deg,#102b45,#123b59) !important;
+    border-radius: 5px !important;
+    border: 1px solid #24dfff !important;
+    background:
+        linear-gradient(
+            135deg,
+            #102d47,
+            #123a58
+        ) !important;
+    box-shadow: 0 0 4px rgba(0,220,255,.15);
 }
 
 div[data-testid="stMetricLabel"] {
-    font-size: 7px !important;
-    line-height: 1 !important;
-    color: #67eaff !important;
+    font-size: 6px !important;
+    line-height: 7px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #64eaff !important;
 }
 
 div[data-testid="stMetricValue"] {
-    font-size: 12px !important;
-    line-height: 1.1 !important;
-    color: white !important;
+    font-size: 10px !important;
+    line-height: 11px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
 }
 
-div[data-testid="stAlert"] {
-    min-height: 32px !important;
-    padding: 5px 7px !important;
-    margin: 3px 0 !important;
-    border-radius: 8px !important;
-    font-size: 12px !important;
-    font-weight: 900 !important;
+/* ---------- BUTTON ---------- */
+
+div.stButton {
+    margin: 1px 0 !important;
 }
 
 div.stButton > button {
-    min-height: 28px !important;
-    padding: 1px !important;
-    border-radius: 7px !important;
-    font-size: 10px !important;
+    min-height: 23px !important;
+    height: 23px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 5px !important;
+    font-size: 9px !important;
     font-weight: 900 !important;
-    background: linear-gradient(90deg,#00c6ff,#0072ff) !important;
-    color: white !important;
+    background:
+        linear-gradient(
+            90deg,
+            #00c6ff,
+            #0072ff
+        ) !important;
 }
 
+/* ---------- HR ---------- */
+
 hr {
-    margin: 2px 0 !important;
+    margin: 1px 0 !important;
+    padding: 0 !important;
+}
+
+/* ---------- SPACE CONTROL ---------- */
+
+div[data-testid="stVerticalBlock"] {
+    gap: 0.12rem !important;
 }
 
 </style>
@@ -119,10 +191,10 @@ hr {
 # TITLE
 # =========================================================
 
-st.title("📊 SIGNAL TERMINAL V3.5")
+st.title("📊 SIGNAL TERMINAL V3.6")
 
 # =========================================================
-# SETTINGS
+# PAIRS / TIME
 # =========================================================
 
 PAIRS = {
@@ -168,6 +240,7 @@ interval = TIMEFRAMES[timeframe]
 def get_data(symbol, interval):
 
     try:
+
         df = yf.download(
             symbol,
             period="7d",
@@ -183,15 +256,25 @@ def get_data(symbol, interval):
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        needed = ["Open", "High", "Low", "Close"]
+        needed = [
+            "Open",
+            "High",
+            "Low",
+            "Close"
+        ]
 
-        if not all(x in df.columns for x in needed):
+        if not all(
+            x in df.columns
+            for x in needed
+        ):
             return None
 
         df = df[needed].dropna()
 
         df = df.loc[
-            ~df.index.duplicated(keep="last")
+            ~df.index.duplicated(
+                keep="last"
+            )
         ]
 
         return df
@@ -203,11 +286,12 @@ def get_data(symbol, interval):
 # RSI
 # =========================================================
 
-def rsi_calc(close, period=14):
+def calculate_rsi(close, period=14):
 
     delta = close.diff()
 
     gain = delta.clip(lower=0)
+
     loss = -delta.clip(upper=0)
 
     avg_gain = gain.ewm(
@@ -222,12 +306,17 @@ def rsi_calc(close, period=14):
         min_periods=period
     ).mean()
 
-    rs = avg_gain / avg_loss.replace(
-        0, np.nan
+    rs = (
+        avg_gain /
+        avg_loss.replace(
+            0,
+            np.nan
+        )
     )
 
     return (
-        100 - 100 / (1 + rs)
+        100 -
+        100 / (1 + rs)
     ).fillna(50)
 
 # =========================================================
@@ -263,14 +352,19 @@ def analyze(df):
     ).mean()
 
     # SMA
-    d["SMA20"] = close.rolling(20).mean()
+    d["SMA20"] = close.rolling(
+        20
+    ).mean()
 
     # RSI
-    d["RSI"] = rsi_calc(close)
+    d["RSI"] = calculate_rsi(
+        close
+    )
 
     # MACD
     d["MACD"] = (
-        d["EMA12"] - d["EMA26"]
+        d["EMA12"] -
+        d["EMA26"]
     )
 
     d["MACD_SIGNAL"] = (
@@ -283,18 +377,23 @@ def analyze(df):
     )
 
     d["MACD_HIST"] = (
-        d["MACD"] - d["MACD_SIGNAL"]
+        d["MACD"] -
+        d["MACD_SIGNAL"]
     )
 
     # Bollinger
-    std = close.rolling(20).std()
+    std = close.rolling(
+        20
+    ).std()
 
     d["BB_UPPER"] = (
-        d["SMA20"] + 2 * std
+        d["SMA20"] +
+        2 * std
     )
 
     d["BB_LOWER"] = (
-        d["SMA20"] - 2 * std
+        d["SMA20"] -
+        2 * std
     )
 
     # ATR
@@ -318,7 +417,10 @@ def analyze(df):
     # Candle
     candle_range = (
         high - low
-    ).replace(0, np.nan)
+    ).replace(
+        0,
+        np.nan
+    )
 
     d["BODY"] = (
         (close - op).abs()
@@ -335,14 +437,16 @@ def analyze(df):
     if len(d) < 100:
         return None
 
-    # LAST CLOSED CANDLE
+    # CLOSED CANDLE
     c = d.iloc[-2]
     p = d.iloc[-3]
 
     price = float(c["Close"])
+
     ema12 = float(c["EMA12"])
     ema26 = float(c["EMA26"])
     ema50 = float(c["EMA50"])
+
     sma20 = float(c["SMA20"])
 
     rsi = float(c["RSI"])
@@ -350,6 +454,7 @@ def analyze(df):
 
     macd = float(c["MACD"])
     macd_sig = float(c["MACD_SIGNAL"])
+
     hist = float(c["MACD_HIST"])
     prev_hist = float(p["MACD_HIST"])
 
@@ -365,15 +470,17 @@ def analyze(df):
     # TREND
     # =====================================================
 
-    gap = abs(ema12 - ema26)
+    gap = abs(
+        ema12 - ema26
+    )
 
-    trend_strength = (
+    strength = (
         gap / atr
         if atr > 0
         else 0
     )
 
-    strong = trend_strength >= 0.15
+    strong = strength >= 0.15
 
     if (
         ema12 > ema26
@@ -381,6 +488,7 @@ def analyze(df):
         and price > ema50
         and strong
     ):
+
         market = "UPTREND"
 
     elif (
@@ -389,16 +497,19 @@ def analyze(df):
         and price < ema50
         and strong
     ):
+
         market = "DOWNTREND"
 
     else:
+
         market = "SIDEWAYS"
 
     # =====================================================
-    # FILTERS
+    # UP FILTERS
     # =====================================================
 
     up = [
+
         market == "UPTREND",
 
         ema12 > ema26
@@ -421,10 +532,15 @@ def analyze(df):
         and location >= 0.65,
 
         atr > 0
-        and trend_strength >= 0.15
+        and strength >= 0.15
     ]
 
+    # =====================================================
+    # DOWN FILTERS
+    # =====================================================
+
     down = [
+
         market == "DOWNTREND",
 
         ema12 < ema26
@@ -447,10 +563,11 @@ def analyze(df):
         and location <= 0.35,
 
         atr > 0
-        and trend_strength >= 0.15
+        and strength >= 0.15
     ]
 
     up_score = sum(up)
+
     down_score = sum(down)
 
     # =====================================================
@@ -487,11 +604,12 @@ def analyze(df):
 
         reason = "Sideways market"
 
-    elif abs(up_score - down_score) <= 1:
+    elif abs(
+        up_score - down_score
+    ) <= 1:
 
         reason = "Signals balanced"
 
-    # strongest side
     if up_score >= down_score:
         selected = up
         side = "UP"
@@ -512,7 +630,10 @@ def analyze(df):
 
     filters = " ".join(
         f"{n}{'✓' if x else '×'}"
-        for n, x in zip(names, selected)
+        for n, x in zip(
+            names,
+            selected
+        )
     )
 
     return {
@@ -542,17 +663,29 @@ df = get_data(
 )
 
 if df is None:
-    st.error("⚠️ DATA UNAVAILABLE")
+
+    st.error(
+        "⚠️ DATA UNAVAILABLE"
+    )
+
     st.stop()
 
 if len(df) < 150:
-    st.error("⚠️ NOT ENOUGH DATA")
+
+    st.error(
+        "⚠️ NOT ENOUGH DATA"
+    )
+
     st.stop()
 
 r = analyze(df)
 
 if r is None:
-    st.error("⚠️ ANALYSIS ERROR")
+
+    st.error(
+        "⚠️ ANALYSIS ERROR"
+    )
+
     st.stop()
 
 # =========================================================
@@ -593,7 +726,7 @@ stale = age > max_age
 # =========================================================
 
 st.caption(
-    f"💱 {pair}  •  ⏱️ {timeframe}  •  🔒 CLOSED"
+    f"💱 {pair} • ⏱️ {timeframe} • 🔒 CLOSED"
 )
 
 # =========================================================
@@ -609,53 +742,53 @@ if stale:
 elif r["signal"] == "UP":
 
     st.success(
-        "🟢  UP SIGNAL"
+        "🟢 UP SIGNAL"
     )
 
 elif r["signal"] == "DOWN":
 
     st.error(
-        "🔴  DOWN SIGNAL"
+        "🔴 DOWN SIGNAL"
     )
 
 else:
 
     st.warning(
-        "🛡️  NO TRADE"
+        "🛡️ NO TRADE"
     )
 
 # =========================================================
-# MARKET / SCORE
+# MARKET
 # =========================================================
 
 st.write(
-    f"🌐 **{r['market']}**  |  "
-    f"🟢 **{r['up']}/8**  |  "
-    f"🔴 **{r['down']}/8**  |  "
+    f"🌐 **{r['market']}** • "
+    f"🟢 {r['up']}/8 • "
+    f"🔴 {r['down']}/8 • "
     f"💡 {r['reason']}"
 )
 
 # =========================================================
-# MAIN METRICS
+# PRICE / RSI / ATR
 # =========================================================
 
 a, b, c = st.columns(3)
 
 with a:
     st.metric(
-        "💰 PRICE",
+        "PRICE",
         f"{r['price']:.5f}"
     )
 
 with b:
     st.metric(
-        "📈 RSI",
+        "RSI",
         f"{r['rsi']:.1f}"
     )
 
 with c:
     st.metric(
-        "⚡ ATR",
+        "ATR",
         f"{r['atr']:.5f}"
     )
 
@@ -688,37 +821,36 @@ with c:
 # =========================================================
 
 st.write(
-    f"🔎 **{r['side']} FILTERS:** {r['filters']}"
+    f"🔎 {r['side']} • {r['filters']}"
 )
 
 # =========================================================
-# DATA STATUS + TIME
+# AGE + CLOSED TIME
 # =========================================================
 
 if stale:
 
     st.caption(
-        f"🕐 AGE {age:.0f}m • "
-        f"🔒 {closed_time}"
+        f"🕐 AGE {age:.0f}m • 🔒 {closed_time}"
     )
 
 else:
 
     st.caption(
-        f"🟢 AGE {age:.1f}m • "
-        f"🔒 {closed_time}"
+        f"🟢 AGE {age:.1f}m • 🔒 {closed_time}"
     )
 
 # =========================================================
 # REFRESH
 # =========================================================
 
-if st.button("🔄 REFRESH MARKET"):
+if st.button(
+    "🔄 REFRESH"
+):
 
     st.cache_data.clear()
     st.rerun()
 
 st.caption(
-    "Manual analysis • No auto trading • "
-    "Signal is not a profit guarantee"
+    "Manual • Closed Candle • No Auto Trading"
 )
