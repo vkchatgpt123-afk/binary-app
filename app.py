@@ -10,31 +10,6 @@ st.markdown("""
     .stApp { background: #0b0f19; color: #ffffff; font-family: sans-serif; }
     .block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; max-width: 100% !important; }
     
-    .pairs-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 5px;
-        margin-bottom: 6px;
-        margin-top: 2px;
-    }
-    .pair-btn {
-        background: #1f2937;
-        color: #ffffff;
-        border: 1px solid #374151;
-        padding: 4px 8px;
-        text-align: center;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: bold;
-        text-decoration: none;
-        box-sizing: border-box;
-    }
-    .pair-btn-active {
-        background: #2563eb !important;
-        border: 1px solid #60a5fa !important;
-    }
-    
     .signal-up { 
         background: linear-gradient(135deg, #059669, #10b981); 
         padding: 10px; 
@@ -107,14 +82,23 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-if 'selected_pair' not in st.session_state:
-    st.session_state.selected_pair = "EURUSD=X"
+all_pairs_dict = {
+    "EURUSD": "EURUSD=X", "GBPUSD": "GBPUSD=X", 
+    "AUDUSD": "AUDUSD=X", "USDJPY": "USDJPY=X",
+    "USDCAD": "USDCAD=X", "NZDUSD": "NZDUSD=X", 
+    "EURJPY": "EURJPY=X", "GBPJPY": "GBPJPY=X"
+}
 
-query_params = st.query_params
-if "pair" in query_params:
-    st.session_state.selected_pair = query_params["pair"]
+col_pair, col_tf = st.columns(2)
+with col_pair:
+    selected_name = st.selectbox("Select Pair", list(all_pairs_dict.keys()), label_visibility="collapsed")
+selected_asset = all_pairs_dict[selected_name]
 
-selected_asset = st.session_state.selected_pair
+with col_tf:
+    timeframe_label = st.selectbox("Select Timeframe", ["1m", "2m", "5m", "10m"], index=1, label_visibility="collapsed")
+
+timeframe_map = {"1m": "1m", "2m": "2m", "5m": "5m", "10m": "10m"}
+timeframe = timeframe_map[timeframe_label]
 
 @st.cache_data(ttl=5)
 def load_data(ticker, interval_val):
@@ -127,32 +111,6 @@ def load_data(ticker, interval_val):
         return df
     except Exception:
         return None
-
-all_pairs = [
-    ("EURUSD", "EURUSD=X"), ("GBPUSD", "GBPUSD=X"), 
-    ("AUDUSD", "AUDUSD=X"), ("USDJPY", "USDJPY=X"),
-    ("USDCAD", "USDCAD=X"), ("NZDUSD", "NZDUSD=X"), 
-    ("EURJPY", "EURJPY=X"), ("GBPJPY", "GBPJPY=X")
-]
-
-top_3_pairs = all_pairs[:3]
-remaining_5_pairs = all_pairs[3:]
-
-def render_pill_group(pairs):
-    html = '<div class="pairs-container">'
-    for name, ticker in pairs:
-        active = " pair-btn-active" if selected_asset == ticker else ""
-        html += f'<a href="?pair={ticker}" class="pair-btn{active}">{name}</a>'
-    html += '</div>'
-    return html
-
-col_tf, col_pairs3 = st.columns([1.2, 2.8])
-with col_tf:
-    timeframe = st.radio("TF", ["2m", "5m"], horizontal=True, label_visibility="collapsed")
-with col_pairs3:
-    st.markdown(render_pill_group(top_3_pairs), unsafe_allow_html=True)
-
-st.markdown(render_pill_group(remaining_5_pairs), unsafe_allow_html=True)
 
 df = load_data(selected_asset, timeframe)
 
@@ -270,10 +228,9 @@ if not checks_down:
 if is_fallback_active:
     st.warning("⚠️ Safety Fallback Active: Live data incomplete or market closed. Showing default safety structure.")
 
-clean_name = selected_asset.replace('=X', '')
 st.markdown(f"""
     <div style="background: #1f2937; padding: 6px 10px; border-radius: 6px; border: 1px solid #374151; display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 12px;">
-        <span><b>{clean_name}</b> ({timeframe})</span>
+        <span><b>{selected_name}</b> ({timeframe_label})</span>
         <span style="color: {'#34d399' if price_change_pct >= 0 else '#f87171'}; font-weight:bold;">
             {current_price:.5f} ({'+' if price_change_pct >= 0 else ''}{price_change_pct:.2f}%)
         </span>
