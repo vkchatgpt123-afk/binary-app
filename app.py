@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.0 — FLEXBOX 50-50 SINGLE SCREEN FIX
+# SIGNAL TERMINAL V4.1 — ULTRA COMPACT 50-50 SINGLE SCREEN
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.0",
+    page_title="Signal Terminal V4.1",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# CSS WITH FLEXBOX FOR TRUE 50-50 MOBILE GRID
+# CSS FOR PAIRS & TIMEFRAME 50-50 SIDE-BY-SIDE + ULTRA FIT
 # =========================================================
 
 st.markdown("""
@@ -31,7 +31,19 @@ st.markdown("""
     padding: 0.1rem 0.3rem 0.3rem 0.3rem !important;
 }
 
-/* Compact Selectboxes */
+/* Make Column Margins Zero for Inputs */
+div[data-testid="column"] {
+    padding: 0px 2px !important;
+}
+
+/* Compact Selectboxes & Labels */
+div[data-widget="stSelectbox"] label p {
+    font-size: 8px !important;
+    font-weight: bold !important;
+    color: #8892b0 !important;
+    margin-bottom: 2px !important;
+}
+
 div[data-baseweb="select"] > div {
     background-color: #112240 !important;
     color: white !important;
@@ -41,7 +53,7 @@ div[data-baseweb="select"] > div {
 }
 div[data-baseweb="select"] span {
     color: #64ffda !important;
-    font-size: 10px !important;
+    font-size: 9.5px !important;
     font-weight: bold;
 }
 
@@ -158,7 +170,7 @@ div[data-baseweb="select"] span {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# PAIRS & TIME
+# PAIRS & TIMEFRAME IN 50-50 SIDE-BY-SIDE COLUMNS
 # =========================================================
 
 PAIRS = {
@@ -172,8 +184,12 @@ TIMEFRAMES = {
     "5m": "5m", "15m": "15m", "30m": "30m", "1H": "60m"
 }
 
-pair = st.selectbox("SELECT PAIR", list(PAIRS.keys()))
-timeframe = st.selectbox("SELECT TIMEFRAME", list(TIMEFRAMES.keys()))
+# 2 Columns for 50-50 Pair & Timeframe Selection
+col_pair, col_tf = st.columns(2)
+with col_pair:
+    pair = st.selectbox("SELECT PAIR", list(PAIRS.keys()))
+with col_tf:
+    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()))
 
 symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
