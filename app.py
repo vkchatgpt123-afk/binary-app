@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V3.9 — ULTIMATE BRIGHT SINGLE SCREEN
+# SIGNAL TERMINAL V4.0 — FLEXBOX 50-50 SINGLE SCREEN FIX
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V3.9",
+    page_title="Signal Terminal V4.0",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# BRIGHT & ULTRA COMPACT CSS (50-50 GRID FIT)
+# CSS WITH FLEXBOX FOR TRUE 50-50 MOBILE GRID
 # =========================================================
 
 st.markdown("""
@@ -37,7 +37,7 @@ div[data-baseweb="select"] > div {
     color: white !important;
     border: 1px solid #64ffda !important;
     border-radius: 4px !important;
-    min-height: 25px !important;
+    min-height: 24px !important;
 }
 div[data-baseweb="select"] span {
     color: #64ffda !important;
@@ -62,10 +62,10 @@ div[data-baseweb="select"] span {
 /* Highly Highlighted Signal Box */
 .signal {
     border-radius: 6px;
-    padding: 6px 4px;
+    padding: 5px 4px;
     margin: 2px 0;
     text-align: center;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 900;
     box-shadow: 0 0 10px rgba(255,255,255,0.2);
 }
@@ -106,19 +106,26 @@ div[data-baseweb="select"] span {
     margin-top: 1px;
 }
 
-/* Metrics 50-50 Grid Boxes */
-.metric-box {
+/* True 50-50 Flexbox Grid for Metrics */
+.metrics-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin: 2px 0;
+}
+
+.metric-card {
+    flex: 1 1 calc(50% - 3px);
     background: #112240;
     border: 1px solid #64ffda;
     border-radius: 4px;
     padding: 3px 4px;
-    margin: 2px 0;
     text-align: center;
 }
 
 .metric-title {
     color: #8892b0;
-    font-size: 8px;
+    font-size: 7.5px;
     font-weight: bold;
 }
 
@@ -342,16 +349,17 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 50-50 Grid for Metrics to fit single screen perfectly
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown(f'<div class="metric-box"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-box"><div class="metric-title">ATR</div><div class="metric-value">{r['atr']:.5f}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-box"><div class="metric-title">EMA26</div><div class="metric-value">{r['ema26']:.5f}</div></div>', unsafe_allow_html=True)
-with col2:
-    st.markdown(f'<div class="metric-box"><div class="metric-title">RSI</div><div class="metric-value">{r['rsi']:.1f}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-box"><div class="metric-title">EMA12</div><div class="metric-value">{r['ema12']:.5f}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-box"><div class="metric-title">EMA50</div><div class="metric-value">{r['ema50']:.5f}</div></div>', unsafe_allow_html=True)
+# Metrics in True 50-50 Flex Grid (Side-by-Side Pairs)
+st.markdown(f"""
+    <div class="metrics-grid">
+        <div class="metric-card"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>
+        <div class="metric-card"><div class="metric-title">RSI</div><div class="metric-value">{r['rsi']:.1f}</div></div>
+        <div class="metric-card"><div class="metric-title">ATR</div><div class="metric-value">{r['atr']:.5f}</div></div>
+        <div class="metric-card"><div class="metric-title">EMA12</div><div class="metric-value">{r['ema12']:.5f}</div></div>
+        <div class="metric-card"><div class="metric-title">EMA26</div><div class="metric-value">{r['ema26']:.5f}</div></div>
+        <div class="metric-card"><div class="metric-title">EMA50</div><div class="metric-value">{r['ema50']:.5f}</div></div>
+    </div>
+""", unsafe_allow_html=True)
 
 # Filters Box
 st.markdown(f"""
