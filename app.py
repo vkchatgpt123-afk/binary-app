@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 # =========================================================
-# SIGNAL TERMINAL V2 — 100% MOBILE STABLE LAYOUT
+# SIGNAL TERMINAL V2 — ULTRA COMPACT SINGLE-SCREEN LAYOUT
 # =========================================================
 
 st.set_page_config(
@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# MOBILE UI & CSS FIX
+# ULTRA-COMPACT MOBILE CSS (EVERYTHING ON ONE SCREEN)
 # =========================================================
 
 st.markdown("""
@@ -27,7 +27,7 @@ st.markdown("""
 
 .block-container {
     max-width: 480px;
-    padding: 0.4rem 0.5rem 1rem 0.5rem !important;
+    padding: 0.2rem 0.4rem 0.5rem 0.4rem !important;
 }
 
 /* Compact Selectboxes */
@@ -35,34 +35,34 @@ div[data-baseweb="select"] > div {
     background-color: #111827 !important;
     color: white !important;
     border: 1px solid #263244 !important;
-    border-radius: 6px !important;
-    min-height: 38px !important;
+    border-radius: 4px !important;
+    min-height: 30px !important;
 }
 div[data-baseweb="select"] span {
     color: white !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
 }
 
 /* Header */
 .header-box {
     background: #111827;
     border: 1px solid #263244;
-    border-radius: 8px;
-    padding: 6px 8px;
+    border-radius: 6px;
+    padding: 3px 6px;
     text-align: center;
-    font-size: 11px;
+    font-size: 10px;
     color: #9ca3af;
-    margin-bottom: 6px;
-    margin-top: 6px;
+    margin-bottom: 3px;
+    margin-top: 2px;
 }
 
-/* Signal Box */
+/* Signal Box - Super Compact */
 .signal {
-    border-radius: 8px;
-    padding: 10px 5px;
-    margin: 4px 0;
+    border-radius: 6px;
+    padding: 6px 4px;
+    margin: 2px 0;
     text-align: center;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 900;
 }
 
@@ -88,40 +88,38 @@ div[data-baseweb="select"] span {
 .status {
     background: #111827;
     border: 1px solid #263244;
-    border-radius: 7px;
-    padding: 6px 8px;
-    margin: 4px 0;
+    border-radius: 5px;
+    padding: 4px 6px;
+    margin: 2px 0;
     text-align: center;
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .reason {
     color: #9ca3af;
-    font-size: 10px;
-    margin-top: 2px;
+    font-size: 9px;
+    margin-top: 1px;
 }
 
-/* Metrics List Rows */
-.metric {
+/* Metrics 2x2 Grid Boxes */
+.metric-box {
     background: #111827;
     border: 1px solid #263244;
-    border-radius: 6px;
-    padding: 6px 10px;
-    margin: 3px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    border-radius: 5px;
+    padding: 4px 6px;
+    margin: 2px 0;
+    text-align: center;
 }
 
 .metric-title {
     color: #9ca3af;
-    font-size: 11px;
+    font-size: 9px;
     font-weight: bold;
 }
 
 .metric-value {
     color: white;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
 }
 
@@ -129,10 +127,10 @@ div[data-baseweb="select"] span {
 .check {
     background: #111827;
     border: 1px solid #263244;
-    border-radius: 6px;
-    padding: 6px 8px;
-    margin: 2px 0;
-    font-size: 11px;
+    border-radius: 4px;
+    padding: 3px 6px;
+    margin: 1px 0;
+    font-size: 10px;
     display: flex;
     justify-content: space-between;
 }
@@ -140,8 +138,8 @@ div[data-baseweb="select"] span {
 .footer {
     color: #6b7280;
     text-align: center;
-    font-size: 9px;
-    margin-top: 6px;
+    font-size: 8px;
+    margin-top: 3px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -162,11 +160,11 @@ TIMEFRAMES = {
 }
 
 # =========================================================
-# VERTICAL SELECTORS (MOBILE SAFE)
+# COMPACT SELECTORS
 # =========================================================
 
-selected_pair = st.selectbox("Select Pair", list(PAIRS.keys()))
-selected_tf = st.selectbox("Select Timeframe", list(TIMEFRAMES.keys()))
+selected_pair = st.selectbox("Select Pair", list(PAIRS.keys()), label_visibility="collapsed")
+selected_tf = st.selectbox("Select Timeframe", list(TIMEFRAMES.keys()), label_visibility="collapsed")
 
 ticker = PAIRS[selected_pair]
 interval = TIMEFRAMES[selected_tf]
@@ -281,23 +279,23 @@ def analyze_market(df):
     }
 
 # =========================================================
-# RENDER OUTPUT
+# RENDER OUTPUT (SINGLE SCREEN FIT)
 # =========================================================
 
 df = load_data(ticker, interval)
 if df is None or len(df) < 100:
-    st.error("⚠️ Market data unavailable or insufficient candles.")
+    st.error("⚠️ Market data unavailable.")
     st.stop()
 
 result = analyze_market(df)
 if result is None:
-    st.error("⚠️ Analysis engine error.")
+    st.error("⚠️ Analysis error.")
     st.stop()
 
 # Header status bar
 st.markdown(f"""
     <div class="header-box">
-        <b>{selected_pair}</b> &nbsp;•&nbsp; <b>{selected_tf}</b> &nbsp;•&nbsp; 🔒 CLOSED CANDLE
+        <b>{selected_pair}</b> • <b>{selected_tf}</b> • 🔒 CLOSED CANDLE
     </div>
 """, unsafe_allow_html=True)
 
@@ -319,13 +317,14 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Clean Mobile Metrics Rows
-st.markdown(f"""
-    <div class="metric"><div class="metric-title">PRICE</div><div class="metric-value">{result["close"]:.5f}</div></div>
-    <div class="metric"><div class="metric-title">EMA12</div><div class="metric-value">{result["ema12"]:.5f}</div></div>
-    <div class="metric"><div class="metric-title">EMA26</div><div class="metric-value">{result["ema26"]:.5f}</div></div>
-    <div class="metric"><div class="metric-title">RSI</div><div class="metric-value">{result["rsi"]:.1f}</div></div>
-""", unsafe_allow_html=True)
+# Metrics in Compact 2x2 Grid Columns to save vertical space
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown(f'<div class="metric-box"><div class="metric-title">PRICE</div><div class="metric-value">{result["close"]:.5f}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-title">EMA12</div><div class="metric-value">{result["ema12"]:.5f}</div></div>', unsafe_allow_html=True)
+with col2:
+    st.markdown(f'<div class="metric-box"><div class="metric-title">RSI</div><div class="metric-value">{result["rsi"]:.1f}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-title">EMA26</div><div class="metric-value">{result["ema26"]:.5f}</div></div>', unsafe_allow_html=True)
 
 # Checks Expander
 with st.expander("🔎 Institutional Filters"):
@@ -335,8 +334,8 @@ with st.expander("🔎 Institutional Filters"):
         st.markdown(f'<div class="check"><span>{name}</span><span>{icon}</span></div>', unsafe_allow_html=True)
 
 # Refresh button & timestamp
-if st.button("🔄 REFRESH DATA", use_container_width=True):
+if st.button("🔄 REFRESH", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
-st.markdown(f'<div class="footer">Closed candle time: {result["closed_time"]}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="footer">Closed: {result["closed_time"]}</div>', unsafe_allow_html=True)
