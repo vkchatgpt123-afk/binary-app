@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V3.7 — MOBILE STABLE FIX
+# SIGNAL TERMINAL V3.8 — ULTRA COMPACT SINGLE SCREEN
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V3.7",
+    page_title="Signal Terminal V3.8",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# ULTRA COMPACT CSS (NO HIDING, FULLY VISIBLE)
+# ULTRA COMPACT CSS (SINGLE SCREEN FIT)
 # =========================================================
 
 st.markdown("""
@@ -28,7 +28,7 @@ st.markdown("""
 
 .block-container {
     max-width: 410px !important;
-    padding: 0.2rem 0.4rem 0.5rem 0.4rem !important;
+    padding: 0.1rem 0.3rem 0.3rem 0.3rem !important;
 }
 
 /* Compact Selectboxes */
@@ -36,34 +36,34 @@ div[data-baseweb="select"] > div {
     background-color: #111827 !important;
     color: white !important;
     border: 1px solid #24dfff !important;
-    border-radius: 5px !important;
-    min-height: 28px !important;
+    border-radius: 4px !important;
+    min-height: 26px !important;
 }
 div[data-baseweb="select"] span {
     color: white !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
 }
 
 /* Header */
 .header-box {
     background: #111827;
     border: 1px solid #24dfff;
-    border-radius: 6px;
-    padding: 4px 8px;
+    border-radius: 5px;
+    padding: 3px 6px;
     text-align: center;
-    font-size: 10px;
+    font-size: 9px;
     color: #64eaff;
-    margin-bottom: 4px;
-    margin-top: 4px;
+    margin-bottom: 2px;
+    margin-top: 2px;
 }
 
 /* Signal Box */
 .signal {
-    border-radius: 6px;
-    padding: 6px 4px;
-    margin: 3px 0;
+    border-radius: 5px;
+    padding: 4px 2px;
+    margin: 2px 0;
     text-align: center;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 900;
 }
 
@@ -89,49 +89,58 @@ div[data-baseweb="select"] span {
 .status {
     background: #111827;
     border: 1px solid #24dfff;
-    border-radius: 5px;
-    padding: 4px 6px;
-    margin: 3px 0;
+    border-radius: 4px;
+    padding: 3px 5px;
+    margin: 2px 0;
     text-align: center;
-    font-size: 10px;
+    font-size: 9px;
 }
 
 .reason {
     color: #9ca3af;
-    font-size: 9px;
+    font-size: 8px;
     margin-top: 1px;
 }
 
-/* Metrics List Rows */
-.metric {
+/* Metrics Grid Boxes */
+.metric-box {
     background: #111827;
     border: 1px solid #24dfff;
-    border-radius: 5px;
-    padding: 4px 8px;
+    border-radius: 4px;
+    padding: 3px 5px;
     margin: 2px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    text-align: center;
 }
 
 .metric-title {
     color: #64eaff;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: bold;
 }
 
 .metric-value {
     color: white;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: bold;
 }
 
-/* Footer */
+/* Filters Box */
+.filters-box {
+    background: #111827;
+    border: 1px solid #24dfff;
+    border-radius: 4px;
+    padding: 3px 6px;
+    margin: 2px 0;
+    text-align: center;
+    font-size: 9px;
+    color: #e2e8f0;
+}
+
 .footer {
     color: #6b7280;
     text-align: center;
-    font-size: 8px;
-    margin-top: 4px;
+    font-size: 7px;
+    margin-top: 2px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -151,7 +160,6 @@ TIMEFRAMES = {
     "5m": "5m", "15m": "15m", "30m": "30m", "1H": "60m"
 }
 
-# Vertical Dropdowns (100% Visible on Mobile)
 pair = st.selectbox("SELECT PAIR", list(PAIRS.keys()))
 timeframe = st.selectbox("SELECT TIMEFRAME", list(TIMEFRAMES.keys()))
 
@@ -159,7 +167,7 @@ symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
 
 # =========================================================
-# DATA LOADING
+# DATA LOADING & ANALYSIS
 # =========================================================
 
 @st.cache_data(ttl=20)
@@ -289,7 +297,7 @@ def analyze(df):
 
 df = get_data(symbol, interval)
 if df is None or len(df) < 150:
-    st.error("⚠️ DATA UNAVAILABLE OR INSUFFICIENT")
+    st.error("⚠️ DATA UNAVAILABLE")
     st.stop()
 
 r = analyze(df)
@@ -329,19 +337,20 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Compact Metrics Rows (No Columns, Clean Stack)
-st.markdown(f"""
-    <div class="metric"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>
-    <div class="metric"><div class="metric-title">RSI</div><div class="metric-value">{r['rsi']:.1f}</div></div>
-    <div class="metric"><div class="metric-title">ATR</div><div class="metric-value">{r['atr']:.5f}</div></div>
-    <div class="metric"><div class="metric-title">EMA12</div><div class="metric-value">{r['ema12']:.5f}</div></div>
-    <div class="metric"><div class="metric-title">EMA26</div><div class="metric-value">{r['ema26']:.5f}</div></div>
-    <div class="metric"><div class="metric-title">EMA50</div><div class="metric-value">{r['ema50']:.5f}</div></div>
-""", unsafe_allow_html=True)
+# Compact Metrics in 2x2 Grid Columns to Save Height
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown(f'<div class="metric-box"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-title">ATR</div><div class="metric-value">{r['atr']:.5f}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-title">EMA26</div><div class="metric-value">{r['ema26']:.5f}</div></div>', unsafe_allow_html=True)
+with col2:
+    st.markdown(f'<div class="metric-box"><div class="metric-title">RSI</div><div class="metric-value">{r['rsi']:.1f}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-title">EMA12</div><div class="metric-value">{r['ema12']:.5f}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-box"><div class="metric-title">EMA50</div><div class="metric-value">{r['ema50']:.5f}</div></div>', unsafe_allow_html=True)
 
-# Filters Row
+# Filters Box (Compact & Single Line)
 st.markdown(f"""
-    <div class="status">
+    <div class="filters-box">
         <b>Filters ({r['side']}):</b> {r['filters']}
     </div>
 """, unsafe_allow_html=True)
