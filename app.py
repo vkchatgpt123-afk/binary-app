@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.9.6 — SINGLE BOX SIDE-BY-SIDE FIX
+# SIGNAL TERMINAL V4.9.7 — FLEX MIN-WIDTH FIX
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.9.6",
+    page_title="Signal Terminal V4.9.7",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# CSS STYLING (FORCED SINGLE BOX & SIDE-BY-SIDE COLUMNS)
+# CSS STYLING
 # =========================================================
 
 st.markdown("""
@@ -31,32 +31,31 @@ st.markdown("""
     padding: 0.4rem 0.4rem 0.4rem 0.4rem !important;
 }
 
-/* Single Box Wrapper */
-.single-control-box {
+/* Single Box Container for Controls */
+.control-box {
     background: #112240;
     border: 1px solid #64ffda;
     border-radius: 6px;
-    padding: 8px 8px 4px 8px;
+    padding: 6px 6px 2px 6px;
     margin-bottom: 6px;
 }
 
-/* Force Streamlit columns to stay side-by-side on mobile inside this box */
-div.row-widget.stHorizontal, div[data-testid="stHorizontalBlock"] {
+/* Strict side-by-side fix for mobile view */
+[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 8px !important;
-    align-items: center !important;
+    gap: 4px !important;
 }
 
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-    width: 50% !important;
+[data-testid="stHorizontalBlock"] > [data-testid="column"] {
     flex: 1 1 50% !important;
-    min-width: 50% !important;
+    width: 50% !important;
+    min-width: 0 !important;
     max-width: 50% !important;
 }
 
-/* Selectbox compact styling */
+/* Selectbox styling */
 .stSelectbox label {
     color: #64ffda !important;
     font-size: 8px !important;
@@ -74,11 +73,11 @@ div[data-baseweb="select"] > div {
 
 div[data-baseweb="select"] span {
     color: #64ffda !important;
-    font-size: 10px !important;
+    font-size: 9px !important;
     font-weight: bold;
 }
 
-/* Highly Highlighted Signal Box */
+/* Signal Box */
 .signal {
     border-radius: 6px;
     padding: 8px;
@@ -155,7 +154,6 @@ div[data-baseweb="select"] span {
     font-weight: 900;
 }
 
-/* Detailed Indicators Box wrapper */
 .indicators-wrapper {
     background: #112240;
     border: 1px solid #64ffda;
@@ -182,7 +180,7 @@ div[data-baseweb="select"] span {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# PAIRS & TIMEFRAME (SINGLE BOX, SIDE BY SIDE)
+# PAIRS & TIMEFRAME (SINGLE CONTAINER BOX)
 # =========================================================
 
 PAIRS = {
@@ -196,12 +194,12 @@ TIMEFRAMES = {
     "5m": "5m", "15m": "15m", "30m": "30m", "1H": "60m"
 }
 
-st.markdown('<div class="single-control-box">', unsafe_allow_html=True)
+st.markdown('<div class="control-box">', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 with col1:
-    pair = st.selectbox("PAIR", list(PAIRS.keys()), key="pair_select")
+    pair = st.selectbox("PAIR", list(PAIRS.keys()), key="p_select")
 with col2:
-    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()), key="tf_select")
+    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()), key="t_select")
 st.markdown('</div>', unsafe_allow_html=True)
 
 symbol = PAIRS[pair]
@@ -371,7 +369,6 @@ except Exception:
 max_age = 20 if timeframe == "5m" else (45 if timeframe == "15m" else (75 if timeframe == "30m" else 150))
 stale = age > max_age
 
-# Highly Highlighted Signal Box
 if stale:
     st.markdown('<div class="signal wait">🕐 DATA STALE — NO SIGNAL</div>', unsafe_allow_html=True)
 elif r["signal"] == "UP":
@@ -381,10 +378,8 @@ elif r["signal"] == "DOWN":
 else:
     st.markdown('<div class="signal wait">🛡️ NO TRADE / WAIT</div>', unsafe_allow_html=True)
 
-# Market Status
 st.markdown(f'<div class="status"><b>{r["market"]}</b> | 🟢 {r["up"]}/8 • 🔴 {r["down"]}/8<div class="reason">{r["reason"]}</div></div>', unsafe_allow_html=True)
 
-# Metrics Grid
 st.markdown(f'''<div class="grid-container">
 <div class="grid-card"><div class="grid-title">PRICE</div><div class="grid-value">{r["price"]:.5f}</div></div>
 <div class="grid-card"><div class="grid-title">RSI</div><div class="grid-value">{r["rsi"]:.1f}</div></div>
@@ -394,7 +389,6 @@ st.markdown(f'''<div class="grid-container">
 <div class="grid-card"><div class="grid-title">EMA50</div><div class="grid-value">{r["ema50"]:.5f}</div></div>
 </div>''', unsafe_allow_html=True)
 
-# Detailed Indicators Grid Box
 st.markdown(f'''<div class="indicators-wrapper">
 <div class="ind-main-title">INDICATORS ({r["side"]})</div>
 <div class="grid-container" style="margin: 0;">
@@ -402,7 +396,6 @@ st.markdown(f'''<div class="indicators-wrapper">
 </div>
 </div>''', unsafe_allow_html=True)
 
-# Refresh Button
 if st.button("🔄 REFRESH DATA", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
