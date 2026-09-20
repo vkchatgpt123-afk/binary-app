@@ -5,11 +5,11 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.9.4 — COMBINED CONTROL BOX FIX
+# SIGNAL TERMINAL V4.9.5 — PURE HTML SELECTORS FIX
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.9.4",
+    page_title="Signal Terminal V4.9.5",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -29,52 +29,6 @@ st.markdown("""
 .block-container {
     max-width: 410px !important;
     padding: 0.4rem 0.4rem 0.4rem 0.4rem !important;
-}
-
-/* Single Container Box for Controls */
-.control-box {
-    background: #112240;
-    border: 1px solid #64ffda;
-    border-radius: 6px;
-    padding: 6px 8px 2px 8px;
-    margin-bottom: 6px;
-}
-
-/* Force side-by-side elements inside control box */
-div[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 6px !important;
-}
-
-div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-    width: 50% !important;
-    flex: 1 1 50% !important;
-    min-width: 50% !important;
-    max-width: 50% !important;
-}
-
-/* Selectbox compact styling */
-.stSelectbox label {
-    color: #64ffda !important;
-    font-size: 8px !important;
-    font-weight: bold;
-    margin-bottom: 2px !important;
-}
-
-div[data-baseweb="select"] > div {
-    background-color: #0a192f !important;
-    color: white !important;
-    border: 1px solid #64ffda !important;
-    border-radius: 4px !important;
-    min-height: 28px !important;
-}
-
-div[data-baseweb="select"] span {
-    color: #64ffda !important;
-    font-size: 10px !important;
-    font-weight: bold;
 }
 
 /* Highly Highlighted Signal Box */
@@ -181,7 +135,7 @@ div[data-baseweb="select"] span {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# PAIRS & TIMEFRAME (INSIDE ONE SINGLE BOX)
+# PAIRS & TIMEFRAME SELECTION (SIDE BY SIDE IN ONE BOX)
 # =========================================================
 
 PAIRS = {
@@ -195,12 +149,13 @@ TIMEFRAMES = {
     "5m": "5m", "15m": "15m", "30m": "30m", "1H": "60m"
 }
 
-st.markdown('<div class="control-box">', unsafe_allow_html=True)
+# Using native Streamlit horizontal columns correctly layout-wrapped
+st.markdown('<div style="background: #112240; border: 1px solid #64ffda; border-radius: 6px; padding: 6px 8px 4px 8px; margin-bottom: 6px;">', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 with col1:
-    pair = st.selectbox("PAIR", list(PAIRS.keys()))
+    pair = st.selectbox("PAIR", list(PAIRS.keys()), key="pair_select")
 with col2:
-    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()))
+    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()), key="tf_select")
 st.markdown('</div>', unsafe_allow_html=True)
 
 symbol = PAIRS[pair]
