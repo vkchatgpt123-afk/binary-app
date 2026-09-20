@@ -5,11 +5,11 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.9.1 — FIXED HTML RENDERING
+# SIGNAL TERMINAL V4.9.2 — SIDE-BY-SIDE PAIR & TIMEFRAME
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.9.1",
+    page_title="Signal Terminal V4.9.2",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -31,25 +31,25 @@ st.markdown("""
     padding: 0.4rem 0.4rem 0.4rem 0.4rem !important;
 }
 
-/* Side by side columns for Pair & Timeframe */
-div[data-testid="column"] {
+/* Force side-by-side columns strictly */
+[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+}
+
+[data-testid="stHorizontalBlock"] > [data-testid="column"] {
     width: 50% !important;
     flex: 1 1 50% !important;
     min-width: 50% !important;
-    padding: 0px 2px !important;
 }
 
-div[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-}
-
-/* Selectbox styling */
+/* Selectbox compact styling */
 .stSelectbox label {
     color: #64ffda !important;
-    font-size: 9px !important;
+    font-size: 8px !important;
     font-weight: bold;
+    margin-bottom: 2px !important;
 }
 
 div[data-baseweb="select"] > div {
@@ -57,7 +57,7 @@ div[data-baseweb="select"] > div {
     color: white !important;
     border: 1px solid #64ffda !important;
     border-radius: 4px !important;
-    min-height: 28px !important;
+    min-height: 30px !important;
 }
 
 div[data-baseweb="select"] span {
@@ -170,7 +170,7 @@ div[data-baseweb="select"] span {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# PAIRS & TIMEFRAME (SIDE BY SIDE)
+# PAIRS & TIMEFRAME (SIDE BY SIDE BOXES)
 # =========================================================
 
 PAIRS = {
