@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.6 — ERROR FREE FINAL CODE
+# SIGNAL TERMINAL V4.7 — FIXED SELECTBOXES
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.6",
+    page_title="Signal Terminal V4.7",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# COMPACT CSS FOR SINGLE-SCREEN MOBILE FIT
+# CLEAN CSS WITHOUT HIDING CONTROLS
 # =========================================================
 
 st.markdown("""
@@ -28,56 +28,34 @@ st.markdown("""
 
 .block-container {
     max-width: 410px !important;
-    padding: 0.05rem 0.2rem 0.2rem 0.2rem !important;
+    padding: 0.4rem 0.4rem 0.4rem 0.4rem !important;
 }
 
-/* Force 50-50 for Pair & Timeframe without overflow */
-div[data-testid="column"] {
-    width: 50% !important;
-    flex: 1 1 50% !important;
-    min-width: 50% !important;
-    padding: 0px 1px !important;
+/* Selectbox styling */
+.stSelectbox label {
+    color: #64ffda !important;
+    font-size: 10px !important;
+    font-weight: bold;
 }
 
-div[data-testid="stHorizontalBlock"] {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-}
-
-/* Compact Selectboxes */
 div[data-baseweb="select"] > div {
     background-color: #112240 !important;
     color: white !important;
     border: 1px solid #64ffda !important;
     border-radius: 4px !important;
-    min-height: 22px !important;
-}
-div[data-baseweb="select"] span {
-    color: #64ffda !important;
-    font-size: 8px !important;
-    font-weight: bold;
 }
 
-/* Header */
-.header-box {
-    background: #112240;
-    border: 1px solid #64ffda;
-    border-radius: 4px;
-    padding: 2px 4px;
-    text-align: center;
-    font-size: 8.5px;
-    color: #64ffda;
-    margin-bottom: 2px;
-    margin-top: 1px;
+div[data-baseweb="select"] span {
+    color: #64ffda !important;
+    font-size: 11px !important;
     font-weight: bold;
 }
 
 /* Highlighted Signal Box */
 .signal {
     border-radius: 5px;
-    padding: 4px 3px;
-    margin: 2px 0;
+    padding: 5px;
+    margin: 4px 0;
     text-align: center;
     font-size: 13px;
     font-weight: 900;
@@ -107,45 +85,45 @@ div[data-baseweb="select"] span {
     background: #112240;
     border: 1px solid #64ffda;
     border-radius: 4px;
-    padding: 2px 4px;
-    margin: 2px 0;
+    padding: 4px;
+    margin: 4px 0;
     text-align: center;
-    font-size: 8.5px;
+    font-size: 9px;
     font-weight: bold;
 }
 
 .reason {
     color: #a8b2d1;
-    font-size: 7.5px;
-    margin-top: 0px;
+    font-size: 8px;
+    margin-top: 2px;
 }
 
 /* Metrics Grid */
 .metrics-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 2px;
-    margin: 2px 0;
+    gap: 3px;
+    margin: 4px 0;
 }
 
 .metric-card {
-    flex: 1 1 calc(50% - 2px);
+    flex: 1 1 calc(50% - 3px);
     background: #112240;
     border: 1px solid #64ffda;
-    border-radius: 3px;
-    padding: 2px 3px;
+    border-radius: 4px;
+    padding: 4px;
     text-align: center;
 }
 
 .metric-title {
     color: #8892b0;
-    font-size: 7px;
+    font-size: 8px;
     font-weight: bold;
 }
 
 .metric-value {
     color: #ffffff;
-    font-size: 9.5px;
+    font-size: 11px;
     font-weight: 900;
 }
 
@@ -154,39 +132,39 @@ div[data-baseweb="select"] span {
     background: #112240;
     border: 1px solid #64ffda;
     border-radius: 4px;
-    padding: 3px;
-    margin: 2px 0;
+    padding: 5px;
+    margin: 4px 0;
 }
 
 .ind-title {
     color: #64ffda;
-    font-size: 7.5px;
+    font-size: 8.5px;
     font-weight: bold;
     text-align: center;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
 }
 
 .ind-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 2px;
+    gap: 3px;
 }
 
 .ind-item {
-    flex: 1 1 calc(25% - 2px);
+    flex: 1 1 calc(25% - 3px);
     background: #0a192f;
-    border-radius: 2px;
-    padding: 2px 1px;
+    border-radius: 3px;
+    padding: 3px 2px;
     text-align: center;
-    font-size: 7px;
+    font-size: 8px;
     font-weight: bold;
 }
 
 .footer {
     color: #8892b0;
     text-align: center;
-    font-size: 6.5px;
-    margin-top: 1px;
+    font-size: 7px;
+    margin-top: 4px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -206,11 +184,11 @@ TIMEFRAMES = {
     "5m": "5m", "15m": "15m", "30m": "30m", "1H": "60m"
 }
 
-col_pair, col_tf = st.columns(2)
-with col_pair:
-    pair = st.selectbox("PAIR", list(PAIRS.keys()), label_visibility="collapsed")
-with col_tf:
-    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()), label_visibility="collapsed")
+col1, col2 = st.columns(2)
+with col1:
+    pair = st.selectbox("SELECT PAIR", list(PAIRS.keys()))
+with col2:
+    timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()))
 
 symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
@@ -379,9 +357,6 @@ except Exception:
 max_age = 20 if timeframe == "5m" else (45 if timeframe == "15m" else (75 if timeframe == "30m" else 150))
 stale = age > max_age
 
-# Header Info
-st.markdown(f'<div class="header-box">💱 {pair} • ⏱️ {timeframe} • 🔒 CLOSED</div>', unsafe_allow_html=True)
-
 # Highlighted Signal Box
 if stale:
     st.markdown('<div class="signal wait">🕐 DATA STALE — NO SIGNAL</div>', unsafe_allow_html=True)
@@ -400,7 +375,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# Metrics Grid (50-50)
+# Metrics Grid
 st.markdown(f"""
     <div class="metrics-grid">
         <div class="metric-card"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>
