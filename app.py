@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.9.2 — SIDE-BY-SIDE PAIR & TIMEFRAME
+# SIGNAL TERMINAL V4.9.3 — FORCED SIDE-BY-SIDE FIX
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.9.2",
+    page_title="Signal Terminal V4.9.3",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# CSS STYLING
+# CSS STYLING (FORCED SIDE-BY-SIDE MOBILE FIX)
 # =========================================================
 
 st.markdown("""
@@ -31,17 +31,19 @@ st.markdown("""
     padding: 0.4rem 0.4rem 0.4rem 0.4rem !important;
 }
 
-/* Force side-by-side columns strictly */
-[data-testid="stHorizontalBlock"] {
+/* Force side-by-side columns permanently on mobile */
+div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
-    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
 }
 
-[data-testid="stHorizontalBlock"] > [data-testid="column"] {
+div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
     width: 50% !important;
     flex: 1 1 50% !important;
     min-width: 50% !important;
+    max-width: 50% !important;
 }
 
 /* Selectbox compact styling */
@@ -57,7 +59,7 @@ div[data-baseweb="select"] > div {
     color: white !important;
     border: 1px solid #64ffda !important;
     border-radius: 4px !important;
-    min-height: 30px !important;
+    min-height: 28px !important;
 }
 
 div[data-baseweb="select"] span {
