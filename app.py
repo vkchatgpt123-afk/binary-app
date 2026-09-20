@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.9.3 — FORCED SIDE-BY-SIDE FIX
+# SIGNAL TERMINAL V4.9.4 — COMBINED CONTROL BOX FIX
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.9.3",
+    page_title="Signal Terminal V4.9.4",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# CSS STYLING (FORCED SIDE-BY-SIDE MOBILE FIX)
+# CSS STYLING
 # =========================================================
 
 st.markdown("""
@@ -31,12 +31,21 @@ st.markdown("""
     padding: 0.4rem 0.4rem 0.4rem 0.4rem !important;
 }
 
-/* Force side-by-side columns permanently on mobile */
+/* Single Container Box for Controls */
+.control-box {
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 6px;
+    padding: 6px 8px 2px 8px;
+    margin-bottom: 6px;
+}
+
+/* Force side-by-side elements inside control box */
 div[data-testid="stHorizontalBlock"] {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 4px !important;
+    gap: 6px !important;
 }
 
 div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
@@ -55,7 +64,7 @@ div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
 }
 
 div[data-baseweb="select"] > div {
-    background-color: #112240 !important;
+    background-color: #0a192f !important;
     color: white !important;
     border: 1px solid #64ffda !important;
     border-radius: 4px !important;
@@ -172,7 +181,7 @@ div[data-baseweb="select"] span {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# PAIRS & TIMEFRAME (SIDE BY SIDE BOXES)
+# PAIRS & TIMEFRAME (INSIDE ONE SINGLE BOX)
 # =========================================================
 
 PAIRS = {
@@ -186,11 +195,13 @@ TIMEFRAMES = {
     "5m": "5m", "15m": "15m", "30m": "30m", "1H": "60m"
 }
 
+st.markdown('<div class="control-box">', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 with col1:
     pair = st.selectbox("PAIR", list(PAIRS.keys()))
 with col2:
     timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()))
+st.markdown('</div>', unsafe_allow_html=True)
 
 symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
