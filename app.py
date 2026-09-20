@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.7 — FIXED SELECTBOXES
+# SIGNAL TERMINAL V4.9 — FINAL CUSTOM LAYOUT
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.7",
+    page_title="Signal Terminal V4.9",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# CLEAN CSS WITHOUT HIDING CONTROLS
+# COMPACT CSS FOR MOBILE & HIGHLIGHTS
 # =========================================================
 
 st.markdown("""
@@ -31,10 +31,24 @@ st.markdown("""
     padding: 0.4rem 0.4rem 0.4rem 0.4rem !important;
 }
 
+/* Side by side columns for Pair & Timeframe */
+div[data-testid="column"] {
+    width: 50% !important;
+    flex: 1 1 50% !important;
+    min-width: 50% !important;
+    padding: 0px 2px !important;
+}
+
+div[data-testid="stHorizontalBlock"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+}
+
 /* Selectbox styling */
 .stSelectbox label {
     color: #64ffda !important;
-    font-size: 10px !important;
+    font-size: 9px !important;
     font-weight: bold;
 }
 
@@ -43,40 +57,42 @@ div[data-baseweb="select"] > div {
     color: white !important;
     border: 1px solid #64ffda !important;
     border-radius: 4px !important;
+    min-height: 28px !important;
 }
 
 div[data-baseweb="select"] span {
     color: #64ffda !important;
-    font-size: 11px !important;
+    font-size: 10px !important;
     font-weight: bold;
 }
 
-/* Highlighted Signal Box */
+/* Highly Highlighted Signal Box */
 .signal {
-    border-radius: 5px;
-    padding: 5px;
-    margin: 4px 0;
+    border-radius: 6px;
+    padding: 8px;
+    margin: 6px 0;
     text-align: center;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 900;
-    box-shadow: 0 0 8px rgba(255,255,255,0.2);
+    letter-spacing: 1px;
+    box-shadow: 0 0 15px rgba(100, 255, 218, 0.4);
 }
 
 .up {
-    background: #00b09b;
+    background: linear-gradient(135deg, #00b09b, #96c93d);
     border: 2px solid #64ffda;
-    color: #ffffff;
+    color: #000000;
 }
 
 .down {
-    background: #ff416c;
+    background: linear-gradient(135deg, #ff416c, #ff4b2b);
     border: 2px solid #ff4b2b;
     color: #ffffff;
 }
 
 .wait {
-    background: #f7b733;
-    border: 2px solid #fc4a1a;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    border: 2px solid #f7b733;
     color: #111111;
 }
 
@@ -85,7 +101,7 @@ div[data-baseweb="select"] span {
     background: #112240;
     border: 1px solid #64ffda;
     border-radius: 4px;
-    padding: 4px;
+    padding: 5px;
     margin: 4px 0;
     text-align: center;
     font-size: 9px;
@@ -98,66 +114,50 @@ div[data-baseweb="select"] span {
     margin-top: 2px;
 }
 
-/* Metrics Grid */
-.metrics-grid {
+/* Metrics & Indicators Grid */
+.grid-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 4px;
     margin: 4px 0;
 }
 
-.metric-card {
-    flex: 1 1 calc(50% - 3px);
+.grid-card {
+    flex: 1 1 calc(50% - 4px);
     background: #112240;
     border: 1px solid #64ffda;
     border-radius: 4px;
-    padding: 4px;
+    padding: 6px;
     text-align: center;
 }
 
-.metric-title {
+.grid-title {
     color: #8892b0;
     font-size: 8px;
     font-weight: bold;
 }
 
-.metric-value {
+.grid-value {
     color: #ffffff;
     font-size: 11px;
     font-weight: 900;
 }
 
-/* Detailed Indicators Grid Box */
-.indicators-container {
+/* Detailed Indicators Box wrapper */
+.indicators-wrapper {
     background: #112240;
     border: 1px solid #64ffda;
     border-radius: 4px;
-    padding: 5px;
+    padding: 6px;
     margin: 4px 0;
 }
 
-.ind-title {
+.ind-main-title {
     color: #64ffda;
-    font-size: 8.5px;
+    font-size: 9px;
     font-weight: bold;
     text-align: center;
-    margin-bottom: 3px;
-}
-
-.ind-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-}
-
-.ind-item {
-    flex: 1 1 calc(25% - 3px);
-    background: #0a192f;
-    border-radius: 3px;
-    padding: 3px 2px;
-    text-align: center;
-    font-size: 8px;
-    font-weight: bold;
+    margin-bottom: 5px;
 }
 
 .footer {
@@ -170,7 +170,7 @@ div[data-baseweb="select"] span {
 """, unsafe_allow_html=True)
 
 # =========================================================
-# PAIRS & TIMEFRAME
+# PAIRS & TIMEFRAME (SIDE BY SIDE)
 # =========================================================
 
 PAIRS = {
@@ -186,7 +186,7 @@ TIMEFRAMES = {
 
 col1, col2 = st.columns(2)
 with col1:
-    pair = st.selectbox("SELECT PAIR", list(PAIRS.keys()))
+    pair = st.selectbox("PAIR", list(PAIRS.keys()))
 with col2:
     timeframe = st.selectbox("TIMEFRAME", list(TIMEFRAMES.keys()))
 
@@ -318,16 +318,21 @@ def analyze(df):
         selected = up if up_score >= down_score else down
     
     names = ["Trend", "EMA", "RSI", "MACD", "Price", "BB", "Candle", "Vol"]
-    indicator_details = []
+    indicator_cards = []
     for name, status in zip(names, selected):
         icon = "✅" if status else "❌"
         color = "#64ffda" if status else "#ff6b6b"
-        indicator_details.append(f'<div class="ind-item" style="color: {color};">{name}: {icon}</div>')
+        indicator_cards.append(f'''
+            <div class="grid-card">
+                <div class="grid-title">{name}</div>
+                <div class="grid-value" style="color: {color};">{icon}</div>
+            </div>
+        ''')
 
     return {
         "signal": signal, "reason": reason, "market": market,
         "up": up_score, "down": down_score, "side": side, 
-        "indicators": "".join(indicator_details),
+        "indicators": "".join(indicator_cards),
         "price": price, "rsi": rsi, "atr": atr, "ema12": ema12, "ema26": ema26, "ema50": ema50,
         "time": d.index[-2]
     }
@@ -357,15 +362,15 @@ except Exception:
 max_age = 20 if timeframe == "5m" else (45 if timeframe == "15m" else (75 if timeframe == "30m" else 150))
 stale = age > max_age
 
-# Highlighted Signal Box
+# Highly Highlighted Signal Box
 if stale:
     st.markdown('<div class="signal wait">🕐 DATA STALE — NO SIGNAL</div>', unsafe_allow_html=True)
 elif r["signal"] == "UP":
-    st.markdown('<div class="signal up">🟢 UP SIGNAL</div>', unsafe_allow_html=True)
+    st.markdown('<div class="signal up">🟢 UP SIGNAL (CALL)</div>', unsafe_allow_html=True)
 elif r["signal"] == "DOWN":
-    st.markdown('<div class="signal down">🔴 DOWN SIGNAL</div>', unsafe_allow_html=True)
+    st.markdown('<div class="signal down">🔴 DOWN SIGNAL (PUT)</div>', unsafe_allow_html=True)
 else:
-    st.markdown('<div class="signal wait">🛡️ NO TRADE</div>', unsafe_allow_html=True)
+    st.markdown('<div class="signal wait">🛡️ NO TRADE / WAIT</div>', unsafe_allow_html=True)
 
 # Market Status
 st.markdown(f"""
@@ -377,21 +382,21 @@ st.markdown(f"""
 
 # Metrics Grid
 st.markdown(f"""
-    <div class="metrics-grid">
-        <div class="metric-card"><div class="metric-title">PRICE</div><div class="metric-value">{r['price']:.5f}</div></div>
-        <div class="metric-card"><div class="metric-title">RSI</div><div class="metric-value">{r['rsi']:.1f}</div></div>
-        <div class="metric-card"><div class="metric-title">ATR</div><div class="metric-value">{r['atr']:.5f}</div></div>
-        <div class="metric-card"><div class="metric-title">EMA12</div><div class="metric-value">{r['ema12']:.5f}</div></div>
-        <div class="metric-card"><div class="metric-title">EMA26</div><div class="metric-value">{r['ema26']:.5f}</div></div>
-        <div class="metric-card"><div class="metric-title">EMA50</div><div class="metric-value">{r['ema50']:.5f}</div></div>
+    <div class="grid-container">
+        <div class="grid-card"><div class="grid-title">PRICE</div><div class="grid-value">{r['price']:.5f}</div></div>
+        <div class="grid-card"><div class="grid-title">RSI</div><div class="grid-value">{r['rsi']:.1f}</div></div>
+        <div class="grid-card"><div class="grid-title">ATR</div><div class="grid-value">{r['atr']:.5f}</div></div>
+        <div class="grid-card"><div class="grid-title">EMA12</div><div class="grid-value">{r['ema12']:.5f}</div></div>
+        <div class="grid-card"><div class="grid-title">EMA26</div><div class="grid-value">{r['ema26']:.5f}</div></div>
+        <div class="grid-card"><div class="grid-title">EMA50</div><div class="grid-value">{r['ema50']:.5f}</div></div>
     </div>
 """, unsafe_allow_html=True)
 
 # Detailed Indicators Grid Box
 st.markdown(f"""
-    <div class="indicators-container">
-        <div class="ind-title">INDICATORS ({r['side']})</div>
-        <div class="ind-grid">
+    <div class="indicators-wrapper">
+        <div class="ind-main-title">INDICATORS ({r['side']})</div>
+        <div class="grid-container" style="margin: 0;">
             {r['indicators']}
         </div>
     </div>
