@@ -5,18 +5,18 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V4.9 — FINAL CUSTOM LAYOUT
+# SIGNAL TERMINAL V4.9.1 — FIXED HTML RENDERING
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V4.9",
+    page_title="Signal Terminal V4.9.1",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
 # =========================================================
-# COMPACT CSS FOR MOBILE & HIGHLIGHTS
+# CSS STYLING
 # =========================================================
 
 st.markdown("""
@@ -322,12 +322,7 @@ def analyze(df):
     for name, status in zip(names, selected):
         icon = "✅" if status else "❌"
         color = "#64ffda" if status else "#ff6b6b"
-        indicator_cards.append(f'''
-            <div class="grid-card">
-                <div class="grid-title">{name}</div>
-                <div class="grid-value" style="color: {color};">{icon}</div>
-            </div>
-        ''')
+        indicator_cards.append(f'<div class="grid-card"><div class="grid-title">{name}</div><div class="grid-value" style="color: {color};">{icon}</div></div>')
 
     return {
         "signal": signal, "reason": reason, "market": market,
@@ -373,34 +368,25 @@ else:
     st.markdown('<div class="signal wait">🛡️ NO TRADE / WAIT</div>', unsafe_allow_html=True)
 
 # Market Status
-st.markdown(f"""
-    <div class="status">
-        <b>{r['market']}</b> | 🟢 {r['up']}/8 • 🔴 {r['down']}/8
-        <div class="reason">{r['reason']}</div>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown(f'<div class="status"><b>{r["market"]}</b> | 🟢 {r["up"]}/8 • 🔴 {r["down"]}/8<div class="reason">{r["reason"]}</div></div>', unsafe_allow_html=True)
 
 # Metrics Grid
-st.markdown(f"""
-    <div class="grid-container">
-        <div class="grid-card"><div class="grid-title">PRICE</div><div class="grid-value">{r['price']:.5f}</div></div>
-        <div class="grid-card"><div class="grid-title">RSI</div><div class="grid-value">{r['rsi']:.1f}</div></div>
-        <div class="grid-card"><div class="grid-title">ATR</div><div class="grid-value">{r['atr']:.5f}</div></div>
-        <div class="grid-card"><div class="grid-title">EMA12</div><div class="grid-value">{r['ema12']:.5f}</div></div>
-        <div class="grid-card"><div class="grid-title">EMA26</div><div class="grid-value">{r['ema26']:.5f}</div></div>
-        <div class="grid-card"><div class="grid-title">EMA50</div><div class="grid-value">{r['ema50']:.5f}</div></div>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown(f'''<div class="grid-container">
+<div class="grid-card"><div class="grid-title">PRICE</div><div class="grid-value">{r["price"]:.5f}</div></div>
+<div class="grid-card"><div class="grid-title">RSI</div><div class="grid-value">{r["rsi"]:.1f}</div></div>
+<div class="grid-card"><div class="grid-title">ATR</div><div class="grid-value">{r["atr"]:.5f}</div></div>
+<div class="grid-card"><div class="grid-title">EMA12</div><div class="grid-value">{r["ema12"]:.5f}</div></div>
+<div class="grid-card"><div class="grid-title">EMA26</div><div class="grid-value">{r["ema26"]:.5f}</div></div>
+<div class="grid-card"><div class="grid-title">EMA50</div><div class="grid-value">{r["ema50"]:.5f}</div></div>
+</div>''', unsafe_allow_html=True)
 
 # Detailed Indicators Grid Box
-st.markdown(f"""
-    <div class="indicators-wrapper">
-        <div class="ind-main-title">INDICATORS ({r['side']})</div>
-        <div class="grid-container" style="margin: 0;">
-            {r['indicators']}
-        </div>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown(f'''<div class="indicators-wrapper">
+<div class="ind-main-title">INDICATORS ({r["side"]})</div>
+<div class="grid-container" style="margin: 0;">
+{r["indicators"]}
+</div>
+</div>''', unsafe_allow_html=True)
 
 # Refresh Button
 if st.button("🔄 REFRESH DATA", use_container_width=True):
