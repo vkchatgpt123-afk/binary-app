@@ -5,12 +5,12 @@ import numpy as np
 from datetime import datetime, timezone
 
 # =========================================================
-# SIGNAL TERMINAL V5.0 — MOBILE CLEAN
-# MANUAL SIGNAL ONLY
+# SIGNAL TERMINAL V4.9.9 — ORIGINAL LAYOUT FIX
+# MANUAL SIGNAL ONLY — NO AUTO TRADING
 # =========================================================
 
 st.set_page_config(
-    page_title="Signal Terminal V5",
+    page_title="Signal Terminal",
     page_icon="📊",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -22,213 +22,217 @@ st.set_page_config(
 
 st.markdown("""
 <style>
+
 .stApp {
-    background: radial-gradient(circle at top,#173f68 0%,#081a30 50%,#02060d 100%);
-    color:white;
+    background: radial-gradient(
+        circle at top,
+        #1a4b7c 0%,
+        #0a192f 50%,
+        #02060d 100%
+    );
+    color: white;
 }
 
 .block-container {
-    max-width:430px !important;
-    padding:0.25rem 0.35rem 0.35rem !important;
+    max-width: 410px !important;
+    padding: 0.35rem 0.35rem 0.4rem !important;
 }
 
-header[data-testid="stHeader"] {
-    display:none !important;
+[data-testid="stHorizontalBlock"] {
+    gap: 4px !important;
 }
 
-[data-testid="stToolbar"] {
-    display:none !important;
+[data-testid="column"] {
+    padding: 0 !important;
+    min-width: 0 !important;
 }
 
-div[data-testid="stVerticalBlock"] {
-    gap:0.25rem !important;
-}
+/* ---------------- CONTROLS ---------------- */
 
-div[data-testid="stHorizontalBlock"] {
-    gap:4px !important;
-}
-
-div[data-testid="column"] {
-    padding:0 !important;
-    min-width:0 !important;
-}
-
-/* CONTROL BOX */
 .control-box {
-    background:#102542;
-    border:1px solid #64ffda;
-    border-radius:9px;
-    padding:7px;
-    margin-bottom:5px;
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 7px;
+    padding: 5px;
+    margin-bottom: 5px;
 }
 
 .stSelectbox label {
-    color:#64ffda !important;
-    font-size:8px !important;
-    font-weight:900 !important;
-    margin-bottom:2px !important;
+    color: #64ffda !important;
+    font-size: 8px !important;
+    font-weight: bold !important;
+    margin-bottom: 1px !important;
 }
 
 div[data-baseweb="select"] > div {
-    background:#07182e !important;
-    border:1px solid #64ffda !important;
-    border-radius:6px !important;
-    min-height:30px !important;
+    background: #0a192f !important;
+    color: white !important;
+    border: 1px solid #64ffda !important;
+    border-radius: 5px !important;
+    min-height: 29px !important;
 }
 
 div[data-baseweb="select"] span {
-    color:white !important;
-    font-size:10px !important;
-    font-weight:800 !important;
+    color: white !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
 }
 
-/* SIGNAL */
+/* ---------------- SIGNAL ---------------- */
+
 .signal-box {
-    border-radius:10px;
-    padding:10px 5px;
-    text-align:center;
-    font-size:20px;
-    font-weight:950;
-    letter-spacing:1px;
-    margin:4px 0;
+    border-radius: 8px;
+    padding: 9px 5px;
+    margin: 5px 0;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 1px;
 }
 
 .signal-up {
-    background:linear-gradient(135deg,#00a884,#73c93d);
-    border:2px solid #64ffda;
-    color:#00130d;
+    background: linear-gradient(135deg,#00b09b,#96c93d);
+    border: 2px solid #64ffda;
+    color: #00150e;
 }
 
 .signal-down {
-    background:linear-gradient(135deg,#ff315e,#ff512b);
-    border:2px solid #ff806b;
-    color:white;
+    background: linear-gradient(135deg,#ff416c,#ff4b2b);
+    border: 2px solid #ff4b2b;
+    color: white;
 }
 
 .signal-wait {
-    background:linear-gradient(135deg,#f0ae28,#ed4c20);
-    border:2px solid #ffd166;
-    color:#111;
+    background: linear-gradient(135deg,#f7b733,#fc4a1a);
+    border: 2px solid #f7b733;
+    color: #111;
 }
 
 .signal-closed {
-    background:linear-gradient(135deg,#52647b,#28384d);
-    border:2px solid #91a5bd;
-    color:white;
+    background: #151a22;
+    border: 2px solid #64748b;
+    color: white;
 }
 
 .signal-sub {
-    font-size:8px;
-    font-weight:700;
-    letter-spacing:0;
-    margin-top:3px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-top: 3px;
 }
 
-/* STATUS */
+/* ---------------- STATUS ---------------- */
+
 .status-box {
-    background:#102542;
-    border:1px solid #64ffda;
-    border-radius:8px;
-    padding:6px 3px;
-    text-align:center;
-    font-size:10px;
-    font-weight:900;
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 6px;
+    padding: 5px;
+    margin: 4px 0;
+    text-align: center;
+    font-size: 9px;
+    font-weight: bold;
 }
 
 .status-reason {
-    color:#a8b2d1;
-    font-size:8px;
-    font-weight:600;
-    margin-top:2px;
+    color: #a8b2d1;
+    font-size: 8px;
+    margin-top: 2px;
 }
 
-/* METRICS */
+/* ---------------- METRICS ---------------- */
+
 .metric-grid {
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:4px;
-    margin:3px 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin: 4px 0;
 }
 
 .metric-card {
-    background:#102542;
-    border:1px solid #4ee8cf;
-    border-radius:6px;
-    padding:5px 2px;
-    text-align:center;
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 5px;
+    padding: 6px 2px;
+    text-align: center;
 }
 
 .metric-title {
-    color:#8892b0;
-    font-size:7px;
-    font-weight:800;
+    color: #8892b0;
+    font-size: 7px;
+    font-weight: bold;
 }
 
 .metric-value {
-    color:white;
-    font-size:10px;
-    font-weight:900;
+    color: white;
+    font-size: 10px;
+    font-weight: 900;
 }
 
-/* INDICATORS */
+/* ---------------- INDICATORS ---------------- */
+
 .indicator-box {
-    background:#102542;
-    border:1px solid #64ffda;
-    border-radius:8px;
-    padding:5px;
-    margin-top:3px;
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 6px;
+    padding: 5px;
+    margin: 4px 0;
 }
 
 .indicator-title {
-    text-align:center;
-    color:#64ffda;
-    font-size:9px;
-    font-weight:900;
-    margin-bottom:4px;
+    color: #64ffda;
+    font-size: 9px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 4px;
 }
 
 .indicator-grid {
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:3px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
 }
 
-.indicator {
-    background:#0b1d38;
-    border:1px solid #304d70;
-    border-radius:5px;
-    padding:4px 1px;
-    text-align:center;
+.indicator-card {
+    background: #0c1d38;
+    border: 1px solid #304d70;
+    border-radius: 5px;
+    padding: 4px 1px;
+    text-align: center;
 }
 
 .indicator-name {
-    color:#8892b0;
-    font-size:6px;
-    font-weight:800;
+    color: #8892b0;
+    font-size: 6.5px;
+    font-weight: bold;
 }
 
 .indicator-icon {
-    font-size:13px;
-    line-height:14px;
+    font-size: 13px;
+    line-height: 14px;
 }
 
-/* BUTTON */
+/* ---------------- BUTTON ---------------- */
+
 .stButton > button {
-    min-height:32px !important;
-    background:#0d203b !important;
-    border:1px solid #64ffda !important;
-    border-radius:7px !important;
-    color:white !important;
-    font-size:10px !important;
-    font-weight:900 !important;
+    min-height: 31px !important;
+    background: #0d203b !important;
+    border: 1px solid #64ffda !important;
+    border-radius: 6px !important;
+    color: white !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
 }
+
+/* ---------------- FOOTER ---------------- */
 
 .footer {
-    text-align:center;
-    color:#7f8ca8;
-    font-size:7px;
-    margin-top:3px;
+    color: #8892b0;
+    text-align: center;
+    font-size: 7px;
+    margin-top: 3px;
 }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -248,6 +252,7 @@ PAIRS = {
     "GBP/JPY": "GBPJPY=X"
 }
 
+
 TIMEFRAMES = {
     "5m": "5m",
     "15m": "15m",
@@ -260,7 +265,10 @@ TIMEFRAMES = {
 # PAIR + TIMEFRAME
 # =========================================================
 
-st.markdown('<div class="control-box">', unsafe_allow_html=True)
+st.markdown(
+    '<div class="control-box">',
+    unsafe_allow_html=True
+)
 
 col1, col2 = st.columns(2)
 
@@ -269,7 +277,7 @@ with col1:
         "PAIR",
         list(PAIRS.keys()),
         index=0,
-        key="pair_v500"
+        key="pair_original"
     )
 
 with col2:
@@ -277,10 +285,13 @@ with col2:
         "TIMEFRAME",
         list(TIMEFRAMES.keys()),
         index=0,
-        key="tf_v500"
+        key="timeframe_original"
     )
 
-st.markdown('</div>', unsafe_allow_html=True)
+st.markdown(
+    '</div>',
+    unsafe_allow_html=True
+)
 
 symbol = PAIRS[pair]
 interval = TIMEFRAMES[timeframe]
@@ -292,7 +303,9 @@ interval = TIMEFRAMES[timeframe]
 
 @st.cache_data(ttl=20, show_spinner=False)
 def get_data(symbol, interval):
+
     try:
+
         df = yf.download(
             symbol,
             period="7d",
@@ -308,12 +321,17 @@ def get_data(symbol, interval):
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
 
-        needed = ["Open", "High", "Low", "Close"]
+        required = [
+            "Open",
+            "High",
+            "Low",
+            "Close"
+        ]
 
-        if not all(x in df.columns for x in needed):
+        if not all(x in df.columns for x in required):
             return None
 
-        df = df[needed].copy()
+        df = df[required].copy()
 
         df = df.apply(
             pd.to_numeric,
@@ -321,7 +339,9 @@ def get_data(symbol, interval):
         ).dropna()
 
         df = df.loc[
-            ~df.index.duplicated(keep="last")
+            ~df.index.duplicated(
+                keep="last"
+            )
         ]
 
         return df
@@ -335,9 +355,11 @@ def get_data(symbol, interval):
 # =========================================================
 
 def calculate_rsi(close, period=14):
+
     delta = close.diff()
 
     gain = delta.clip(lower=0)
+
     loss = -delta.clip(upper=0)
 
     avg_gain = gain.ewm(
@@ -352,7 +374,10 @@ def calculate_rsi(close, period=14):
         min_periods=period
     ).mean()
 
-    rs = avg_gain / avg_loss.replace(0, np.nan)
+    rs = avg_gain / avg_loss.replace(
+        0,
+        np.nan
+    )
 
     return (
         100 - 100 / (1 + rs)
@@ -398,7 +423,10 @@ def analyze(df):
     d["RSI"] = calculate_rsi(close)
 
     # MACD
-    d["MACD"] = d["EMA12"] - d["EMA26"]
+    d["MACD"] = (
+        d["EMA12"] -
+        d["EMA26"]
+    )
 
     d["MACD_SIGNAL"] = d["MACD"].ewm(
         span=9,
@@ -414,21 +442,23 @@ def analyze(df):
     std = close.rolling(20).std()
 
     d["BB_UPPER"] = (
-        d["SMA20"] + 2 * std
+        d["SMA20"] +
+        2 * std
     )
 
     d["BB_LOWER"] = (
-        d["SMA20"] - 2 * std
+        d["SMA20"] -
+        2 * std
     )
 
     # ATR
-    prev_close = close.shift(1)
+    previous_close = close.shift(1)
 
     tr = pd.concat(
         [
             high - low,
-            (high - prev_close).abs(),
-            (low - prev_close).abs()
+            (high - previous_close).abs(),
+            (low - previous_close).abs()
         ],
         axis=1
     ).max(axis=1)
@@ -442,7 +472,10 @@ def analyze(df):
     # Candle
     candle_range = (
         high - low
-    ).replace(0, np.nan)
+    ).replace(
+        0,
+        np.nan
+    )
 
     d["BODY"] = (
         (close - op).abs() /
@@ -472,24 +505,26 @@ def analyze(df):
     sma20 = float(c["SMA20"])
 
     rsi = float(c["RSI"])
-    prev_rsi = float(p["RSI"])
+    previous_rsi = float(p["RSI"])
 
     macd = float(c["MACD"])
-    macd_sig = float(c["MACD_SIGNAL"])
+    macd_signal = float(c["MACD_SIGNAL"])
 
     hist = float(c["MACD_HIST"])
-    prev_hist = float(p["MACD_HIST"])
+    previous_hist = float(p["MACD_HIST"])
 
-    bb_up = float(c["BB_UPPER"])
-    bb_low = float(c["BB_LOWER"])
+    bb_upper = float(c["BB_UPPER"])
+    bb_lower = float(c["BB_LOWER"])
 
     atr = float(c["ATR14"])
 
     body = float(c["BODY"])
     location = float(c["LOCATION"])
 
-    # Trend strength
-    gap = abs(ema12 - ema26)
+    # Strength
+    gap = abs(
+        ema12 - ema26
+    )
 
     strength = (
         gap / atr
@@ -497,48 +532,85 @@ def analyze(df):
         else 0
     )
 
+    strong = strength >= 0.15
+
     # Market
     if (
         ema12 > ema26
         and ema26 > ema50
         and price > ema50
-        and strength >= 0.15
+        and strong
     ):
+
         market = "UPTREND"
 
     elif (
         ema12 < ema26
         and ema26 < ema50
         and price < ema50
-        and strength >= 0.15
+        and strong
     ):
+
         market = "DOWNTREND"
 
     else:
+
         market = "SIDEWAYS"
 
-    # UP
+    # UP conditions
     up = [
+
         market == "UPTREND",
-        ema12 > ema26 and ema26 > ema50,
-        45 <= rsi <= 68 and rsi > prev_rsi,
-        macd > macd_sig and hist > prev_hist,
-        price > ema12 and price > sma20,
-        price > sma20 and price < bb_up,
-        bool(c["Close"] > c["Open"]) and body >= 0.45 and location >= 0.65,
-        atr > 0 and strength >= 0.15
+
+        ema12 > ema26
+        and ema26 > ema50,
+
+        45 <= rsi <= 68
+        and rsi > previous_rsi,
+
+        macd > macd_signal
+        and hist > previous_hist,
+
+        price > ema12
+        and price > sma20,
+
+        price > sma20
+        and price < bb_upper,
+
+        bool(c["Close"] > c["Open"])
+        and body >= 0.45
+        and location >= 0.65,
+
+        atr > 0
+        and strength >= 0.15
     ]
 
-    # DOWN
+    # DOWN conditions
     down = [
+
         market == "DOWNTREND",
-        ema12 < ema26 and ema26 < ema50,
-        32 <= rsi <= 55 and rsi < prev_rsi,
-        macd < macd_sig and hist < prev_hist,
-        price < ema12 and price < sma20,
-        price < sma20 and price > bb_low,
-        bool(c["Close"] < c["Open"]) and body >= 0.45 and location <= 0.35,
-        atr > 0 and strength >= 0.15
+
+        ema12 < ema26
+        and ema26 < ema50,
+
+        32 <= rsi <= 55
+        and rsi < previous_rsi,
+
+        macd < macd_signal
+        and hist < previous_hist,
+
+        price < ema12
+        and price < sma20,
+
+        price < sma20
+        and price > bb_lower,
+
+        bool(c["Close"] < c["Open"])
+        and body >= 0.45
+        and location <= 0.35,
+
+        atr > 0
+        and strength >= 0.15
     ]
 
     up_score = sum(up)
@@ -554,6 +626,7 @@ def analyze(df):
         and up[3]
         and up[4]
     ):
+
         signal = "UP"
         reason = "Bullish confirmation"
 
@@ -564,30 +637,41 @@ def analyze(df):
         and down[3]
         and down[4]
     ):
+
         signal = "DOWN"
         reason = "Bearish confirmation"
 
     elif market == "SIDEWAYS":
-        reason = "Sideways market — WAIT"
+
+        reason = "Sideways market"
 
     elif abs(up_score - down_score) <= 1:
+
         reason = "Signals balanced"
 
     if market == "UPTREND":
+
         side = "UP"
         selected = up
 
     elif market == "DOWNTREND":
+
         side = "DOWN"
         selected = down
-
-    elif up_score >= down_score:
-        side = "UP"
-        selected = up
 
     else:
-        side = "DOWN"
-        selected = down
+
+        side = (
+            "UP"
+            if up_score >= down_score
+            else "DOWN"
+        )
+
+        selected = (
+            up
+            if up_score >= down_score
+            else down
+        )
 
     names = [
         "Trend",
@@ -597,17 +681,24 @@ def analyze(df):
         "Price",
         "BB",
         "Candle",
-        "Strength"
+        "Vol"
     ]
 
     indicator_html = ""
 
-    for name, status in zip(names, selected):
+    for name, status in zip(
+        names,
+        selected
+    ):
 
-        icon = "✅" if status else "❌"
+        icon = (
+            "✅"
+            if status
+            else "❌"
+        )
 
         indicator_html += (
-            '<div class="indicator">'
+            '<div class="indicator-card">'
             '<div class="indicator-name">'
             + name +
             '</div>'
@@ -636,23 +727,27 @@ def analyze(df):
 
 
 # =========================================================
-# LOAD
+# RUN
 # =========================================================
 
-df = get_data(symbol, interval)
+df = get_data(
+    symbol,
+    interval
+)
 
 if df is None or len(df) < 150:
 
     st.markdown(
         '<div class="signal-box signal-wait">'
         '⚠️ DATA UNAVAILABLE'
-        '<div class="signal-sub">NO SIGNAL</div>'
+        '<div class="signal-sub">'
+        'NO SIGNAL'
+        '</div>'
         '</div>',
         unsafe_allow_html=True
     )
 
     st.stop()
-
 
 r = analyze(df)
 
@@ -661,7 +756,9 @@ if r is None:
     st.markdown(
         '<div class="signal-box signal-wait">'
         '⚠️ ANALYSIS ERROR'
-        '<div class="signal-sub">NO SIGNAL</div>'
+        '<div class="signal-sub">'
+        'NO SIGNAL'
+        '</div>'
         '</div>',
         unsafe_allow_html=True
     )
@@ -670,7 +767,7 @@ if r is None:
 
 
 # =========================================================
-# AGE
+# DATA AGE
 # =========================================================
 
 closed_time = r["time"]
@@ -678,6 +775,7 @@ closed_time = r["time"]
 try:
 
     if closed_time.tzinfo is None:
+
         closed_time = closed_time.replace(
             tzinfo=timezone.utc
         )
@@ -696,11 +794,12 @@ except Exception:
 
 
 # =========================================================
-# WEEKEND / STALE
+# WEEKEND
 # =========================================================
 
 weekend = (
-    datetime.now(timezone.utc).weekday() >= 5
+    datetime.now(timezone.utc).weekday()
+    >= 5
 )
 
 max_age = {
@@ -714,7 +813,7 @@ stale = age > max_age
 
 
 # =========================================================
-# DISPLAY SIGNAL
+# SIGNAL DISPLAY
 # =========================================================
 
 if weekend:
@@ -727,7 +826,7 @@ elif stale:
 
     display_signal = "🕐 DATA STALE"
     signal_class = "signal-wait"
-    signal_reason = "Fresh candle unavailable"
+    signal_reason = "Fresh data unavailable"
 
 elif r["signal"] == "UP":
 
@@ -771,7 +870,7 @@ st.markdown(
 
 st.markdown(
     '<div class="status-box">'
-    + '<b>'
+    '<b>'
     + r["market"]
     + '</b>'
     + ' | 🟢 '
@@ -792,7 +891,7 @@ st.markdown(
 # METRICS
 # =========================================================
 
-metrics_html = (
+st.markdown(
     '<div class="metric-grid">'
 
     '<div class="metric-card">'
@@ -831,11 +930,7 @@ metrics_html = (
     + f'{r["ema50"]:.5f}'
     + '</div></div>'
 
-    '</div>'
-)
-
-st.markdown(
-    metrics_html,
+    '</div>',
     unsafe_allow_html=True
 )
 
@@ -844,21 +939,17 @@ st.markdown(
 # INDICATORS
 # =========================================================
 
-indicator_html = (
+st.markdown(
     '<div class="indicator-box">'
     '<div class="indicator-title">'
-    + 'INDICATORS ('
+    'INDICATORS ('
     + r["side"]
     + ')'
-    + '</div>'
+    '</div>'
     '<div class="indicator-grid">'
     + r["indicators"]
     + '</div>'
-    '</div>'
-)
-
-st.markdown(
-    indicator_html,
+    '</div>',
     unsafe_allow_html=True
 )
 
@@ -880,13 +971,27 @@ if st.button(
 # FOOTER
 # =========================================================
 
+if weekend:
+
+    footer_text = (
+        "Market closed • Last available candle: "
+        + str(closed_time)
+    )
+
+else:
+
+    footer_text = (
+        "Closed: "
+        + str(closed_time)
+        + " | Age: "
+        + f"{age:.1f}m"
+    )
+
 st.markdown(
     '<div class="footer">'
-    + 'Closed: '
-    + str(closed_time)
-    + ' | Age: '
-    + f'{age:.1f}m'
-    + '<br>Manual signal assistant • No automatic trading'
-    + '</div>',
+    + footer_text
+    + '<br>'
+    'Manual signal assistant • No automatic trading'
+    '</div>',
     unsafe_allow_html=True
 )
