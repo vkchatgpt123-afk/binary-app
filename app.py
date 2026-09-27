@@ -1,307 +1,555 @@
 import streamlit as st
+import yfinance as yf
 import pandas as pd
 import numpy as np
+from datetime import datetime, timezone
 
-# ==============================
-# PAGE SETTINGS
-# ==============================
+# =========================================================
+# SIGNAL TERMINAL V4.9.9 — ORIGINAL LAYOUT FIX
+# MANUAL SIGNAL ONLY — NO AUTO TRADING
+# =========================================================
 
 st.set_page_config(
-    page_title="EUR/USD Signal Bot",
+    page_title="Signal Terminal",
     page_icon="📊",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-st.title("📊 EUR/USD SIGNAL BOT")
-st.caption("Closed-Candle Analysis | Manual / Demo Use Only")
-
-# ==============================
-# STYLE
-# ==============================
+# =========================================================
+# CSS
+# =========================================================
 
 st.markdown("""
 <style>
-.signal {
-    padding: 22px;
-    border-radius: 12px;
+
+.stApp {
+    background: radial-gradient(
+        circle at top,
+        #1a4b7c 0%,
+        #0a192f 50%,
+        #02060d 100%
+    );
+    color: white;
+}
+
+.block-container {
+    max-width: 410px !important;
+    padding: 0.35rem 0.35rem 0.4rem !important;
+}
+
+[data-testid="stHorizontalBlock"] {
+    gap: 4px !important;
+}
+
+[data-testid="column"] {
+    padding: 0 !important;
+    min-width: 0 !important;
+}
+
+/* ---------------- CONTROLS ---------------- */
+
+.control-box {
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 7px;
+    padding: 5px;
+    margin-bottom: 5px;
+}
+
+.stSelectbox label {
+    color: #64ffda !important;
+    font-size: 8px !important;
+    font-weight: bold !important;
+    margin-bottom: 1px !important;
+}
+
+div[data-baseweb="select"] > div {
+    background: #0a192f !important;
+    color: white !important;
+    border: 1px solid #64ffda !important;
+    border-radius: 5px !important;
+    min-height: 29px !important;
+}
+
+div[data-baseweb="select"] span {
+    color: white !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+}
+
+/* ---------------- SIGNAL ---------------- */
+
+.signal-box {
+    border-radius: 8px;
+    padding: 9px 5px;
+    margin: 5px 0;
     text-align: center;
-    font-size: 30px;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.signal-up {
+    background: linear-gradient(135deg,#00b09b,#96c93d);
+    border: 2px solid #64ffda;
+    color: #00150e;
+}
+
+.signal-down {
+    background: linear-gradient(135deg,#ff416c,#ff4b2b);
+    border: 2px solid #ff4b2b;
+    color: white;
+}
+
+.signal-wait {
+    background: linear-gradient(135deg,#f7b733,#fc4a1a);
+    border: 2px solid #f7b733;
+    color: #111;
+}
+
+.signal-closed {
+    background: #151a22;
+    border: 2px solid #64748b;
+    color: white;
+}
+
+.signal-sub {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0;
+    margin-top: 3px;
+}
+
+/* ---------------- STATUS ---------------- */
+
+.status-box {
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 6px;
+    padding: 5px;
+    margin: 4px 0;
+    text-align: center;
+    font-size: 9px;
     font-weight: bold;
-    margin: 15px 0;
 }
 
-.up {
-    background-color: #d4edda;
-    color: #155724;
+.status-reason {
+    color: #a8b2d1;
+    font-size: 8px;
+    margin-top: 2px;
 }
 
-.down {
-    background-color: #f8d7da;
-    color: #721c24;
+/* ---------------- METRICS ---------------- */
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin: 4px 0;
 }
 
-.no {
-    background-color: #fff3cd;
-    color: #856404;
+.metric-card {
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 5px;
+    padding: 6px 2px;
+    text-align: center;
 }
+
+.metric-title {
+    color: #8892b0;
+    font-size: 7px;
+    font-weight: bold;
+}
+
+.metric-value {
+    color: white;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+/* ---------------- INDICATORS ---------------- */
+
+.indicator-box {
+    background: #112240;
+    border: 1px solid #64ffda;
+    border-radius: 6px;
+    padding: 5px;
+    margin: 4px 0;
+}
+
+.indicator-title {
+    color: #64ffda;
+    font-size: 9px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+.indicator-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
+}
+
+.indicator-card {
+    background: #0c1d38;
+    border: 1px solid #304d70;
+    border-radius: 5px;
+    padding: 4px 1px;
+    text-align: center;
+}
+
+.indicator-name {
+    color: #8892b0;
+    font-size: 6.5px;
+    font-weight: bold;
+}
+
+.indicator-icon {
+    font-size: 13px;
+    line-height: 14px;
+}
+
+/* ---------------- BUTTON ---------------- */
+
+.stButton > button {
+    min-height: 31px !important;
+    background: #0d203b !important;
+    border: 1px solid #64ffda !important;
+    border-radius: 6px !important;
+    color: white !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+}
+
+/* ---------------- FOOTER ---------------- */
+
+.footer {
+    color: #8892b0;
+    text-align: center;
+    font-size: 7px;
+    margin-top: 3px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-# ==============================
-# INPUT
-# ==============================
 
-pair = st.selectbox(
-    "💱 Pair",
-    ["EUR/USD"]
+# =========================================================
+# PAIRS
+# =========================================================
+
+PAIRS = {
+    "EUR/USD": "EURUSD=X",
+    "GBP/USD": "GBPUSD=X",
+    "USD/JPY": "USDJPY=X",
+    "AUD/USD": "AUDUSD=X",
+    "USD/CAD": "USDCAD=X",
+    "NZD/USD": "NZDUSD=X",
+    "EUR/JPY": "EURJPY=X",
+    "GBP/JPY": "GBPJPY=X"
+}
+
+
+TIMEFRAMES = {
+    "5m": "5m",
+    "15m": "15m",
+    "30m": "30m",
+    "1H": "60m"
+}
+
+
+# =========================================================
+# PAIR + TIMEFRAME
+# =========================================================
+
+st.markdown(
+    '<div class="control-box">',
+    unsafe_allow_html=True
 )
 
-timeframe = st.selectbox(
-    "⏱️ Timeframe",
-    ["5m"]
+col1, col2 = st.columns(2)
+
+with col1:
+    pair = st.selectbox(
+        "PAIR",
+        list(PAIRS.keys()),
+        index=0,
+        key="pair_original"
+    )
+
+with col2:
+    timeframe = st.selectbox(
+        "TIMEFRAME",
+        list(TIMEFRAMES.keys()),
+        index=0,
+        key="timeframe_original"
+    )
+
+st.markdown(
+    '</div>',
+    unsafe_allow_html=True
 )
 
-uploaded_file = st.file_uploader(
-    "📂 Upload EUR/USD candle CSV",
-    type=["csv"]
-)
+symbol = PAIRS[pair]
+interval = TIMEFRAMES[timeframe]
 
-# ==============================
-# INDICATORS
-# ==============================
 
-def calculate_atr(df, period=14):
+# =========================================================
+# DATA
+# =========================================================
 
-    previous_close = df["close"].shift(1)
+@st.cache_data(ttl=20, show_spinner=False)
+def get_data(symbol, interval):
 
-    tr = pd.concat(
-        [
-            df["high"] - df["low"],
-            (df["high"] - previous_close).abs(),
-            (df["low"] - previous_close).abs()
-        ],
-        axis=1
-    ).max(axis=1)
+    try:
 
-    return tr.rolling(period).mean()
+        df = yf.download(
+            symbol,
+            period="7d",
+            interval=interval,
+            progress=False,
+            auto_adjust=False,
+            threads=False
+        )
 
+        if df is None or df.empty:
+            return None
+
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+
+        required = [
+            "Open",
+            "High",
+            "Low",
+            "Close"
+        ]
+
+        if not all(x in df.columns for x in required):
+            return None
+
+        df = df[required].copy()
+
+        df = df.apply(
+            pd.to_numeric,
+            errors="coerce"
+        ).dropna()
+
+        df = df.loc[
+            ~df.index.duplicated(
+                keep="last"
+            )
+        ]
+
+        return df
+
+    except Exception:
+        return None
+
+
+# =========================================================
+# RSI
+# =========================================================
 
 def calculate_rsi(close, period=14):
 
     delta = close.diff()
 
     gain = delta.clip(lower=0)
+
     loss = -delta.clip(upper=0)
 
-    avg_gain = gain.rolling(period).mean()
-    avg_loss = loss.rolling(period).mean()
+    avg_gain = gain.ewm(
+        alpha=1 / period,
+        adjust=False,
+        min_periods=period
+    ).mean()
 
-    rs = avg_gain / avg_loss.replace(0, np.nan)
+    avg_loss = loss.ewm(
+        alpha=1 / period,
+        adjust=False,
+        min_periods=period
+    ).mean()
 
-    rsi = 100 - (100 / (1 + rs))
+    rs = avg_gain / avg_loss.replace(
+        0,
+        np.nan
+    )
 
-    return rsi
+    return (
+        100 - 100 / (1 + rs)
+    ).fillna(50)
 
 
-def calculate_macd(close):
+# =========================================================
+# ANALYSIS
+# =========================================================
 
-    ema12 = close.ewm(
+def analyze(df):
+
+    if df is None or len(df) < 150:
+        return None
+
+    d = df.copy()
+
+    close = d["Close"]
+    high = d["High"]
+    low = d["Low"]
+    op = d["Open"]
+
+    # EMA
+    d["EMA12"] = close.ewm(
         span=12,
         adjust=False
     ).mean()
 
-    ema26 = close.ewm(
+    d["EMA26"] = close.ewm(
         span=26,
         adjust=False
     ).mean()
 
-    macd = ema12 - ema26
+    d["EMA50"] = close.ewm(
+        span=50,
+        adjust=False
+    ).mean()
 
-    signal = macd.ewm(
+    # SMA
+    d["SMA20"] = close.rolling(20).mean()
+
+    # RSI
+    d["RSI"] = calculate_rsi(close)
+
+    # MACD
+    d["MACD"] = (
+        d["EMA12"] -
+        d["EMA26"]
+    )
+
+    d["MACD_SIGNAL"] = d["MACD"].ewm(
         span=9,
         adjust=False
     ).mean()
 
-    return macd, signal
-
-
-# ==============================
-# ANALYSIS
-# ==============================
-
-def analyze(df):
-
-    required = {
-        "open",
-        "high",
-        "low",
-        "close"
-    }
-
-    if not required.issubset(df.columns):
-
-        return None, (
-            "CSV में open, high, low, close "
-            "columns होने चाहिए।"
-        )
-
-    df = df.copy()
-
-    # Convert prices to numbers
-    for col in [
-        "open",
-        "high",
-        "low",
-        "close"
-    ]:
-
-        df[col] = pd.to_numeric(
-            df[col],
-            errors="coerce"
-        )
-
-    # Remove invalid rows
-    df = df.dropna(
-        subset=[
-            "open",
-            "high",
-            "low",
-            "close"
-        ]
+    d["MACD_HIST"] = (
+        d["MACD"] -
+        d["MACD_SIGNAL"]
     )
 
-    df = df.reset_index(drop=True)
+    # Bollinger
+    std = close.rolling(20).std()
 
-    # Minimum candles
-    if len(df) < 120:
+    d["BB_UPPER"] = (
+        d["SMA20"] +
+        2 * std
+    )
 
-        return None, (
-            "कम से कम 120 candles चाहिए।"
-        )
+    d["BB_LOWER"] = (
+        d["SMA20"] -
+        2 * std
+    )
 
-    # Candle validation
+    # ATR
+    previous_close = close.shift(1)
+
+    tr = pd.concat(
+        [
+            high - low,
+            (high - previous_close).abs(),
+            (low - previous_close).abs()
+        ],
+        axis=1
+    ).max(axis=1)
+
+    d["ATR14"] = tr.ewm(
+        alpha=1 / 14,
+        adjust=False,
+        min_periods=14
+    ).mean()
+
+    # Candle
+    candle_range = (
+        high - low
+    ).replace(
+        0,
+        np.nan
+    )
+
+    d["BODY"] = (
+        (close - op).abs() /
+        candle_range
+    )
+
+    d["LOCATION"] = (
+        (close - low) /
+        candle_range
+    )
+
+    d = d.dropna()
+
+    if len(d) < 100:
+        return None
+
+    # Last completed candle
+    c = d.iloc[-2]
+    p = d.iloc[-3]
+
+    price = float(c["Close"])
+
+    ema12 = float(c["EMA12"])
+    ema26 = float(c["EMA26"])
+    ema50 = float(c["EMA50"])
+
+    sma20 = float(c["SMA20"])
+
+    rsi = float(c["RSI"])
+    previous_rsi = float(p["RSI"])
+
+    macd = float(c["MACD"])
+    macd_signal = float(c["MACD_SIGNAL"])
+
+    hist = float(c["MACD_HIST"])
+    previous_hist = float(p["MACD_HIST"])
+
+    bb_upper = float(c["BB_UPPER"])
+    bb_lower = float(c["BB_LOWER"])
+
+    atr = float(c["ATR14"])
+
+    body = float(c["BODY"])
+    location = float(c["LOCATION"])
+
+    # Strength
+    gap = abs(
+        ema12 - ema26
+    )
+
+    strength = (
+        gap / atr
+        if atr > 0
+        else 0
+    )
+
+    strong = strength >= 0.15
+
+    # Market
     if (
-        (df["high"] < df["low"]).any()
-        or
-        (
-            df["high"]
-            <
-            df[["open", "close"]].max(axis=1)
-        ).any()
-        or
-        (
-            df["low"]
-            >
-            df[["open", "close"]].min(axis=1)
-        ).any()
+        ema12 > ema26
+        and ema26 > ema50
+        and price > ema50
+        and strong
     ):
-
-        return None, (
-            "डेटा में गलत candle values हैं।"
-        )
-
-    # ==========================
-    # INDICATORS
-    # ==========================
-
-    df["ema12"] = df["close"].ewm(
-        span=12,
-        adjust=False
-    ).mean()
-
-    df["ema26"] = df["close"].ewm(
-        span=26,
-        adjust=False
-    ).mean()
-
-    df["rsi"] = calculate_rsi(
-        df["close"],
-        14
-    )
-
-    df["macd"], df["macd_signal"] = calculate_macd(
-        df["close"]
-    )
-
-    df["atr"] = calculate_atr(
-        df,
-        14
-    )
-
-    # Bollinger Bands
-
-    df["bb_middle"] = df["close"].rolling(
-        20
-    ).mean()
-
-    bb_std = df["close"].rolling(
-        20
-    ).std()
-
-    df["bb_upper"] = (
-        df["bb_middle"] +
-        2 * bb_std
-    )
-
-    df["bb_lower"] = (
-        df["bb_middle"] -
-        2 * bb_std
-    )
-
-    # ==========================
-    # USE LAST CLOSED CANDLE
-    # ==========================
-
-    i = len(df) - 1
-
-    current = df.iloc[i]
-
-    previous = df.iloc[i - 1]
-
-    # Check indicator availability
-
-    indicator_values = [
-        current["ema12"],
-        current["ema26"],
-        current["rsi"],
-        current["macd"],
-        current["macd_signal"],
-        current["atr"],
-        current["bb_middle"],
-        current["bb_upper"],
-        current["bb_lower"]
-    ]
-
-    if any(
-        pd.isna(x)
-        for x in indicator_values
-    ):
-
-        return None, (
-            "Indicator data पूरा नहीं है।"
-        )
-
-    # ==========================
-    # MARKET DIRECTION
-    # ==========================
-
-    uptrend = (
-        current["ema12"] > current["ema26"]
-        and
-        current["close"] > current["ema12"]
-    )
-
-    downtrend = (
-        current["ema12"] < current["ema26"]
-        and
-        current["close"] < current["ema12"]
-    )
-
-    if uptrend:
 
         market = "UPTREND"
 
-    elif downtrend:
+    elif (
+        ema12 < ema26
+        and ema26 < ema50
+        and price < ema50
+        and strong
+    ):
 
         market = "DOWNTREND"
 
@@ -309,462 +557,441 @@ def analyze(df):
 
         market = "SIDEWAYS"
 
-    # ==========================
-    # SCORE
-    # ==========================
+    # UP conditions
+    up = [
 
-    up_score = 0
-    down_score = 0
+        market == "UPTREND",
 
-    checks = {}
+        ema12 > ema26
+        and ema26 > ema50,
 
-    # EMA
+        45 <= rsi <= 68
+        and rsi > previous_rsi,
 
-    if current["ema12"] > current["ema26"]:
+        macd > macd_signal
+        and hist > previous_hist,
 
-        up_score += 1
-        checks["EMA Trend"] = "UP"
+        price > ema12
+        and price > sma20,
 
-    elif current["ema12"] < current["ema26"]:
+        price > sma20
+        and price < bb_upper,
 
-        down_score += 1
-        checks["EMA Trend"] = "DOWN"
+        bool(c["Close"] > c["Open"])
+        and body >= 0.45
+        and location >= 0.65,
 
-    else:
+        atr > 0
+        and strength >= 0.15
+    ]
 
-        checks["EMA Trend"] = "NEUTRAL"
+    # DOWN conditions
+    down = [
 
-    # Price vs EMA12
+        market == "DOWNTREND",
 
-    if current["close"] > current["ema12"]:
+        ema12 < ema26
+        and ema26 < ema50,
 
-        up_score += 1
-        checks["Price vs EMA12"] = "UP"
+        32 <= rsi <= 55
+        and rsi < previous_rsi,
 
-    elif current["close"] < current["ema12"]:
+        macd < macd_signal
+        and hist < previous_hist,
 
-        down_score += 1
-        checks["Price vs EMA12"] = "DOWN"
+        price < ema12
+        and price < sma20,
 
-    else:
+        price < sma20
+        and price > bb_lower,
 
-        checks["Price vs EMA12"] = "NEUTRAL"
+        bool(c["Close"] < c["Open"])
+        and body >= 0.45
+        and location <= 0.35,
 
-    # RSI
+        atr > 0
+        and strength >= 0.15
+    ]
 
-    if 52 <= current["rsi"] <= 70:
-
-        up_score += 1
-        checks["RSI"] = "UP"
-
-    elif 30 <= current["rsi"] <= 48:
-
-        down_score += 1
-        checks["RSI"] = "DOWN"
-
-    else:
-
-        checks["RSI"] = "NEUTRAL"
-
-    # MACD
-
-    if current["macd"] > current["macd_signal"]:
-
-        up_score += 1
-        checks["MACD"] = "UP"
-
-    elif current["macd"] < current["macd_signal"]:
-
-        down_score += 1
-        checks["MACD"] = "DOWN"
-
-    else:
-
-        checks["MACD"] = "NEUTRAL"
-
-    # Bollinger
-
-    if current["close"] > current["bb_middle"]:
-
-        up_score += 1
-        checks["Bollinger"] = "UP"
-
-    elif current["close"] < current["bb_middle"]:
-
-        down_score += 1
-        checks["Bollinger"] = "DOWN"
-
-    else:
-
-        checks["Bollinger"] = "NEUTRAL"
-
-    # ==========================
-    # ATR FILTER
-    # ==========================
-
-    previous_atr = (
-        df["atr"]
-        .iloc[max(0, i - 100):i]
-        .dropna()
-    )
-
-    if len(previous_atr) < 20:
-
-        return None, (
-            "ATR history पर्याप्त नहीं है।"
-        )
-
-    median_atr = previous_atr.median()
-
-    volatility_ok = (
-        current["atr"]
-        >=
-        0.80 * median_atr
-    )
-
-    # ==========================
-    # FINAL SIGNAL
-    # ==========================
+    up_score = sum(up)
+    down_score = sum(down)
 
     signal = "NO TRADE"
+    reason = "Confirmation incomplete"
 
-    reason = "Setup पर्याप्त मजबूत नहीं है।"
-
-    # Sideways = No Trade
-
-    if market == "SIDEWAYS":
-
-        signal = "NO TRADE"
-
-        reason = (
-            "Market sideways है। "
-            "Clear trend का इंतजार करें।"
-        )
-
-    elif not volatility_ok:
-
-        signal = "NO TRADE"
-
-        reason = (
-            "Market volatility कम है।"
-        )
-
-    elif up_score >= 4 and (
-        up_score >= down_score + 2
+    if (
+        market == "UPTREND"
+        and up_score >= 6
+        and up[2]
+        and up[3]
+        and up[4]
     ):
 
         signal = "UP"
+        reason = "Bullish confirmation"
 
-        reason = (
-            "Multiple indicators bullish "
-            "direction में हैं।"
-        )
-
-    elif down_score >= 4 and (
-        down_score >= up_score + 2
+    elif (
+        market == "DOWNTREND"
+        and down_score >= 6
+        and down[2]
+        and down[3]
+        and down[4]
     ):
 
         signal = "DOWN"
+        reason = "Bearish confirmation"
 
-        reason = (
-            "Multiple indicators bearish "
-            "direction में हैं।"
-        )
+    elif market == "SIDEWAYS":
+
+        reason = "Sideways market"
+
+    elif abs(up_score - down_score) <= 1:
+
+        reason = "Signals balanced"
+
+    if market == "UPTREND":
+
+        side = "UP"
+        selected = up
+
+    elif market == "DOWNTREND":
+
+        side = "DOWN"
+        selected = down
 
     else:
 
-        signal = "NO TRADE"
+        side = (
+            "UP"
+            if up_score >= down_score
+            else "DOWN"
+        )
 
-        reason = (
-            "Indicators में पर्याप्त agreement नहीं है।"
+        selected = (
+            up
+            if up_score >= down_score
+            else down
+        )
+
+    names = [
+        "Trend",
+        "EMA",
+        "RSI",
+        "MACD",
+        "Price",
+        "BB",
+        "Candle",
+        "Vol"
+    ]
+
+    indicator_html = ""
+
+    for name, status in zip(
+        names,
+        selected
+    ):
+
+        icon = (
+            "✅"
+            if status
+            else "❌"
+        )
+
+        indicator_html += (
+            '<div class="indicator-card">'
+            '<div class="indicator-name">'
+            + name +
+            '</div>'
+            '<div class="indicator-icon">'
+            + icon +
+            '</div>'
+            '</div>'
         )
 
     return {
-
         "signal": signal,
-
-        "market": market,
-
-        "up_score": up_score,
-
-        "down_score": down_score,
-
-        "price": current["close"],
-
-        "rsi": current["rsi"],
-
-        "ema12": current["ema12"],
-
-        "ema26": current["ema26"],
-
-        "macd": current["macd"],
-
-        "macd_signal": current["macd_signal"],
-
-        "atr": current["atr"],
-
-        "median_atr": median_atr,
-
-        "volatility_ok": volatility_ok,
-
-        "checks": checks,
-
         "reason": reason,
+        "market": market,
+        "up": up_score,
+        "down": down_score,
+        "side": side,
+        "indicators": indicator_html,
+        "price": price,
+        "rsi": rsi,
+        "atr": atr,
+        "ema12": ema12,
+        "ema26": ema26,
+        "ema50": ema50,
+        "time": d.index[-2]
+    }
 
-        "time": current.get(
-            "datetime",
-            current.get(
-                "time",
-                "N/A"
-            )
-        )
 
-    }, None
-
-
-# ==============================
+# =========================================================
 # RUN
-# ==============================
+# =========================================================
 
-if uploaded_file:
+df = get_data(
+    symbol,
+    interval
+)
 
-    try:
+if df is None or len(df) < 150:
 
-        df = pd.read_csv(
-            uploaded_file
+    st.markdown(
+        '<div class="signal-box signal-wait">'
+        '⚠️ DATA UNAVAILABLE'
+        '<div class="signal-sub">'
+        'NO SIGNAL'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.stop()
+
+r = analyze(df)
+
+if r is None:
+
+    st.markdown(
+        '<div class="signal-box signal-wait">'
+        '⚠️ ANALYSIS ERROR'
+        '<div class="signal-sub">'
+        'NO SIGNAL'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.stop()
+
+
+# =========================================================
+# DATA AGE
+# =========================================================
+
+closed_time = r["time"]
+
+try:
+
+    if closed_time.tzinfo is None:
+
+        closed_time = closed_time.replace(
+            tzinfo=timezone.utc
         )
 
-        # Clean column names
+    age = max(
+        0,
+        (
+            datetime.now(timezone.utc)
+            - closed_time
+        ).total_seconds() / 60
+    )
 
-        df.columns = (
-            df.columns
-            .str.strip()
-            .str.lower()
-        )
+except Exception:
 
-        result, error = analyze(df)
+    age = 999999
 
-        if error:
 
-            st.error(error)
+# =========================================================
+# WEEKEND
+# =========================================================
 
-        elif result:
+weekend = (
+    datetime.now(timezone.utc).weekday()
+    >= 5
+)
 
-            st.markdown(
-                f"### 💱 {pair} | ⏱️ {timeframe}"
-            )
+max_age = {
+    "5m": 20,
+    "15m": 45,
+    "30m": 75,
+    "1H": 150
+}[timeframe]
 
-            # ======================
-            # MARKET
-            # ======================
+stale = age > max_age
 
-            st.info(
-                f'🌐 Market State: '
-                f'{result["market"]}'
-            )
 
-            signal = result["signal"]
+# =========================================================
+# SIGNAL DISPLAY
+# =========================================================
 
-            # ======================
-            # SIGNAL DISPLAY
-            # ======================
+if weekend:
 
-            if signal == "UP":
+    display_signal = "🔒 MARKET CLOSED"
+    signal_class = "signal-closed"
+    signal_reason = "Weekend — NO SIGNAL"
 
-                st.markdown(
-                    '<div class="signal up">'
-                    '🟢 UP'
-                    '</div>',
-                    unsafe_allow_html=True
-                )
+elif stale:
 
-            elif signal == "DOWN":
+    display_signal = "🕐 DATA STALE"
+    signal_class = "signal-wait"
+    signal_reason = "Fresh data unavailable"
 
-                st.markdown(
-                    '<div class="signal down">'
-                    '🔴 DOWN'
-                    '</div>',
-                    unsafe_allow_html=True
-                )
+elif r["signal"] == "UP":
 
-            else:
+    display_signal = "🟢 UP SIGNAL"
+    signal_class = "signal-up"
+    signal_reason = r["reason"]
 
-                st.markdown(
-                    '<div class="signal no">'
-                    '🛑 NO TRADE'
-                    '</div>',
-                    unsafe_allow_html=True
-                )
+elif r["signal"] == "DOWN":
 
-            st.warning(
-                result["reason"]
-            )
-
-            # ======================
-            # SCORE
-            # ======================
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-
-                st.metric(
-                    "🟢 UP Score",
-                    f'{result["up_score"]}/5'
-                )
-
-            with col2:
-
-                st.metric(
-                    "🔴 DOWN Score",
-                    f'{result["down_score"]}/5'
-                )
-
-            # ======================
-            # PRICE / RSI / ATR
-            # ======================
-
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-
-                st.metric(
-                    "💰 Price",
-                    f'{result["price"]:.5f}'
-                )
-
-            with col2:
-
-                st.metric(
-                    "📈 RSI",
-                    f'{result["rsi"]:.1f}'
-                )
-
-            with col3:
-
-                st.metric(
-                    "⚡ ATR",
-                    f'{result["atr"]:.6f}'
-                )
-
-            st.caption(
-                f'🕒 Candle: {result["time"]}'
-            )
-
-            # ======================
-            # INDICATORS
-            # ======================
-
-            st.subheader(
-                "📊 Indicators"
-            )
-
-            indicator_table = pd.DataFrame({
-
-                "Indicator": [
-                    "EMA 12",
-                    "EMA 26",
-                    "RSI 14",
-                    "MACD",
-                    "MACD Signal",
-                    "ATR 14"
-                ],
-
-                "Value": [
-                    f'{result["ema12"]:.5f}',
-                    f'{result["ema26"]:.5f}',
-                    f'{result["rsi"]:.2f}',
-                    f'{result["macd"]:.6f}',
-                    f'{result["macd_signal"]:.6f}',
-                    f'{result["atr"]:.6f}'
-                ]
-
-            })
-
-            st.dataframe(
-                indicator_table,
-                use_container_width=True,
-                hide_index=True
-            )
-
-            # ======================
-            # CHECKS
-            # ======================
-
-            st.subheader(
-                "📋 Strategy Checks"
-            )
-
-            for name, value in result["checks"].items():
-
-                if value == "UP":
-
-                    st.write(
-                        f"🟢 {name}: UP"
-                    )
-
-                elif value == "DOWN":
-
-                    st.write(
-                        f"🔴 {name}: DOWN"
-                    )
-
-                else:
-
-                    st.write(
-                        f"⚪ {name}: NEUTRAL"
-                    )
-
-            # ======================
-            # ATR FILTER
-            # ======================
-
-            if result["volatility_ok"]:
-
-                st.write(
-                    "🟢 Volatility Filter: OK"
-                )
-
-            else:
-
-                st.write(
-                    "🔴 Volatility Filter: LOW"
-                )
-
-            # ======================
-            # RECENT DATA
-            # ======================
-
-            st.subheader(
-                "📊 Recent Candle Data"
-            )
-
-            st.dataframe(
-                df.tail(10),
-                use_container_width=True
-            )
-
-            st.caption(
-                "⚠️ यह bot केवल uploaded "
-                "historical/candle data का "
-                "analysis करता है।"
-            )
-
-            st.caption(
-                "⚠️ यह auto-trading नहीं करता "
-                "और profit की guarantee नहीं देता।"
-            )
-
-    except Exception as e:
-
-        st.error(
-            f"डेटा पढ़ने में समस्या: {e}"
-        )
+    display_signal = "🔴 DOWN SIGNAL"
+    signal_class = "signal-down"
+    signal_reason = r["reason"]
 
 else:
 
-    st.info(
-        "शुरू करने के लिए "
-        "EUR/USD की 5 मिनट वाली "
-        "CSV फ़ाइल upload करें।"
+    display_signal = "🛡️ NO TRADE"
+    signal_class = "signal-wait"
+    signal_reason = r["reason"]
+
+
+# =========================================================
+# SIGNAL BOX
+# =========================================================
+
+st.markdown(
+    '<div class="signal-box '
+    + signal_class
+    + '">'
+    + display_signal
+    + '<div class="signal-sub">'
+    + signal_reason
+    + '</div>'
+    + '</div>',
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# STATUS
+# =========================================================
+
+st.markdown(
+    '<div class="status-box">'
+    '<b>'
+    + r["market"]
+    + '</b>'
+    + ' | 🟢 '
+    + str(r["up"])
+    + '/8'
+    + ' • 🔴 '
+    + str(r["down"])
+    + '/8'
+    + '<div class="status-reason">'
+    + signal_reason
+    + '</div>'
+    + '</div>',
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# METRICS
+# =========================================================
+
+st.markdown(
+    '<div class="metric-grid">'
+
+    '<div class="metric-card">'
+    '<div class="metric-title">PRICE</div>'
+    '<div class="metric-value">'
+    + f'{r["price"]:.5f}'
+    + '</div></div>'
+
+    '<div class="metric-card">'
+    '<div class="metric-title">RSI</div>'
+    '<div class="metric-value">'
+    + f'{r["rsi"]:.1f}'
+    + '</div></div>'
+
+    '<div class="metric-card">'
+    '<div class="metric-title">ATR</div>'
+    '<div class="metric-value">'
+    + f'{r["atr"]:.5f}'
+    + '</div></div>'
+
+    '<div class="metric-card">'
+    '<div class="metric-title">EMA12</div>'
+    '<div class="metric-value">'
+    + f'{r["ema12"]:.5f}'
+    + '</div></div>'
+
+    '<div class="metric-card">'
+    '<div class="metric-title">EMA26</div>'
+    '<div class="metric-value">'
+    + f'{r["ema26"]:.5f}'
+    + '</div></div>'
+
+    '<div class="metric-card">'
+    '<div class="metric-title">EMA50</div>'
+    '<div class="metric-value">'
+    + f'{r["ema50"]:.5f}'
+    + '</div></div>'
+
+    '</div>',
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# INDICATORS
+# =========================================================
+
+st.markdown(
+    '<div class="indicator-box">'
+    '<div class="indicator-title">'
+    'INDICATORS ('
+    + r["side"]
+    + ')'
+    '</div>'
+    '<div class="indicator-grid">'
+    + r["indicators"]
+    + '</div>'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# REFRESH
+# =========================================================
+
+if st.button(
+    "🔄 REFRESH DATA",
+    use_container_width=True
+):
+
+    st.cache_data.clear()
+    st.rerun()
+
+
+# =========================================================
+# FOOTER
+# =========================================================
+
+if weekend:
+
+    footer_text = (
+        "Market closed • Last available candle: "
+        + str(closed_time)
     )
+
+else:
+
+    footer_text = (
+        "Closed: "
+        + str(closed_time)
+        + " | Age: "
+        + f"{age:.1f}m"
+    )
+
+st.markdown(
+    '<div class="footer">'
+    + footer_text
+    + '<br>'
+    'Manual signal assistant • No automatic trading'
+    '</div>',
+    unsafe_allow_html=True
+)
