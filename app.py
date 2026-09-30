@@ -6,48 +6,54 @@ import yfinance as yf
 
 PIP = 0.0001
 
-# Page Configuration for Professional Dashboard
+# Single-Screen Compact Layout Configuration
 st.set_page_config(
-    page_title="EUR/USD Pro Signal Terminal",
+    page_title="EUR/USD 1-Screen Terminal",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# ---------------- PROFESSIONAL CSS STYLING ----------------
+# ---------------- ULTRA-COMPACT SINGLE SCREEN CSS ----------------
 st.markdown(
     """
 <style>
-    /* Main Background & Font */
-    .main {
-        background-color: #0e1117;
+    /* Remove excessive padding to prevent scrolling */
+    .block-container {
+        padding-top: 1.2rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        max-width: 100% !important;
     }
     
-    /* Header Styling */
+    /* Hide default streamlit footer/header */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+
+    /* Compact Header */
     .header-title {
-        font-size: 32px;
+        font-size: 24px;
         font-weight: 800;
         color: #ffffff;
-        letter-spacing: -0.5px;
         margin-bottom: 0px;
     }
     .header-subtitle {
-        font-size: 14px;
+        font-size: 12px;
         color: #8a99ad;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
     }
 
-    /* Professional Signal Cards with Gradients & Glow */
+    /* Compact Glowing Signal Cards */
     .signal-box {
-        padding: 30px;
-        border-radius: 16px;
+        padding: 15px;
+        border-radius: 12px;
         text-align: center;
-        font-size: 36px;
+        font-size: 28px;
         font-weight: 900;
         letter-spacing: 1px;
-        margin: 20px 0;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        text-transform: uppercase;
+        margin: 5px 0 15px 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
     .signal-up {
         background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
@@ -65,43 +71,37 @@ st.markdown(
         border: 2px solid #ffd276;
     }
 
-    /* Metric Cards Customization */
+    /* Compact Metrics */
     div[data-testid="stMetric"] {
         background-color: #161b22;
         border: 1px solid #30363d;
-        padding: 15px 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 10px 15px;
+        border-radius: 10px;
     }
     div[data-testid="stMetric"] label {
         color: #8b949e !important;
-        font-weight: 600;
+        font-size: 13px !important;
     }
     div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
         color: #f0f6fc !important;
-        font-weight: 700;
+        font-size: 20px !important;
     }
 </style>
 """,
     unsafe_allow_html=True,
 )
 
-# ---------------- SIDEBAR CONTROLS ----------------
-st.sidebar.markdown("### ⚙️ Strategy Parameters")
-n_candles = st.sidebar.slider("Same-colour candles in a row", 2, 8, 4)
-body_mult = st.sidebar.slider("Body ≥ x ATR", 0.5, 3.0, 1.5, 0.1)
-loc_min = st.sidebar.slider("Close location threshold (%)", 60, 99, 85) / 100
-atr_mult = st.sidebar.slider("ATR > x × median ATR", 0.5, 3.0, 1.2, 0.1)
-atr_period = int(st.sidebar.number_input("ATR period", 5, 50, 14))
-lookback = int(st.sidebar.number_input("Median ATR lookback", 20, 300, 100))
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🧪 Risk & Backtest")
-horizon = st.sidebar.slider("Exit after N candles", 1, 6, 1)
-spread = st.sidebar.number_input("Estimated cost (pips)", 0.0, 5.0, 0.8, 0.1)
-payout_pct = st.sidebar.number_input("Binary payout (%)", 50, 100, 85)
-stake = st.sidebar.number_input("Binary stake ($)", 1.0, 10000.0, 100.0, 1.0)
-drop_last = st.sidebar.checkbox("Ignore forming candle", value=True)
+# ---------------- COMPACT SIDEBAR CONTROLS ----------------
+with st.sidebar:
+    st.markdown("### ⚙️ Strategy Settings")
+    n_candles = st.slider("Candles in a row", 2, 8, 4)
+    body_mult = st.slider("Body ≥ x ATR", 0.5, 3.0, 1.5, 0.1)
+    loc_min = st.slider("Close location (%)", 60, 99, 85) / 100
+    atr_mult = st.slider("ATR > x median", 0.5, 3.0, 1.2, 0.1)
+    atr_period = int(st.number_input("ATR period", 5, 50, 14))
+    lookback = int(st.number_input("Lookback", 20, 300, 100))
+    horizon = st.slider("Exit candles", 1, 6, 1)
+    drop_last = st.checkbox("Ignore forming candle", value=True)
 
 # ---------------- FETCH LIVE DATA ----------------
 @st.cache_data(ttl=60)
@@ -126,19 +126,19 @@ def load_live_data():
     df = df.dropna(subset=["open", "high", "low", "close", "time"]).sort_values("time").reset_index(drop=True)
     return df
 
-# ---------------- TOP HEADER ----------------
-col_h1, col_h2 = st.columns([4, 1])
+# ---------------- MAIN UI CONTAINER (SINGLE SCREEN) ----------------
+col_h1, col_h2 = st.columns([5, 1])
 with col_h1:
-    st.markdown('<p class="header-title">⚡ EUR/USD PROFESSIONAL TERMINAL</p>', unsafe_allow_html=True)
-    st.markdown('<p class="header-subtitle">Real-time Automated Signal & Execution Engine (Live Feed)</p>', unsafe_allow_html=True)
+    st.markdown('<p class="header-title">⚡ EUR/USD 1-SCREEN TERMINAL</p>', unsafe_allow_html=True)
+    st.markdown('<p class="header-subtitle">Automated Live Feed & Signal Engine</p>', unsafe_allow_html=True)
 with col_h2:
     st.markdown("<br>", unsafe_allow_html=True)
-    refresh_clicked = st.button("🔄 Refresh Data", use_container_width=True)
+    refresh = st.button("🔄 Refresh", use_container_width=True)
 
 try:
     df = load_live_data()
 except Exception as exc:
-    st.error(f"⚠️ Market Data Error: {exc}")
+    st.error(f"⚠️ Error: {exc}")
     st.stop()
 
 if drop_last and len(df) > 1:
@@ -146,7 +146,7 @@ if drop_last and len(df) > 1:
 
 min_rows = lookback + atr_period + n_candles + horizon + 50
 if len(df) < min_rows:
-    st.warning(f"⏳ Gathering data candles... Need at least {min_rows}, currently have {len(df)}.")
+    st.warning(f"⏳ Gathering data... Need {min_rows}, have {len(df)}.")
     st.stop()
 
 # ---------------- INDICATOR ENGINE ----------------
@@ -183,26 +183,28 @@ up = df["run_bear"] & df["body_ok"] & df["loc_bottom"] & df["vol_ok"] & clean
 df["dir"] = np.select([down, up], [-1, 1], default=0).astype(int)
 last = df.iloc[-1]
 
-# ---------------- HIGHLIGHTED SIGNAL DISPLAY ----------------
-st.markdown("### 🎯 Live Market Signal")
-
+# ---------------- SIGNAL DISPLAY (PROMINENT) ----------------
 if pd.isna(last["atr"]) or pd.isna(last["median_atr"]):
     st.markdown('<div class="signal-box signal-no">🛑 INITIALIZING... NO TRADE</div>', unsafe_allow_html=True)
 elif last["dir"] == -1:
-    st.markdown(f'<div class="signal-box signal-down">🔴 DOWN SIGNAL (PUT)<br><span style="font-size:14px; font-weight:normal;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="signal-box signal-down">🔴 DOWN SIGNAL (PUT) &nbsp;|&nbsp; <span style="font-size:16px;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
 elif last["dir"] == 1:
-    st.markdown(f'<div class="signal-box signal-up">🟢 UP SIGNAL (CALL)<br><span style="font-size:14px; font-weight:normal;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="signal-box signal-up">🟢 UP SIGNAL (CALL) &nbsp;|&nbsp; <span style="font-size:16px;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
 else:
-    st.markdown(f'<div class="signal-box signal-no">🛑 NO TRADE SETUP<br><span style="font-size:14px; font-weight:normal;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="signal-box signal-no">🛑 NO TRADE SETUP &nbsp;|&nbsp; <span style="font-size:16px;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
 
-# ---------------- METRICS ROW ----------------
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Current Price", f"{last['close']:.5f}")
-m2.metric("ATR Volatility", f"{last['atr'] / PIP:.1f} pips")
-m3.metric("Median ATR", f"{last['median_atr'] / PIP:.1f} pips")
-m4.metric("Market Status", "🟢 ACTIVE LIVE")
+# ---------------- METRICS & MINI CHART IN SINGLE ROW ----------------
+col_metrics, col_chart = st.columns([2, 3])
 
-# ---------------- LIVE CHART SECTION ----------------
-st.markdown("---")
-st.subheader("📈 EUR/USD 5-Minute Price Action (Last 100 Candles)")
-st.line_chart(df.set_index("time")["close"].tail(100), use_container_width=True)
+with col_metrics:
+    m1, m2 = st.columns(2)
+    m1.metric("Price", f"{last['close']:.5f}")
+    m2.metric("ATR Vol", f"{last['atr'] / PIP:.1f}p")
+    
+    m3, m4 = st.columns(2)
+    m3.metric("Median ATR", f"{last['median_atr'] / PIP:.1f}p")
+    m4.metric("Status", "🟢 LIVE")
+
+with col_chart:
+    st.markdown("<p style='font-size:13px; color:#8b949e; margin-bottom:0px;'><b>Recent Price Action (5m)</b></p>", unsafe_allow_html=True)
+    st.line_chart(df.set_index("time")["close"].tail(50), height=130, use_container_width=True)
