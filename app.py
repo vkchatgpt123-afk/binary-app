@@ -1,997 +1,414 @@
-import streamlit as st
-import yfinance as yf
-import pandas as pd
+import math
 import numpy as np
-from datetime import datetime, timezone
+import pandas as pd
+import streamlit as st
 
-# =========================================================
-# SIGNAL TERMINAL V4.9.9 — ORIGINAL LAYOUT FIX
-# MANUAL SIGNAL ONLY — NO AUTO TRADING
-# =========================================================
+PIP = 0.0001
+TIME_COLS = ["datetime", "time", "timestamp", "date", "gmt time", "local time"]
+TRADE_COLS = [
+    "signal_idx", "entry_idx", "exit_idx", "time", "dir", "entry",
+    "exit", "gross_pips", "net_pips", "outcome", "binary_profit",
+]
 
-st.set_page_config(
-    page_title="Signal Terminal",
-    page_icon="📊",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
-# =========================================================
-# CSS
-# =========================================================
-
-st.markdown("""
-<style>
-
-.stApp {
-    background: radial-gradient(
-        circle at top,
-        #1a4b7c 0%,
-        #0a192f 50%,
-        #02060d 100%
-    );
-    color: white;
-}
-
-.block-container {
-    max-width: 410px !important;
-    padding: 0.35rem 0.35rem 0.4rem !important;
-}
-
-[data-testid="stHorizontalBlock"] {
-    gap: 4px !important;
-}
-
-[data-testid="column"] {
-    padding: 0 !important;
-    min-width: 0 !important;
-}
-
-/* ---------------- CONTROLS ---------------- */
-
-.control-box {
-    background: #112240;
-    border: 1px solid #64ffda;
-    border-radius: 7px;
-    padding: 5px;
-    margin-bottom: 5px;
-}
-
-.stSelectbox label {
-    color: #64ffda !important;
-    font-size: 8px !important;
-    font-weight: bold !important;
-    margin-bottom: 1px !important;
-}
-
-div[data-baseweb="select"] > div {
-    background: #0a192f !important;
-    color: white !important;
-    border: 1px solid #64ffda !important;
-    border-radius: 5px !important;
-    min-height: 29px !important;
-}
-
-div[data-baseweb="select"] span {
-    color: white !important;
-    font-size: 10px !important;
-    font-weight: bold !important;
-}
-
-/* ---------------- SIGNAL ---------------- */
-
-.signal-box {
-    border-radius: 8px;
-    padding: 9px 5px;
-    margin: 5px 0;
-    text-align: center;
-    font-size: 18px;
-    font-weight: 900;
-    letter-spacing: 1px;
-}
-
-.signal-up {
-    background: linear-gradient(135deg,#00b09b,#96c93d);
-    border: 2px solid #64ffda;
-    color: #00150e;
-}
-
-.signal-down {
-    background: linear-gradient(135deg,#ff416c,#ff4b2b);
-    border: 2px solid #ff4b2b;
-    color: white;
-}
-
-.signal-wait {
-    background: linear-gradient(135deg,#f7b733,#fc4a1a);
-    border: 2px solid #f7b733;
-    color: #111;
-}
-
-.signal-closed {
-    background: #151a22;
-    border: 2px solid #64748b;
-    color: white;
-}
-
-.signal-sub {
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 0;
-    margin-top: 3px;
-}
-
-/* ---------------- STATUS ---------------- */
-
-.status-box {
-    background: #112240;
-    border: 1px solid #64ffda;
-    border-radius: 6px;
-    padding: 5px;
-    margin: 4px 0;
-    text-align: center;
-    font-size: 9px;
-    font-weight: bold;
-}
-
-.status-reason {
-    color: #a8b2d1;
-    font-size: 8px;
-    margin-top: 2px;
-}
-
-/* ---------------- METRICS ---------------- */
-
-.metric-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-    margin: 4px 0;
-}
-
-.metric-card {
-    background: #112240;
-    border: 1px solid #64ffda;
-    border-radius: 5px;
-    padding: 6px 2px;
-    text-align: center;
-}
-
-.metric-title {
-    color: #8892b0;
-    font-size: 7px;
-    font-weight: bold;
-}
-
-.metric-value {
-    color: white;
-    font-size: 10px;
-    font-weight: 900;
-}
-
-/* ---------------- INDICATORS ---------------- */
-
-.indicator-box {
-    background: #112240;
-    border: 1px solid #64ffda;
-    border-radius: 6px;
-    padding: 5px;
-    margin: 4px 0;
-}
-
-.indicator-title {
-    color: #64ffda;
-    font-size: 9px;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 4px;
-}
-
-.indicator-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 3px;
-}
-
-.indicator-card {
-    background: #0c1d38;
-    border: 1px solid #304d70;
-    border-radius: 5px;
-    padding: 4px 1px;
-    text-align: center;
-}
-
-.indicator-name {
-    color: #8892b0;
-    font-size: 6.5px;
-    font-weight: bold;
-}
-
-.indicator-icon {
-    font-size: 13px;
-    line-height: 14px;
-}
-
-/* ---------------- BUTTON ---------------- */
-
-.stButton > button {
-    min-height: 31px !important;
-    background: #0d203b !important;
-    border: 1px solid #64ffda !important;
-    border-radius: 6px !important;
-    color: white !important;
-    font-size: 10px !important;
-    font-weight: 900 !important;
-}
-
-/* ---------------- FOOTER ---------------- */
-
-.footer {
-    color: #8892b0;
-    text-align: center;
-    font-size: 7px;
-    margin-top: 3px;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-
-# =========================================================
-# PAIRS
-# =========================================================
-
-PAIRS = {
-    "EUR/USD": "EURUSD=X",
-    "GBP/USD": "GBPUSD=X",
-    "USD/JPY": "USDJPY=X",
-    "AUD/USD": "AUDUSD=X",
-    "USD/CAD": "USDCAD=X",
-    "NZD/USD": "NZDUSD=X",
-    "EUR/JPY": "EURJPY=X",
-    "GBP/JPY": "GBPJPY=X"
-}
-
-
-TIMEFRAMES = {
-    "5m": "5m",
-    "15m": "15m",
-    "30m": "30m",
-    "1H": "60m"
-}
-
-
-# =========================================================
-# PAIR + TIMEFRAME
-# =========================================================
+st.set_page_config(page_title="EUR/USD Live Signal Bot", page_icon="📊", layout="centered")
+st.title("📊 EUR/USD LIVE MARKET SIGNAL BOT")
+st.caption("Strictly for Live Market Analysis | OTC Blocked")
 
 st.markdown(
-    '<div class="control-box">',
-    unsafe_allow_html=True
+    """
+<style>  
+.signal {padding:20px;border-radius:12px;text-align:center;  
+         font-size:28px;font-weight:bold;margin:12px 0;}  
+.up {background:#d4edda;color:#155724;}  
+.down {background:#f8d7da;color:#721c24;}  
+.no {background:#fff3cd;color:#856404;}  
+</style>  """,
+    unsafe_allow_html=True,
 )
 
-col1, col2 = st.columns(2)
+# ---------------- SETTINGS ----------------
 
-with col1:
-    pair = st.selectbox(
-        "PAIR",
-        list(PAIRS.keys()),
-        index=0,
-        key="pair_original"
-    )
+st.sidebar.header("⚙️ Strategy & Market Filter")
+block_otc = st.sidebar.checkbox("🚫 Block OTC Markets Strictly", value=True)
+only_weekday = st.sidebar.checkbox("📅 Trade Weekdays Only (Mon-Fri)", value=True)
 
-with col2:
-    timeframe = st.selectbox(
-        "TIMEFRAME",
-        list(TIMEFRAMES.keys()),
-        index=0,
-        key="timeframe_original"
-    )
+n_candles = st.sidebar.slider("Same-colour candles in a row", 2, 8, 4)
+body_mult = st.sidebar.slider("Body ≥ x ATR", 0.5, 3.0, 1.5, 0.1)
+loc_min = st.sidebar.slider("Close location threshold (%)", 60, 99, 85) / 100
+atr_mult = st.sidebar.slider("ATR > x × median ATR", 0.5, 3.0, 1.2, 0.1)
+atr_period = int(st.sidebar.number_input("ATR period", 5, 50, 14))
+lookback = int(st.sidebar.number_input("Median ATR lookback", 20, 300, 100))
 
-st.markdown(
-    '</div>',
-    unsafe_allow_html=True
-)
+st.sidebar.header("🧪 Backtest / Binary")
+horizon = st.sidebar.slider("Exit after N candles", 1, 6, 1)
+spread = st.sidebar.number_input("Estimated cost (pips per trade)", 0.0, 5.0, 0.8, 0.1)
+payout_pct = st.sidebar.number_input("Binary payout (%)", 50, 100, 85)
+stake = st.sidebar.number_input("Binary stake per signal", 1.0, 10000.0, 100.0, 1.0)
+one_at_a_time = st.sidebar.checkbox("One trade at a time", value=True)
+holdout_pct = st.sidebar.slider("Holdout (untouched test) %", 10, 50, 30)
+drop_last = st.sidebar.checkbox("Ignore last candle (if still forming)", value=True)
 
-symbol = PAIRS[pair]
-interval = TIMEFRAMES[timeframe]
+uploaded = st.file_uploader("📂 Upload EUR/USD 5m candle CSV (Live Market Only)", type=["csv"])
 
+# ---------------- HELPERS ----------------
 
-# =========================================================
-# DATA
-# =========================================================
+def fmt(value, decimals=1):
+    return "-" if pd.isna(value) else f"{value:.{decimals}f}"
 
-@st.cache_data(ttl=20, show_spinner=False)
-def get_data(symbol, interval):
+def wilson(k, n, z=1.96):
+    if n == 0:
+        return np.nan, np.nan
+    p = k / n
+    d = 1 + z * z / n
+    center = p + z * z / (2 * n)
+    margin = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return (center - margin) / d * 100, (center + margin) / d * 100
 
+def p_value_above(k, n, p0):
+    if n == 0:
+        return np.nan
+    se = math.sqrt(p0 * (1 - p0) / n)
+    if se == 0:
+        return np.nan
+    z = (k / n - p0) / se
+    return 0.5 * math.erfc(z / math.sqrt(2))
+
+def show_table(data):
     try:
+        st.dataframe(data, width="stretch")
+    except TypeError:
+        st.dataframe(data, use_container_width=True)
 
-        df = yf.download(
-            symbol,
-            period="7d",
-            interval=interval,
-            progress=False,
-            auto_adjust=False,
-            threads=False
-        )
+# ---------------- DATA & MARKET CHECK ----------------
 
-        if df is None or df.empty:
+def prepare(raw, file_name=""):
+    df = raw.copy()
+    df.columns = df.columns.astype(str).str.strip().str.lower()
+
+    if block_otc:
+        if "otc" in file_name.lower():
+            raise ValueError("❌ OTC Market detected! This bot is configured for LIVE MARKET ONLY.")
+
+    required = ["open", "high", "low", "close"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing columns: {', '.join(missing)}")
+
+    for col in required:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=required)
+
+    notes = []
+    time_col = next((c for c in TIME_COLS if c in df.columns), None)
+
+    if time_col:
+        df["time"] = pd.to_datetime(df[time_col], errors="coerce")
+        df = df.dropna(subset=["time"]).sort_values("time")
+        
+        if only_weekday:
+            is_weekend = df["time"].dt.dayofweek >= 5  # 5=Saturday, 6=Sunday
+            if is_weekend.any():
+                notes.append("⚠️ Weekend candles detected. Live forex market is closed on weekends.")
+                if block_otc:
+                    df = df.loc[~is_weekend].reset_index(drop=True)
+                    notes.append("🔒 Weekend/OTC rows have been filtered out automatically.")
+
+        before = len(df)
+        df = df.drop_duplicates("time", keep="last")
+        if len(df) < before:
+            notes.append(f"Removed {before - len(df)} duplicate timestamps.")
+    else:
+        if block_otc:
+            raise ValueError("❌ No timestamp column found. Cannot verify if data is Live or OTC.")
+        df["time"] = np.arange(len(df))
+        notes.append("⚠️ No time column. Assuming rows are oldest to newest.")
+
+    bad = (
+        (df["high"] < df["low"])
+        | (df["high"] < df[["open", "close"]].max(axis=1))
+        | (df["low"] > df[["open", "close"]].min(axis=1))
+    )
+    if bad.any():
+        notes.append(f"Removed {int(bad.sum())} invalid candles.")
+    df = df.loc[~bad].reset_index(drop=True)
+
+    if df.empty:
+        raise ValueError("No valid live candles remain after filtering.")
+    return df, notes
+
+def get_step(df):
+    if pd.api.types.is_datetime64_any_dtype(df["time"]):
+        gaps = df["time"].diff().dropna()
+        if gaps.empty:
             return None
-
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
-
-        required = [
-            "Open",
-            "High",
-            "Low",
-            "Close"
-        ]
-
-        if not all(x in df.columns for x in required):
+        step = gaps.median()
+        if step <= pd.Timedelta(0):
             return None
+        return step
+    return None
 
-        df = df[required].copy()
+# ---------------- INDICATORS ----------------
 
-        df = df.apply(
-            pd.to_numeric,
-            errors="coerce"
-        ).dropna()
-
-        df = df.loc[
-            ~df.index.duplicated(
-                keep="last"
-            )
-        ]
-
-        return df
-
-    except Exception:
-        return None
-
-
-# =========================================================
-# RSI
-# =========================================================
-
-def calculate_rsi(close, period=14):
-
-    delta = close.diff()
-
-    gain = delta.clip(lower=0)
-
-    loss = -delta.clip(upper=0)
-
-    avg_gain = gain.ewm(
-        alpha=1 / period,
-        adjust=False,
-        min_periods=period
-    ).mean()
-
-    avg_loss = loss.ewm(
-        alpha=1 / period,
-        adjust=False,
-        min_periods=period
-    ).mean()
-
-    rs = avg_gain / avg_loss.replace(
-        0,
-        np.nan
-    )
-
-    return (
-        100 - 100 / (1 + rs)
-    ).fillna(50)
-
-
-# =========================================================
-# ANALYSIS
-# =========================================================
-
-def analyze(df):
-
-    if df is None or len(df) < 150:
-        return None
-
-    d = df.copy()
-
-    close = d["Close"]
-    high = d["High"]
-    low = d["Low"]
-    op = d["Open"]
-
-    # EMA
-    d["EMA12"] = close.ewm(
-        span=12,
-        adjust=False
-    ).mean()
-
-    d["EMA26"] = close.ewm(
-        span=26,
-        adjust=False
-    ).mean()
-
-    d["EMA50"] = close.ewm(
-        span=50,
-        adjust=False
-    ).mean()
-
-    # SMA
-    d["SMA20"] = close.rolling(20).mean()
-
-    # RSI
-    d["RSI"] = calculate_rsi(close)
-
-    # MACD
-    d["MACD"] = (
-        d["EMA12"] -
-        d["EMA26"]
-    )
-
-    d["MACD_SIGNAL"] = d["MACD"].ewm(
-        span=9,
-        adjust=False
-    ).mean()
-
-    d["MACD_HIST"] = (
-        d["MACD"] -
-        d["MACD_SIGNAL"]
-    )
-
-    # Bollinger
-    std = close.rolling(20).std()
-
-    d["BB_UPPER"] = (
-        d["SMA20"] +
-        2 * std
-    )
-
-    d["BB_LOWER"] = (
-        d["SMA20"] -
-        2 * std
-    )
-
-    # ATR
-    previous_close = close.shift(1)
-
+def add_indicators(data, step):
+    df = data.copy()
+    prev_close = df["close"].shift(1)
     tr = pd.concat(
         [
-            high - low,
-            (high - previous_close).abs(),
-            (low - previous_close).abs()
+            df["high"] - df["low"],
+            (df["high"] - prev_close).abs(),
+            (df["low"] - prev_close).abs(),
         ],
-        axis=1
+        axis=1,
     ).max(axis=1)
 
-    d["ATR14"] = tr.ewm(
-        alpha=1 / 14,
-        adjust=False,
-        min_periods=14
-    ).mean()
-
-    # Candle
-    candle_range = (
-        high - low
-    ).replace(
-        0,
-        np.nan
+    df["atr"] = tr.rolling(atr_period, min_periods=atr_period).mean()
+    df["median_atr"] = (
+        df["atr"].shift(1).rolling(lookback, min_periods=lookback).median()
     )
 
-    d["BODY"] = (
-        (close - op).abs() /
-        candle_range
+    if step is not None:
+        is_gap = df["time"].diff() > step * 1.5
+    else:
+        is_gap = pd.Series(False, index=df.index)
+    df["is_gap"] = is_gap.fillna(False)
+
+    win = max(atr_period, n_candles, 2)
+    df["recent_gap"] = (
+        df["is_gap"].astype(int).rolling(win, min_periods=1).max().astype(bool)
     )
 
-    d["LOCATION"] = (
-        (close - low) /
-        candle_range
-    )
+    bull = df["close"] > df["open"]
+    bear = df["close"] < df["open"]
+    rng = (df["high"] - df["low"]).replace(0, np.nan)
+    close_loc = (df["close"] - df["low"]) / rng
+    body = (df["close"] - df["open"]).abs()
 
-    d = d.dropna()
+    df["run_bull"] = bull.rolling(n_candles, min_periods=n_candles).sum() == n_candles
+    df["run_bear"] = bear.rolling(n_candles, min_periods=n_candles).sum() == n_candles
+    df["body_ok"] = body >= body_mult * df["atr"]
+    df["loc_top"] = close_loc >= loc_min
+    df["loc_bottom"] = close_loc <= (1 - loc_min)
+    df["vol_ok"] = df["atr"] > atr_mult * df["median_atr"]
 
-    if len(d) < 100:
+    clean = ~df["recent_gap"]
+    down = df["run_bull"] & df["body_ok"] & df["loc_top"] & df["vol_ok"] & clean
+    up = df["run_bear"] & df["body_ok"] & df["loc_bottom"] & df["vol_ok"] & clean
+
+    df["dir"] = np.select([down, up], [-1, 1], default=0).astype(int)
+    return df
+
+# ---------------- TRADES ----------------
+
+def interval_has_gap(df, start, end, step):
+    if step is None:
+        return False
+    times = df["time"].iloc[start:end + 1]
+    if len(times) <= 1:
+        return False
+    diffs = times.diff().dropna()
+    return bool((diffs > step * 1.5).any() or (diffs <= pd.Timedelta(0)).any())
+
+def build_all_trades(df, step):
+    rows = []
+    skipped_gap = 0
+    for i in np.flatnonzero(df["dir"].to_numpy() != 0):
+        i = int(i)
+        direction = int(df.at[i, "dir"])
+        entry_idx = i + 1
+        exit_idx = i + horizon
+        if exit_idx >= len(df):
+            continue
+        if interval_has_gap(df, i, exit_idx, step):
+            skipped_gap += 1
+            continue
+
+        entry = float(df.at[entry_idx, "open"])
+        exit_price = float(df.at[exit_idx, "close"])
+        gross = direction * (exit_price - entry) / PIP
+
+        if gross > 0:
+            outcome, binary_profit = "WIN", stake * payout_pct / 100
+        elif gross < 0:
+            outcome, binary_profit = "LOSS", -stake
+        else:
+            outcome, binary_profit = "TIE", 0.0
+
+        rows.append({
+            "signal_idx": i,
+            "entry_idx": entry_idx,
+            "exit_idx": exit_idx,
+            "time": df.at[i, "time"],
+            "dir": direction,
+            "entry": entry,
+            "exit": exit_price,
+            "gross_pips": gross,
+            "net_pips": gross - spread,
+            "outcome": outcome,
+            "binary_profit": binary_profit,
+        })
+    return pd.DataFrame(rows, columns=TRADE_COLS), skipped_gap
+
+def apply_non_overlap(trades):
+    if trades.empty or not one_at_a_time:
+        return trades.copy(), 0
+    keep_idx, next_entry_allowed = [], -1
+    for idx, entry_idx, exit_idx in zip(
+        trades.index, trades["entry_idx"], trades["exit_idx"]
+    ):
+        if entry_idx >= next_entry_allowed:
+            keep_idx.append(idx)
+            next_entry_allowed = exit_idx + 1
+    result = trades.loc[keep_idx].reset_index(drop=True)
+    return result, len(trades) - len(result)
+
+# ---------------- STATS ----------------
+
+def compute_stats(trades):
+    if trades.empty:
         return None
+    t = trades
+    wins = int((t["outcome"] == "WIN").sum())
+    losses = int((t["outcome"] == "LOSS").sum())
+    ties = int((t["outcome"] == "TIE").sum())
+    settled = wins + losses
 
-    # Last completed candle
-    c = d.iloc[-2]
-    p = d.iloc[-3]
+    breakeven = 100 / (1 + payout_pct / 100)
+    low, high = wilson(wins, settled)
+    p_value = p_value_above(wins, settled, breakeven / 100)
 
-    price = float(c["Close"])
+    cumulative = t["net_pips"].cumsum()
+    drawdown = cumulative - cumulative.cummax()
+    gains = t.loc[t["net_pips"] > 0, "net_pips"].sum()
+    losses_pips = -t.loc[t["net_pips"] < 0, "net_pips"].sum()
 
-    ema12 = float(c["EMA12"])
-    ema26 = float(c["EMA26"])
-    ema50 = float(c["EMA50"])
-
-    sma20 = float(c["SMA20"])
-
-    rsi = float(c["RSI"])
-    previous_rsi = float(p["RSI"])
-
-    macd = float(c["MACD"])
-    macd_signal = float(c["MACD_SIGNAL"])
-
-    hist = float(c["MACD_HIST"])
-    previous_hist = float(p["MACD_HIST"])
-
-    bb_upper = float(c["BB_UPPER"])
-    bb_lower = float(c["BB_LOWER"])
-
-    atr = float(c["ATR14"])
-
-    body = float(c["BODY"])
-    location = float(c["LOCATION"])
-
-    # Strength
-    gap = abs(
-        ema12 - ema26
-    )
-
-    strength = (
-        gap / atr
-        if atr > 0
-        else 0
-    )
-
-    strong = strength >= 0.15
-
-    # Market
-    if (
-        ema12 > ema26
-        and ema26 > ema50
-        and price > ema50
-        and strong
-    ):
-
-        market = "UPTREND"
-
-    elif (
-        ema12 < ema26
-        and ema26 < ema50
-        and price < ema50
-        and strong
-    ):
-
-        market = "DOWNTREND"
-
-    else:
-
-        market = "SIDEWAYS"
-
-    # UP conditions
-    up = [
-
-        market == "UPTREND",
-
-        ema12 > ema26
-        and ema26 > ema50,
-
-        45 <= rsi <= 68
-        and rsi > previous_rsi,
-
-        macd > macd_signal
-        and hist > previous_hist,
-
-        price > ema12
-        and price > sma20,
-
-        price > sma20
-        and price < bb_upper,
-
-        bool(c["Close"] > c["Open"])
-        and body >= 0.45
-        and location >= 0.65,
-
-        atr > 0
-        and strength >= 0.15
-    ]
-
-    # DOWN conditions
-    down = [
-
-        market == "DOWNTREND",
-
-        ema12 < ema26
-        and ema26 < ema50,
-
-        32 <= rsi <= 55
-        and rsi < previous_rsi,
-
-        macd < macd_signal
-        and hist < previous_hist,
-
-        price < ema12
-        and price < sma20,
-
-        price < sma20
-        and price > bb_lower,
-
-        bool(c["Close"] < c["Open"])
-        and body >= 0.45
-        and location <= 0.35,
-
-        atr > 0
-        and strength >= 0.15
-    ]
-
-    up_score = sum(up)
-    down_score = sum(down)
-
-    signal = "NO TRADE"
-    reason = "Confirmation incomplete"
-
-    if (
-        market == "UPTREND"
-        and up_score >= 6
-        and up[2]
-        and up[3]
-        and up[4]
-    ):
-
-        signal = "UP"
-        reason = "Bullish confirmation"
-
-    elif (
-        market == "DOWNTREND"
-        and down_score >= 6
-        and down[2]
-        and down[3]
-        and down[4]
-    ):
-
-        signal = "DOWN"
-        reason = "Bearish confirmation"
-
-    elif market == "SIDEWAYS":
-
-        reason = "Sideways market"
-
-    elif abs(up_score - down_score) <= 1:
-
-        reason = "Signals balanced"
-
-    if market == "UPTREND":
-
-        side = "UP"
-        selected = up
-
-    elif market == "DOWNTREND":
-
-        side = "DOWN"
-        selected = down
-
-    else:
-
-        side = (
-            "UP"
-            if up_score >= down_score
-            else "DOWN"
-        )
-
-        selected = (
-            up
-            if up_score >= down_score
-            else down
-        )
-
-    names = [
-        "Trend",
-        "EMA",
-        "RSI",
-        "MACD",
-        "Price",
-        "BB",
-        "Candle",
-        "Vol"
-    ]
-
-    indicator_html = ""
-
-    for name, status in zip(
-        names,
-        selected
-    ):
-
-        icon = (
-            "✅"
-            if status
-            else "❌"
-        )
-
-        indicator_html += (
-            '<div class="indicator-card">'
-            '<div class="indicator-name">'
-            + name +
-            '</div>'
-            '<div class="indicator-icon">'
-            + icon +
-            '</div>'
-            '</div>'
-        )
+    def directional_wr(direction):
+        sub = t[t["dir"] == direction]
+        w = int((sub["outcome"] == "WIN").sum())
+        l = int((sub["outcome"] == "LOSS").sum())
+        return w / (w + l) * 100 if w + l else np.nan
 
     return {
-        "signal": signal,
-        "reason": reason,
-        "market": market,
-        "up": up_score,
-        "down": down_score,
-        "side": side,
-        "indicators": indicator_html,
-        "price": price,
-        "rsi": rsi,
-        "atr": atr,
-        "ema12": ema12,
-        "ema26": ema26,
-        "ema50": ema50,
-        "time": d.index[-2]
+        "trades": len(t),
+        "wins": wins,
+        "losses": losses,
+        "ties": ties,
+        "settled": settled,
+        "win_rate": wins / settled * 100 if settled else np.nan,
+        "ci_low": low,
+        "ci_high": high,
+        "p_value": p_value,
+        "breakeven": breakeven,
+        "avg_gross": t["gross_pips"].mean(),
+        "avg_net": t["net_pips"].mean(),
+        "total_net": t["net_pips"].sum(),
+        "pf": gains / losses_pips if losses_pips > 0 else np.inf,
+        "max_dd": abs(drawdown.min()),
+        "binary_total": t["binary_profit"].sum(),
+        "binary_roi": t["binary_profit"].sum() / (stake * len(t)) * 100,
+        "down_n": int((t["dir"] == -1).sum()),
+        "up_n": int((t["dir"] == 1).sum()),
+        "down_wr": directional_wr(-1),
+        "up_wr": directional_wr(1),
     }
 
+def show_stats(stats, trades):
+    if stats is None:
+        st.info("No completed signals in this section.")
+        return
+    a, b, c = st.columns(3)
+    a.metric("Signals", stats["trades"])
+    b.metric("Win Rate", f"{fmt(stats['win_rate'])}%")
+    c.metric("Profit Factor", fmt(stats["pf"], 2))
 
-# =========================================================
-# RUN
-# =========================================================
+    a, b, c = st.columns(3)
+    a.metric("Avg Net Pips", fmt(stats["avg_net"], 2))
+    b.metric("Total Net Pips", fmt(stats["total_net"], 1))
+    c.metric("Max Drawdown", fmt(stats["max_dd"], 1))
 
-df = get_data(
-    symbol,
-    interval
-)
+    a, b, c = st.columns(3)
+    a.metric("Binary P/L", fmt(stats["binary_total"], 2))
+    b.metric("Binary ROI", f"{fmt(stats['binary_roi'], 2)}%")
+    c.metric("Ties", stats["ties"])
 
-if df is None or len(df) < 150:
+    st.write(f"**95% confidence range of win rate:** {fmt(stats['ci_low'])}% – {fmt(stats['ci_high'])}%")
+    st.write(f"**Binary break-even:** {stats['breakeven']:.2f}%")
+    st.write(f"🔴 DOWN: {stats['down_n']} signals, {fmt(stats['down_wr'])}% win")
+    st.write(f"🟢 UP: {stats['up_n']} signals, {fmt(stats['up_wr'])}% win")
+    st.line_chart(trades["net_pips"].cumsum().reset_index(drop=True))
 
-    st.markdown(
-        '<div class="signal-box signal-wait">'
-        '⚠️ DATA UNAVAILABLE'
-        '<div class="signal-sub">'
-        'NO SIGNAL'
-        '</div>'
-        '</div>',
-        unsafe_allow_html=True
-    )
+def verdict(stats):
+    if stats is None:
+        st.info("Holdout has no completed trades.")
+        return
+    if stats["settled"] < 100:
+        st.warning(f"Holdout has only {stats['settled']} settled trades. Need more data.")
+    elif stats["ci_low"] > stats["breakeven"]:
+        st.success("Holdout: Win-rate range is above break-even (Live Market Verified).")
+    else:
+        st.error("Holdout does not establish a reliable edge.")
 
+# ---------------- APP MAIN EXECUTION ----------------
+
+if uploaded is None:
+    st.info("Upload a Live EUR/USD 5-minute CSV file (Ensure it is NOT from OTC market).")
     st.stop()
-
-r = analyze(df)
-
-if r is None:
-
-    st.markdown(
-        '<div class="signal-box signal-wait">'
-        '⚠️ ANALYSIS ERROR'
-        '<div class="signal-sub">'
-        'NO SIGNAL'
-        '</div>'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    st.stop()
-
-
-# =========================================================
-# DATA AGE
-# =========================================================
-
-closed_time = r["time"]
 
 try:
+    df, notes = prepare(pd.read_csv(uploaded), uploaded.name)
+except Exception as exc:
+    st.error(f"{exc}")
+    st.stop()
 
-    if closed_time.tzinfo is None:
+for note in notes:
+    st.warning(note)
 
-        closed_time = closed_time.replace(
-            tzinfo=timezone.utc
-        )
+if drop_last:
+    if len(df) > 1:
+        df = df.iloc[:-1].reset_index(drop=True)
+    else:
+        st.error("Not enough rows.")
+        st.stop()
 
-    age = max(
-        0,
-        (
-            datetime.now(timezone.utc)
-            - closed_time
-        ).total_seconds() / 60
-    )
+min_rows = lookback + atr_period + n_candles + horizon + 50
+if len(df) < min_rows:
+    st.error(f"Need at least {min_rows} candles; found {len(df)}.")
+    st.stop()
 
-except Exception:
+step = get_step(df)
+df = add_indicators(df, step)
+last = df.iloc[-1]
 
-    age = 999999
+st.markdown(f"### 💱 EUR/USD Live Market | ⏱️️ 5m | 🕒 {last['time']}")
 
+if pd.isna(last["atr"]) or pd.isna(last["median_atr"]):
+    st.warning("Indicator data incomplete: NO TRADE.")
+    st.stop()
 
-# =========================================================
-# WEEKEND
-# =========================================================
-
-weekend = (
-    datetime.now(timezone.utc).weekday()
-    >= 5
-)
-
-max_age = {
-    "5m": 20,
-    "15m": 45,
-    "30m": 75,
-    "1H": 150
-}[timeframe]
-
-stale = age > max_age
-
-
-# =========================================================
-# SIGNAL DISPLAY
-# =========================================================
-
-if weekend:
-
-    display_signal = "🔒 MARKET CLOSED"
-    signal_class = "signal-closed"
-    signal_reason = "Weekend — NO SIGNAL"
-
-elif stale:
-
-    display_signal = "🕐 DATA STALE"
-    signal_class = "signal-wait"
-    signal_reason = "Fresh data unavailable"
-
-elif r["signal"] == "UP":
-
-    display_signal = "🟢 UP SIGNAL"
-    signal_class = "signal-up"
-    signal_reason = r["reason"]
-
-elif r["signal"] == "DOWN":
-
-    display_signal = "🔴 DOWN SIGNAL"
-    signal_class = "signal-down"
-    signal_reason = r["reason"]
-
+if last["dir"] == -1:
+    st.markdown('<div class="signal down">🔴 LIVE DOWN SETUP</div>', unsafe_allow_html=True)
+elif last["dir"] == 1:
+    st.markdown('<div class="signal up">🟢 LIVE UP SETUP</div>', unsafe_allow_html=True)
 else:
+    st.markdown('<div class="signal no">🛑 NO TRADE (Live Market Filter Active)</div>', unsafe_allow_html=True)
 
-    display_signal = "🛡️ NO TRADE"
-    signal_class = "signal-wait"
-    signal_reason = r["reason"]
+# ---------------- BACKTEST ----------------
+st.subheader("🧪 Live Market Backtest Performance")
+all_trades, skipped_gap = build_all_trades(df, step)
+split_idx = int(len(df) * (1 - holdout_pct / 100))
 
+train_raw = all_trades[(all_trades["signal_idx"] < split_idx) & (all_trades["exit_idx"] < split_idx)]
+test_raw = all_trades[all_trades["signal_idx"] >= split_idx]
 
-# =========================================================
-# SIGNAL BOX
-# =========================================================
+train, _ = apply_non_overlap(train_raw)
+test, _ = apply_non_overlap(test_raw)
 
-st.markdown(
-    '<div class="signal-box '
-    + signal_class
-    + '">'
-    + display_signal
-    + '<div class="signal-sub">'
-    + signal_reason
-    + '</div>'
-    + '</div>',
-    unsafe_allow_html=True
-)
+train_stats = compute_stats(train)
+test_stats = compute_stats(test)
 
+verdict(test_stats)
 
-# =========================================================
-# STATUS
-# =========================================================
-
-st.markdown(
-    '<div class="status-box">'
-    '<b>'
-    + r["market"]
-    + '</b>'
-    + ' | 🟢 '
-    + str(r["up"])
-    + '/8'
-    + ' • 🔴 '
-    + str(r["down"])
-    + '/8'
-    + '<div class="status-reason">'
-    + signal_reason
-    + '</div>'
-    + '</div>',
-    unsafe_allow_html=True
-)
-
-
-# =========================================================
-# METRICS
-# =========================================================
-
-st.markdown(
-    '<div class="metric-grid">'
-
-    '<div class="metric-card">'
-    '<div class="metric-title">PRICE</div>'
-    '<div class="metric-value">'
-    + f'{r["price"]:.5f}'
-    + '</div></div>'
-
-    '<div class="metric-card">'
-    '<div class="metric-title">RSI</div>'
-    '<div class="metric-value">'
-    + f'{r["rsi"]:.1f}'
-    + '</div></div>'
-
-    '<div class="metric-card">'
-    '<div class="metric-title">ATR</div>'
-    '<div class="metric-value">'
-    + f'{r["atr"]:.5f}'
-    + '</div></div>'
-
-    '<div class="metric-card">'
-    '<div class="metric-title">EMA12</div>'
-    '<div class="metric-value">'
-    + f'{r["ema12"]:.5f}'
-    + '</div></div>'
-
-    '<div class="metric-card">'
-    '<div class="metric-title">EMA26</div>'
-    '<div class="metric-value">'
-    + f'{r["ema26"]:.5f}'
-    + '</div></div>'
-
-    '<div class="metric-card">'
-    '<div class="metric-title">EMA50</div>'
-    '<div class="metric-value">'
-    + f'{r["ema50"]:.5f}'
-    + '</div></div>'
-
-    '</div>',
-    unsafe_allow_html=True
-)
-
-
-# =========================================================
-# INDICATORS
-# =========================================================
-
-st.markdown(
-    '<div class="indicator-box">'
-    '<div class="indicator-title">'
-    'INDICATORS ('
-    + r["side"]
-    + ')'
-    '</div>'
-    '<div class="indicator-grid">'
-    + r["indicators"]
-    + '</div>'
-    '</div>',
-    unsafe_allow_html=True
-)
-
-
-# =========================================================
-# REFRESH
-# =========================================================
-
-if st.button(
-    "🔄 REFRESH DATA",
-    use_container_width=True
-):
-
-    st.cache_data.clear()
-    st.rerun()
-
-
-# =========================================================
-# FOOTER
-# =========================================================
-
-if weekend:
-
-    footer_text = (
-        "Market closed • Last available candle: "
-        + str(closed_time)
-    )
-
-else:
-
-    footer_text = (
-        "Closed: "
-        + str(closed_time)
-        + " | Age: "
-        + f"{age:.1f}m"
-    )
-
-st.markdown(
-    '<div class="footer">'
-    + footer_text
-    + '<br>'
-    'Manual signal assistant • No automatic trading'
-    '</div>',
-    unsafe_allow_html=True
-)
+tab_test, tab_train = st.tabs(["🎯 Holdout Test", "🏋️ Tuning Data"])
+with tab_test:
+    show_stats(test_stats, test)
+with tab_train:
+    show_stats(train_stats, train)
