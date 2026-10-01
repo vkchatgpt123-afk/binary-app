@@ -1,210 +1,1115 @@
-import math
-import numpy as np
-import pandas as pd
 import streamlit as st
-import yfinance as yf
+import pandas as pd
+import numpy as np
+import requests
+import math
+
+st.set_page_config(
+    page_title="EUR/USD Signal Bot V7",
+    page_icon="📊",
+    layout="centered"
+)
 
 PIP = 0.0001
+YF_SYMBOL = "EURUSD=X"
 
-# Single-Screen Compact Layout Configuration
-st.set_page_config(
-    page_title="EUR/USD 1-Screen Terminal",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
 
-# ---------------- ULTRA-COMPACT SINGLE SCREEN CSS ----------------
-st.markdown(
-    """
-<style>
-    /* Remove excessive padding to prevent scrolling */
-    .block-container {
-        padding-top: 1.2rem !important;
-        padding-bottom: 1rem !important;
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
-        max-width: 100% !important;
-    }
-    
-    /* Hide default streamlit footer/header */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+# ============================================================
+# STATISTICS
+# ============================================================
 
-    /* Compact Header */
-    .header-title {
-        font-size: 24px;
-        font-weight: 800;
-        color: #ffffff;
-        margin-bottom: 0px;
-    }
-    .header-subtitle {
-        font-size: 12px;
-        color: #8a99ad;
-        margin-bottom: 10px;
-    }
+def wilson(wins, n, z=1.96):
+    if n <= 0:
+        return np.nan, np.nan
 
-    /* Compact Glowing Signal Cards */
-    .signal-box {
-        padding: 15px;
-        border-radius: 12px;
-        text-align: center;
-        font-size: 28px;
-        font-weight: 900;
-        letter-spacing: 1px;
-        margin: 5px 0 15px 0;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    }
-    .signal-up {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        color: #ffffff;
-        border: 2px solid #57ff9b;
-    }
-    .signal-down {
-        background: linear-gradient(135deg, #cb2d3e 0%, #ef473a 100%);
-        color: #ffffff;
-        border: 2px solid #ff7b70;
-    }
-    .signal-no {
-        background: linear-gradient(135deg, #f7b733 0%, #fc4a1a 100%);
-        color: #ffffff;
-        border: 2px solid #ffd276;
-    }
+    p = wins / n
+    den = 1 + z * z / n
+    center = (p + z * z / (2 * n)) / den
+    half = z * math.sqrt(
+        max(p * (1 - p) / n + z * z / (4 * n * n), 0)
+    ) / den
 
-    /* Compact Metrics */
-    div[data-testid="stMetric"] {
-        background-color: #161b22;
-        border: 1px solid #30363d;
-        padding: 10px 15px;
-        border-radius: 10px;
-    }
-    div[data-testid="stMetric"] label {
-        color: #8b949e !important;
-        font-size: 13px !important;
-    }
-    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-        color: #f0f6fc !important;
-        font-size: 20px !important;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
-)
+    return center - half, center + half
 
-# ---------------- COMPACT SIDEBAR CONTROLS ----------------
-with st.sidebar:
-    st.markdown("### ⚙️ Strategy Settings")
-    n_candles = st.slider("Candles in a row", 2, 8, 4)
-    body_mult = st.slider("Body ≥ x ATR", 0.5, 3.0, 1.5, 0.1)
-    loc_min = st.slider("Close location (%)", 60, 99, 85) / 100
-    atr_mult = st.slider("ATR > x median", 0.5, 3.0, 1.2, 0.1)
-    atr_period = int(st.number_input("ATR period", 5, 50, 14))
-    lookback = int(st.number_input("Lookback", 20, 300, 100))
-    horizon = st.slider("Exit candles", 1, 6, 1)
-    drop_last = st.checkbox("Ignore forming candle", value=True)
 
-# ---------------- FETCH LIVE DATA ----------------
-@st.cache_data(ttl=60)
-def load_live_data():
-    ticker = "EURUSD=X"
-    df = yf.download(ticker, period="5d", interval="5m", progress=False)
-    if df.empty:
-        raise ValueError("Could not fetch live market data.")
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-    df = df.reset_index()
-    df.columns = df.columns.astype(str).str.strip().str.lower()
-    df = df.rename(columns={"datetime": "time", "date": "time"})
-    
-    required = ["open", "high", "low", "close", "time"]
-    for c in required:
-        if c not in df.columns:
-            raise ValueError(f"Missing column: {c}")
-    for col in ["open", "high", "low", "close"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
-    df["time"] = pd.to_datetime(df["time"], errors="coerce")
-    df = df.dropna(subset=["open", "high", "low", "close", "time"]).sort_values("time").reset_index(drop=True)
+def max_loss_streak(values):
+    best = 0
+    current = 0
+
+    for value in values:
+        if int(value) == 0:
+            current += 1
+            best = max(best, current)
+        else:
+            current = 0
+
+    return best
+
+
+# ============================================================
+# LIVE EUR/USD 5-MIN DATA
+# ============================================================
+
+@st.cache_data(ttl=45, show_spinner=False)
+def get_live_5m():
+
+    url = (
+        "https://query1.finance.yahoo.com/v8/finance/chart/"
+        f"{YF_SYMBOL}"
+        "?range=5d&interval=5m&includePrePost=false"
+    )
+
+    response = requests.get(
+        url,
+        timeout=12,
+        headers={"User-Agent": "Mozilla/5.0"}
+    )
+
+    response.raise_for_status()
+
+    result = response.json()["chart"]["result"][0]
+
+    quote = result["indicators"]["quote"][0]
+    timestamps = result.get("timestamp", [])
+
+    df = pd.DataFrame({
+        "time": pd.to_datetime(
+            timestamps,
+            unit="s",
+            utc=True
+        ),
+        "open": quote.get("open", []),
+        "high": quote.get("high", []),
+        "low": quote.get("low", []),
+        "close": quote.get("close", []),
+        "volume": quote.get(
+            "volume",
+            [np.nan] * len(timestamps)
+        )
+    })
+
+    df = df.dropna(
+        subset=[
+            "open",
+            "high",
+            "low",
+            "close"
+        ]
+    )
+
+    df = (
+        df
+        .drop_duplicates("time")
+        .sort_values("time")
+        .reset_index(drop=True)
+    )
+
     return df
 
-# ---------------- MAIN UI CONTAINER (SINGLE SCREEN) ----------------
-col_h1, col_h2 = st.columns([5, 1])
-with col_h1:
-    st.markdown('<p class="header-title">⚡ EUR/USD 1-SCREEN TERMINAL</p>', unsafe_allow_html=True)
-    st.markdown('<p class="header-subtitle">Automated Live Feed & Signal Engine</p>', unsafe_allow_html=True)
-with col_h2:
-    st.markdown("<br>", unsafe_allow_html=True)
-    refresh = st.button("🔄 Refresh", use_container_width=True)
+
+# ============================================================
+# INDICATORS
+# ============================================================
+
+def indicators(df):
+
+    x = df.copy()
+
+    # EMA
+    x["ema12"] = (
+        x["close"]
+        .ewm(span=12, adjust=False)
+        .mean()
+    )
+
+    x["ema26"] = (
+        x["close"]
+        .ewm(span=26, adjust=False)
+        .mean()
+    )
+
+    # SMA
+    x["sma20"] = (
+        x["close"]
+        .rolling(20)
+        .mean()
+    )
+
+    # RSI
+    delta = x["close"].diff()
+
+    gain = (
+        delta
+        .clip(lower=0)
+        .rolling(14)
+        .mean()
+    )
+
+    loss = (
+        (-delta.clip(upper=0))
+        .rolling(14)
+        .mean()
+    )
+
+    rs = gain / loss.replace(0, np.nan)
+
+    x["rsi14"] = (
+        100 -
+        100 / (1 + rs)
+    )
+
+    # ATR
+    tr = pd.concat(
+        [
+            x["high"] - x["low"],
+            (
+                x["high"] -
+                x["close"].shift()
+            ).abs(),
+            (
+                x["low"] -
+                x["close"].shift()
+            ).abs()
+        ],
+        axis=1
+    ).max(axis=1)
+
+    x["atr14"] = (
+        tr
+        .rolling(14)
+        .mean()
+    )
+
+    # Previous ATR median
+    x["atr_med100"] = (
+        x["atr14"]
+        .shift(1)
+        .rolling(100)
+        .median()
+    )
+
+    # Candle structure
+    x["body"] = (
+        x["close"] -
+        x["open"]
+    ).abs()
+
+    x["range"] = (
+        x["high"] -
+        x["low"]
+    ).replace(0, np.nan)
+
+    x["body_atr"] = (
+        x["body"] /
+        x["atr14"].replace(0, np.nan)
+    )
+
+    # 0 = close at low
+    # 1 = close at high
+    x["close_loc"] = (
+        x["close"] -
+        x["low"]
+    ) / x["range"]
+
+    # MACD
+    x["macd"] = (
+        x["ema12"] -
+        x["ema26"]
+    )
+
+    x["macd_signal"] = (
+        x["macd"]
+        .ewm(span=9, adjust=False)
+        .mean()
+    )
+
+    x["macd_hist"] = (
+        x["macd"] -
+        x["macd_signal"]
+    )
+
+    # Bollinger Bands
+    x["bb_mid"] = (
+        x["close"]
+        .rolling(20)
+        .mean()
+    )
+
+    x["bb_std"] = (
+        x["close"]
+        .rolling(20)
+        .std()
+    )
+
+    x["bb_upper"] = (
+        x["bb_mid"] +
+        2 * x["bb_std"]
+    )
+
+    x["bb_lower"] = (
+        x["bb_mid"] -
+        2 * x["bb_std"]
+    )
+
+    # Candle runs
+    bullish = x["close"] > x["open"]
+    bearish = x["close"] < x["open"]
+
+    x["bull_run"] = (
+        bullish
+        .groupby((~bullish).cumsum())
+        .cumsum()
+    )
+
+    x["bear_run"] = (
+        bearish
+        .groupby((~bearish).cumsum())
+        .cumsum()
+    )
+
+    # Market regime
+    x["trend_strength"] = (
+        (x["ema12"] - x["ema26"]).abs() /
+        x["atr14"].replace(0, np.nan)
+    )
+
+    x["regime"] = np.where(
+        x["trend_strength"] >= 0.35,
+        np.where(
+            x["ema12"] > x["ema26"],
+            "UPTREND",
+            "DOWNTREND"
+        ),
+        "SIDEWAYS"
+    )
+
+    return x
+
+
+# ============================================================
+# SIGNAL ENGINE
+# ============================================================
+
+def signal_at(x, i, minimum=6):
+
+    if i < 110:
+        return (
+            "NO TRADE",
+            0,
+            "Not enough historical data"
+        )
+
+    r = x.iloc[i]
+
+    required = [
+        "atr14",
+        "atr_med100",
+        "body_atr",
+        "close_loc",
+        "rsi14",
+        "ema12",
+        "ema26",
+        "macd_hist",
+        "bb_upper",
+        "bb_lower"
+    ]
+
+    if any(
+        pd.isna(r[k])
+        for k in required
+    ):
+        return (
+            "NO TRADE",
+            0,
+            "Indicators not ready"
+        )
+
+    # Sideways = no trade
+    if r["regime"] == "SIDEWAYS":
+        return (
+            "NO TRADE",
+            0,
+            "SIDEWAYS market"
+        )
+
+    # Abnormal candle protection
+    if r["body_atr"] > 3.5:
+        return (
+            "NO TRADE",
+            0,
+            "Abnormal candle"
+        )
+
+    up_score = 0
+    down_score = 0
+
+    up_reason = []
+    down_reason = []
+
+    # --------------------------------------------------------
+    # Bullish exhaustion -> possible DOWN
+    # --------------------------------------------------------
+
+    if r["bull_run"] >= 4:
+        down_score += 2
+        down_reason.append(
+            "4+ bullish candles"
+        )
+
+    # --------------------------------------------------------
+    # Bearish exhaustion -> possible UP
+    # --------------------------------------------------------
+
+    if r["bear_run"] >= 4:
+        up_score += 2
+        up_reason.append(
+            "4+ bearish candles"
+        )
+
+    # Strong body
+    if r["body_atr"] >= 1.5:
+
+        if r["close"] > r["open"]:
+            down_score += 2
+            down_reason.append(
+                "strong bullish body"
+            )
+
+        elif r["close"] < r["open"]:
+            up_score += 2
+            up_reason.append(
+                "strong bearish body"
+            )
+
+    # Close near high
+    if (
+        r["close_loc"] >= 0.85
+        and r["close"] > r["open"]
+    ):
+        down_score += 2
+        down_reason.append(
+            "close near high"
+        )
+
+    # Close near low
+    if (
+        r["close_loc"] <= 0.15
+        and r["close"] < r["open"]
+    ):
+        up_score += 2
+        up_reason.append(
+            "close near low"
+        )
+
+    # High volatility
+    if (
+        r["atr14"] >
+        1.20 * r["atr_med100"]
+    ):
+
+        if r["close"] > r["open"]:
+            down_score += 1
+            down_reason.append(
+                "high volatility"
+            )
+
+        elif r["close"] < r["open"]:
+            up_score += 1
+            up_reason.append(
+                "high volatility"
+            )
+
+    # RSI
+    if r["rsi14"] >= 68:
+        down_score += 1
+        down_reason.append(
+            "RSI elevated"
+        )
+
+    if r["rsi14"] <= 32:
+        up_score += 1
+        up_reason.append(
+            "RSI depressed"
+        )
+
+    # Bollinger
+    if r["close"] >= r["bb_upper"]:
+        down_score += 1
+        down_reason.append(
+            "upper Bollinger"
+        )
+
+    if r["close"] <= r["bb_lower"]:
+        up_score += 1
+        up_reason.append(
+            "lower Bollinger"
+        )
+
+    # MACD
+    if r["macd_hist"] < 0:
+        down_score += 1
+        down_reason.append(
+            "MACD weakening"
+        )
+
+    if r["macd_hist"] > 0:
+        up_score += 1
+        up_reason.append(
+            "MACD positive"
+        )
+
+    # --------------------------------------------------------
+    # Trend protection
+    # --------------------------------------------------------
+
+    if r["regime"] == "UPTREND":
+
+        if down_score >= minimum + 1:
+            return (
+                "DOWN",
+                down_score,
+                ", ".join(down_reason)
+            )
+
+        return (
+            "NO TRADE",
+            down_score,
+            "UPTREND; reversal not strong enough"
+        )
+
+    if r["regime"] == "DOWNTREND":
+
+        if up_score >= minimum + 1:
+            return (
+                "UP",
+                up_score,
+                ", ".join(up_reason)
+            )
+
+        return (
+            "NO TRADE",
+            up_score,
+            "DOWNTREND; reversal not strong enough"
+        )
+
+    return (
+        "NO TRADE",
+        max(up_score, down_score),
+        "No clean setup"
+    )
+
+
+# ============================================================
+# BACKTEST
+# ============================================================
+
+def backtest(
+    df,
+    horizon=1,
+    minimum=6,
+    spread=1.2
+):
+
+    x = indicators(df)
+
+    trades = []
+
+    for i in range(
+        110,
+        len(x) - horizon - 1
+    ):
+
+        signal, score, reason = signal_at(
+            x,
+            i,
+            minimum
+        )
+
+        if signal not in (
+            "UP",
+            "DOWN"
+        ):
+            continue
+
+        entry_index = i + 1
+        exit_index = i + horizon
+
+        entry = float(
+            x.iloc[entry_index]["open"]
+        )
+
+        exit_price = float(
+            x.iloc[exit_index]["close"]
+        )
+
+        direction = (
+            1
+            if signal == "UP"
+            else -1
+        )
+
+        gross_pips = (
+            (exit_price - entry) /
+            PIP *
+            direction
+        )
+
+        net_pips = (
+            gross_pips -
+            spread
+        )
+
+        trades.append(
+            {
+                "signal_time":
+                    x.iloc[i]["time"],
+
+                "entry_time":
+                    x.iloc[entry_index]["time"],
+
+                "exit_time":
+                    x.iloc[exit_index]["time"],
+
+                "signal":
+                    signal,
+
+                "score":
+                    score,
+
+                "entry":
+                    entry,
+
+                "exit":
+                    exit_price,
+
+                "gross_pips":
+                    gross_pips,
+
+                "net_pips":
+                    net_pips,
+
+                "win":
+                    int(gross_pips > 0)
+            }
+        )
+
+    return pd.DataFrame(trades)
+
+
+# ============================================================
+# ONE TRADE AT A TIME
+# ============================================================
+
+def non_overlap(trades):
+
+    if trades.empty:
+        return trades
+
+    keep = []
+    last_exit = None
+
+    for index, row in trades.iterrows():
+
+        if (
+            last_exit is None
+            or row["entry_time"] > last_exit
+        ):
+
+            keep.append(index)
+
+            last_exit = row["exit_time"]
+
+    return (
+        trades
+        .loc[keep]
+        .reset_index(drop=True)
+    )
+
+
+# ============================================================
+# BACKTEST STATS
+# ============================================================
+
+def get_stats(trades):
+
+    if trades.empty:
+        return None
+
+    n = len(trades)
+
+    wins = int(
+        trades["win"].sum()
+    )
+
+    winrate = wins / n
+
+    low, high = wilson(
+        wins,
+        n
+    )
+
+    # Correct drawdown calculation
+    equity = np.r_[
+        0.0,
+        trades["net_pips"]
+        .astype(float)
+        .cumsum()
+        .to_numpy()
+    ]
+
+    peak = np.maximum.accumulate(
+        equity
+    )
+
+    drawdown = (
+        equity -
+        peak
+    )
+
+    max_dd = float(
+        drawdown.min()
+    )
+
+    positive = float(
+        trades.loc[
+            trades["net_pips"] > 0,
+            "net_pips"
+        ].sum()
+    )
+
+    negative = float(
+        -trades.loc[
+            trades["net_pips"] < 0,
+            "net_pips"
+        ].sum()
+    )
+
+    if negative > 0:
+        profit_factor = (
+            positive /
+            negative
+        )
+    else:
+        profit_factor = np.inf
+
+    return {
+        "trades": n,
+        "wins": wins,
+        "losses": n - wins,
+        "winrate": winrate,
+        "low": low,
+        "high": high,
+        "total_pips": float(
+            trades["net_pips"].sum()
+        ),
+        "avg_pips": float(
+            trades["net_pips"].mean()
+        ),
+        "profit_factor":
+            profit_factor,
+        "max_dd":
+            max_dd,
+        "max_streak":
+            max_loss_streak(
+                trades["win"]
+            )
+    }
+
+
+# ============================================================
+# USER INTERFACE
+# ============================================================
+
+st.title(
+    "📊 EUR/USD SIGNAL BOT V7"
+)
+
+st.caption(
+    "LIVE MARKET • 5-MIN CLOSED CANDLE • MANUAL SIGNAL ONLY"
+)
+
+with st.sidebar:
+
+    st.header("⚙️ Settings")
+
+    minimum = st.slider(
+        "Minimum signal score",
+        5,
+        8,
+        6
+    )
+
+    horizon = st.selectbox(
+        "Backtest expiry candles",
+        [1, 2, 3],
+        index=0
+    )
+
+    spread = st.number_input(
+        "Estimated spread / cost (pips)",
+        min_value=0.0,
+        max_value=5.0,
+        value=1.2,
+        step=0.1
+    )
+
+    one_trade = st.checkbox(
+        "One trade at a time",
+        value=True
+    )
+
+    st.divider()
+
+    st.caption(
+        "🔒 OTC DISABLED"
+    )
+
+    st.caption(
+        "🔒 AUTO TRADING DISABLED"
+    )
+
+
+# ============================================================
+# REFRESH
+# ============================================================
+
+if st.button(
+    "🔄 REFRESH LIVE DATA",
+    use_container_width=True
+):
+
+    st.cache_data.clear()
+    st.rerun()
+
+
+# ============================================================
+# MAIN
+# ============================================================
 
 try:
-    df = load_live_data()
-except Exception as exc:
-    st.error(f"⚠️ Error: {exc}")
-    st.stop()
 
-if drop_last and len(df) > 1:
-    df = df.iloc[:-1].reset_index(drop=True)
+    raw = get_live_5m()
 
-min_rows = lookback + atr_period + n_candles + horizon + 50
-if len(df) < min_rows:
-    st.warning(f"⏳ Gathering data... Need {min_rows}, have {len(df)}.")
-    st.stop()
+    data = indicators(raw)
 
-# ---------------- INDICATOR ENGINE ----------------
-gaps = df["time"].diff().dropna()
-step = gaps.median() if not gaps.empty else None
+    if len(data) < 120:
 
-prev_close = df["close"].shift(1)
-tr = pd.concat([df["high"] - df["low"], (df["high"] - prev_close).abs(), (df["low"] - prev_close).abs()], axis=1).max(axis=1)
-df["atr"] = tr.rolling(atr_period, min_periods=atr_period).mean()
-df["median_atr"] = df["atr"].shift(1).rolling(lookback, min_periods=lookback).median()
+        st.error(
+            "Not enough live 5-minute data."
+        )
 
-is_gap = df["time"].diff() > step * 1.5 if step is not None else pd.Series(False, index=df.index)
-df["is_gap"] = is_gap.fillna(False)
-win = max(atr_period, n_candles, 2)
-df["recent_gap"] = df["is_gap"].astype(int).rolling(win, min_periods=1).max().astype(bool)
+        st.stop()
 
-bull = df["close"] > df["open"]
-bear = df["close"] < df["open"]
-rng = (df["high"] - df["low"]).replace(0, np.nan)
-close_loc = (df["close"] - df["low"]) / rng
-body = (df["close"] - df["open"]).abs()
+    now = pd.Timestamp.now(
+        tz="UTC"
+    )
 
-df["run_bull"] = bull.rolling(n_candles, min_periods=n_candles).sum() == n_candles
-df["run_bear"] = bear.rolling(n_candles, min_periods=n_candles).sum() == n_candles
-df["body_ok"] = body >= body_mult * df["atr"]
-df["loc_top"] = close_loc >= loc_min
-df["loc_bottom"] = close_loc <= (1 - loc_min)
-df["vol_ok"] = df["atr"] > atr_mult * df["median_atr"]
+    last = data.iloc[-1]
 
-clean = ~df["recent_gap"]
-down = df["run_bull"] & df["body_ok"] & df["loc_top"] & df["vol_ok"] & clean
-up = df["run_bear"] & df["body_ok"] & df["loc_bottom"] & df["vol_ok"] & clean
+    candle_end = (
+        last["time"].floor("5min")
+        +
+        pd.Timedelta(minutes=5)
+    )
 
-df["dir"] = np.select([down, up], [-1, 1], default=0).astype(int)
-last = df.iloc[-1]
+    # Never use a candle that is still forming
+    if now < candle_end:
+        signal_index = len(data) - 2
+    else:
+        signal_index = len(data) - 1
 
-# ---------------- SIGNAL DISPLAY (PROMINENT) ----------------
-if pd.isna(last["atr"]) or pd.isna(last["median_atr"]):
-    st.markdown('<div class="signal-box signal-no">🛑 INITIALIZING... NO TRADE</div>', unsafe_allow_html=True)
-elif last["dir"] == -1:
-    st.markdown(f'<div class="signal-box signal-down">🔴 DOWN SIGNAL (PUT) &nbsp;|&nbsp; <span style="font-size:16px;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
-elif last["dir"] == 1:
-    st.markdown(f'<div class="signal-box signal-up">🟢 UP SIGNAL (CALL) &nbsp;|&nbsp; <span style="font-size:16px;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
-else:
-    st.markdown(f'<div class="signal-box signal-no">🛑 NO TRADE SETUP &nbsp;|&nbsp; <span style="font-size:16px;">Time: {last["time"]}</span></div>', unsafe_allow_html=True)
+    row = data.iloc[
+        signal_index
+    ]
 
-# ---------------- METRICS & MINI CHART IN SINGLE ROW ----------------
-col_metrics, col_chart = st.columns([2, 3])
+    age_minutes = (
+        now -
+        row["time"]
+    ).total_seconds() / 60
 
-with col_metrics:
-    m1, m2 = st.columns(2)
-    m1.metric("Price", f"{last['close']:.5f}")
-    m2.metric("ATR Vol", f"{last['atr'] / PIP:.1f}p")
-    
-    m3, m4 = st.columns(2)
-    m3.metric("Median ATR", f"{last['median_atr'] / PIP:.1f}p")
-    m4.metric("Status", "🟢 LIVE")
+    # Freshness protection
+    stale = age_minutes > 20
 
-with col_chart:
-    st.markdown("<p style='font-size:13px; color:#8b949e; margin-bottom:0px;'><b>Recent Price Action (5m)</b></p>", unsafe_allow_html=True)
-    st.line_chart(df.set_index("time")["close"].tail(50), height=130, use_container_width=True)
+    st.subheader(
+        "🟢 LIVE EUR/USD"
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "PRICE",
+        f"{row['close']:.5f}"
+    )
+
+    col2.metric(
+        "RSI",
+        (
+            f"{row['rsi14']:.1f}"
+            if pd.notna(row["rsi14"])
+            else "—"
+        )
+    )
+
+    col3.metric(
+        "ATR",
+        (
+            f"{row['atr14']/PIP:.1f} pips"
+            if pd.notna(row["atr14"])
+            else "—"
+        )
+    )
+
+    st.write(
+        "**Closed candle:** "
+        +
+        row["time"].strftime(
+            "%Y-%m-%d %H:%M UTC"
+        )
+    )
+
+    st.write(
+        f"**Data age:** "
+        f"{age_minutes:.1f} min"
+    )
+
+    if stale:
+
+        st.error(
+            "🔴 DATA STALE — NO SIGNAL"
+        )
+
+        st.warning(
+            "Live data is too old. "
+            "Do not trade."
+        )
+
+        st.stop()
+
+    signal, score, reason = signal_at(
+        data,
+        signal_index,
+        minimum
+    )
+
+    if signal == "UP":
+
+        st.success(
+            "🟢 UP"
+        )
+
+    elif signal == "DOWN":
+
+        st.error(
+            "🔴 DOWN"
+        )
+
+    else:
+
+        st.warning(
+            "🟡 NO TRADE"
+        )
+
+    st.write(
+        f"**Market:** {row['regime']}"
+    )
+
+    st.write(
+        f"**Score:** {score}"
+    )
+
+    st.write(
+        f"**Reason:** {reason}"
+    )
+
+
+    # ========================================================
+    # SAFETY CHECKS
+    # ========================================================
+
+    st.subheader(
+        "🛡️ Safety Checks"
+    )
+
+    checks = [
+
+        (
+            "5m data available",
+            True
+        ),
+
+        (
+            "Closed candle",
+            True
+        ),
+
+        (
+            "Fresh data",
+            not stale
+        ),
+
+        (
+            "Indicators ready",
+            all(
+                pd.notna(
+                    row[k]
+                )
+                for k in [
+                    "atr14",
+                    "rsi14",
+                    "ema12",
+                    "ema26",
+                    "macd_hist"
+                ]
+            )
+        ),
+
+        (
+            "Normal candle",
+            (
+                pd.notna(
+                    row["body_atr"]
+                )
+                and
+                row["body_atr"] <= 3.5
+            )
+        ),
+
+        (
+            "Not sideways",
+            row["regime"] != "SIDEWAYS"
+        )
+    ]
+
+    for name, okay in checks:
+
+        if okay:
+
+            st.write(
+                "✅ " + name
+            )
+
+        else:
+
+            st.write(
+                "❌ " + name
+            )
+
+
+    # ========================================================
+    # BACKTEST
+    # ========================================================
+
+    st.divider()
+
+    st.subheader(
+        "📈 Recent 5m Backtest"
+    )
+
+    trades = backtest(
+        raw,
+        horizon=horizon,
+        minimum=minimum,
+        spread=spread
+    )
+
+    if one_trade:
+
+        trades = non_overlap(
+            trades
+        )
+
+    trades = (
+        trades
+        .tail(300)
+        .reset_index(drop=True)
+    )
+
+    if trades.empty:
+
+        st.info(
+            "No qualifying setups "
+            "with current strict filter."
+        )
+
+    else:
+
+        stats = get_stats(
+            trades
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Trades",
+            stats["trades"]
+        )
+
+        col2.metric(
+            "Win rate",
+            f"{stats['winrate']*100:.1f}%"
+        )
+
+        col3.metric(
+            "Max loss streak",
+            stats["max_streak"]
+        )
+
+        col4, col5, col6 = st.columns(3)
+
+        col4.metric(
+            "Net pips",
+            f"{stats['total_pips']:.1f}"
+        )
+
+        col5.metric(
+            "Profit factor",
+            (
+                f"{stats['profit_factor']:.2f}"
+                if np.isfinite(
+                    stats["profit_factor"]
+                )
+                else "∞"
+            )
+        )
+
+        col6.metric(
+            "Max drawdown",
+            f"{stats['max_dd']:.1f} pips"
+        )
+
+        st.dataframe(
+            trades.tail(25),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.info(
+            "⚠️ Backtest results are historical "
+            "observations and do not guarantee "
+            "future performance."
+        )
+
+
+except Exception as error:
+
+    st.error(
+        "LIVE DATA ERROR"
+    )
+
+    st.code(
+        str(error)
+    )
+
+    st.info(
+        "Live feed unavailable or stale. "
+        "Refresh later and do not trade "
+        "while the feed is unavailable."
+    )
+
+
+st.divider()
+
+st.caption(
+    "EUR/USD • LIVE MARKET ONLY • "
+    "OTC DISABLED • NO AUTO TRADE"
+)
