@@ -426,4 +426,416 @@ h1,h2,h3,h4{letter-spacing:-.01em}
 .pill{display:inline-flex;align-items:center;gap:.4rem;padding:.28rem .7rem;border-radius:999px;font-size:.72rem;
       font-weight:600;background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
-.dot.g{background:var(--green);box-shadow
+.dot.g{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.r{background:var(--red);box-shadow:0 0 8px var(--red)}
+.dot.a{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+
+/* signal card */
+.sig{position:relative;border-radius:20px;padding:1.5rem 1rem 1.2rem;text-align:center;margin:.4rem 0 1rem;
+     border:1px solid var(--line);background:linear-gradient(160deg,#111a2f,#0c1322)}
+.sig .big{font-size:2.9rem;font-weight:800;line-height:1.05;letter-spacing:-.02em}
+.sig .sub{color:#c3cbe0;font-size:.9rem;margin:.55rem auto 0;max-width:34rem;line-height:1.45}
+.sig .meta{color:var(--mut);font-size:.76rem;margin-top:.8rem}
+.sig .badge{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+            padding:.22rem .7rem;border-radius:999px;margin-bottom:.7rem;background:rgba(255,255,255,.07);color:#cdd5ea}
+.sig.up{border-color:rgba(22,199,132,.55);background:linear-gradient(160deg,rgba(22,199,132,.20),#0c1322 70%);
+        box-shadow:0 0 42px rgba(22,199,132,.18)}
+.sig.up .big{color:var(--green)}
+.sig.down{border-color:rgba(234,57,67,.55);background:linear-gradient(160deg,rgba(234,57,67,.20),#0c1322 70%);
+          box-shadow:0 0 42px rgba(234,57,67,.18)}
+.sig.down .big{color:var(--red)}
+.sig.wait .big{color:var(--amber)}
+.sig.stop .big{color:#aab3c9}
+.meter{display:flex;gap:5px;justify-content:center;margin-top:.9rem}
+.meter i{width:34px;height:6px;border-radius:4px;background:#26324f;display:inline-block}
+.meter i.on{background:linear-gradient(90deg,#16c784,#7fe3b9)}
+.down .meter i.on{background:linear-gradient(90deg,#ea3943,#ff8f96)}
+
+/* tiles */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem;margin:.5rem 0 .9rem}
+.tile{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);
+      border-radius:14px;padding:.7rem .85rem}
+.tile .tl{color:var(--mut);font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.tile .tv{font-size:1.28rem;font-weight:700;margin-top:.15rem}
+.tile .ts{color:var(--mut);font-size:.7rem;margin-top:.1rem}
+.tile.g .tv{color:var(--green)} .tile.r .tv{color:var(--red)} .tile.a .tv{color:var(--amber)} .tile.b .tv{color:var(--blue)}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:.3rem 0 1rem}
+.chip{font-size:.74rem;font-weight:600;padding:.3rem .7rem;border-radius:999px;border:1px solid var(--line);
+      background:var(--panel2);color:#c3cbe0}
+.chip.ok{border-color:rgba(22,199,132,.45);color:#7fe3b9;background:rgba(22,199,132,.09)}
+.chip.bad{border-color:rgba(234,57,67,.45);color:#ff9aa1;background:rgba(234,57,67,.09)}
+.chip.idle{color:var(--mut)}
+
+/* verdict */
+.vd{border-radius:14px;padding:.8rem 1rem;margin:.3rem 0 .8rem;border:1px solid var(--line)}
+.vd b{font-size:1rem}.vd span{display:block;color:#c3cbe0;font-size:.82rem;margin-top:.15rem}
+.vd.green{background:rgba(22,199,132,.12);border-color:rgba(22,199,132,.45)}
+.vd.amber{background:rgba(245,166,35,.11);border-color:rgba(245,166,35,.45)}
+.vd.red{background:rgba(234,57,67,.11);border-color:rgba(234,57,67,.45)}
+.vd.gray{background:rgba(138,148,173,.10)}
+
+.sec{font-size:.78rem;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.1em;margin:1rem 0 .3rem}
+
+/* streamlit widgets */
+.stTabs [data-baseweb="tab-list"]{gap:.2rem;border-bottom:1px solid var(--line)}
+.stTabs [data-baseweb="tab"]{font-weight:600;color:var(--mut);padding:.5rem .8rem}
+.stTabs [aria-selected="true"]{color:#fff}
+.stButton>button{border-radius:12px;border:1px solid var(--line);background:linear-gradient(160deg,var(--panel2),var(--panel));
+                 color:var(--txt);font-weight:600}
+.stButton>button:hover{border-color:var(--blue);color:#fff}
+[data-testid="stDataFrame"]{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+</style>
+"""
+st.markdown(CSS, unsafe_allow_html=True)
+
+st.session_state.setdefault("journal", [])
+st.session_state["_full_run"] = True
+
+
+def tile(label, value, sub="", tone=""):
+    return (f"<div class='tile {tone}'><div class='tl'>{label}</div>"
+            f"<div class='tv'>{value}</div><div class='ts'>{sub}</div></div>")
+
+
+def grid(items):
+    return "<div class='grid'>" + "".join(items) + "</div>"
+
+
+def chips(items):
+    cls = {True: "ok", False: "bad", None: "idle"}
+    sym = {True: "✓", False: "✕", None: "–"}
+    return "<div class='chips'>" + "".join(
+        f"<span class='chip {cls[s]}'>{sym[s]} {name}</span>" for name, s in items) + "</div>"
+
+
+def sec(title):
+    st.markdown(f"<div class='sec'>{title}</div>", unsafe_allow_html=True)
+
+
+# ---------------- sidebar ----------------
+with st.sidebar:
+    st.markdown("### ⚙️ Settings")
+    interval = st.selectbox("Candle size", list(INTERVALS), index=1)
+    mins = INTERVALS[interval][1]
+    horizon = st.selectbox("Expiry (candles)", [1, 2, 3], index=0,
+                           help="Quotex expiry = candles x candle size")
+    st.caption(f"Expiry on Quotex: **{horizon * mins} min**")
+    payout_pct = st.slider("Broker payout %", 70, 95, 85,
+                           help="Check the % shown next to EUR/USD in Quotex")
+    payout = payout_pct / 100
+    st.caption(f"Break-even win rate: **{100 / (1 + payout):.1f}%**")
+    tz = st.selectbox("Your timezone", TIMEZONES, index=0)
+    auto_refresh = st.checkbox("Auto-refresh every 30s", value=True)
+
+    st.markdown("### 🎯 Filters")
+    h0, h1 = st.slider("Trading session (UTC hours)", 0, 24, (7, 20),
+                       help="07-20 UTC = London + New York. Asian night is low quality.")
+    min_conf = st.slider("Minimum confluence (0-5)", 0, 5, 2)
+    use_htf = st.checkbox("Higher-timeframe trend must agree", value=True,
+                          help="Big accuracy filter for trend trades.")
+    require_valid = st.checkbox("Only signal validated setups", value=True,
+                                help="Blocks a setup unless it has been profitable in the backtest.")
+    strict = st.checkbox("Strict validation (95% proof)", value=False,
+                         help="Setup must beat break-even even in the pessimistic estimate. Very selective.")
+    one_at_a_time = st.checkbox("One trade at a time", value=True)
+    with st.expander("Advanced"):
+        adx_trend = st.slider("ADX = trending above", 15, 35, 22)
+        adx_range = st.slider("ADX = ranging below", 10, 25, 20)
+
+    st.markdown("### 🛡️ Risk guard")
+    balance = st.number_input("Balance", min_value=0.0, value=100.0, step=10.0)
+    stake_pct = st.slider("Stake % of balance", 0.5, 5.0, 1.0, 0.5)
+    max_consec = st.slider("Stop after N losses in a row", 1, 5, 2)
+    max_loss_units = st.slider("Daily loss limit (stakes)", 1, 10, 3)
+    st.caption(f"Suggested stake: **{balance * stake_pct / 100:.2f}**")
+
+params = {"h0": h0, "h1": h1, "min_conf": min_conf, "adx_trend": adx_trend,
+          "adx_range": adx_range, "use_htf": use_htf}
+
+# ---------------- data ----------------
+try:
+    raw = fetch_candles(interval)
+except Exception as err:
+    st.markdown("<div class='hero'><div><div class='t'>EUR/USD Signal Pro</div></div></div>",
+                unsafe_allow_html=True)
+    st.markdown("<div class='sig stop'><div class='big'>⛔ NO DATA</div>"
+                "<div class='sub'>Could not reach the live price feed. Do not trade without data.</div></div>",
+                unsafe_allow_html=True)
+    st.code(str(err))
+    if st.button("🔄 Try again", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+    st.stop()
+
+x = add_indicators(raw, mins)
+sig = compute_signals(x, params)
+bt = run_backtest(x, sig, horizon, one_at_a_time)
+overall = score_trades(bt, payout)
+
+by_setup = {}
+if overall is not None:
+    for name, g in overall["tr"].groupby("setup"):
+        by_setup[name] = score_trades(g.reset_index(drop=True), payout)
+if strict:
+    validated = {k: (v["decided"] >= 30 and v["lo"] > v["be"]) for k, v in by_setup.items()}
+else:
+    validated = {k: (v["decided"] >= 20 and v["ev"] > 0) for k, v in by_setup.items()}
+
+now = pd.Timestamp.now(tz="UTC")
+delta = pd.Timedelta(minutes=mins)
+last_bar = x["time"].iloc[-1]
+idx = len(x) - 1 if now >= last_bar + delta else len(x) - 2
+row = x.iloc[idx]
+entry_time = row["time"] + delta
+age_s = (now - entry_time).total_seconds()
+mkt_open, opens_at = market_state(now)
+feed_stale = mkt_open and (now - last_bar) > max(pd.Timedelta(minutes=15), 3 * delta)
+window_s = max(20, int(mins * 60 * 0.3))
+regime = regime_label(row, params)
+secs_left = max(0, int((now.floor(f"{mins}min") + delta - now).total_seconds()))
+
+
+def fmt(t):
+    return t.tz_convert(tz).strftime("%a %d %b, %H:%M")
+
+
+# ---------------- header ----------------
+if not mkt_open:
+    status_html = "<span class='pill'><span class='dot a'></span>MARKET CLOSED</span>"
+elif feed_stale:
+    status_html = "<span class='pill'><span class='dot r'></span>FEED STALE</span>"
+else:
+    status_html = "<span class='pill'><span class='dot g'></span>LIVE</span>"
+status_html += (f"<span class='pill'>EUR/USD • {interval}</span>"
+                f"<span class='pill'>🕒 {now.tz_convert(tz).strftime('%H:%M')} {tz.split('/')[-1]}</span>")
+if mkt_open and not feed_stale:
+    status_html += f"<span class='pill'>⏱ next candle {secs_left // 60}:{secs_left % 60:02d}</span>"
+
+st.markdown(
+    "<div class='hero'><div><div class='t'>EUR/USD Signal Pro</div>"
+    "<div class='s'>Manual signals • closed candles only</div></div></div>"
+    f"<div class='status'>{status_html}</div>",
+    unsafe_allow_html=True,
+)
+if st.button("🔄 Refresh live data", use_container_width=True):
+    st.cache_data.clear()
+    st.rerun()
+st.caption("⚙️ Settings: tap the » icon at the top-left.")
+
+tab_sig, tab_bt, tab_j, tab_guide = st.tabs(["📡 Signal", "📈 Backtest", "📒 Journal", "ℹ️ Guide"])
+
+# ================= SIGNAL TAB =================
+with tab_sig:
+    htf_txt = {1.0: "UP", -1.0: "DOWN"}.get(row["htf"], "—")
+    htf_tone = {"UP": "g", "DOWN": "r"}.get(htf_txt, "")
+    reg_tone = {"UPTREND": "g", "DOWNTREND": "r", "RANGING": "b", "TRANSITION": "a"}.get(regime, "")
+    st.markdown(grid([
+        tile("Price", f"{row['close']:.5f}"),
+        tile("Regime", regime.title(), "", reg_tone),
+        tile("Higher TF", htf_txt, f"{HTF_MINUTES.get(mins, 15)}m trend", htf_tone),
+        tile("ATR", f"{row['atr'] / PIP:.1f}" if pd.notna(row["atr"]) else "—", "pips"),
+        tile("ADX", f"{row['adx']:.0f}" if pd.notna(row["adx"]) else "—", "trend strength"),
+        tile("RSI", f"{row['rsi']:.0f}" if pd.notna(row["rsi"]) else "—", "14"),
+    ]), unsafe_allow_html=True)
+
+    today = now.tz_convert(tz).strftime("%Y-%m-%d")
+    stopped, stop_msg, today_pnl = guard_status(st.session_state["journal"], today, max_consec, max_loss_units)
+
+    side = int(sig["side"].iloc[idx])
+    setup = sig["setup"].iloc[idx]
+    conf = int(sig["conf"].iloc[idx])
+    badge, meter = "", ""
+
+    if not mkt_open:
+        card, big = "stop", "🌙 MARKET CLOSED"
+        sub = f"Forex reopens around <b>{fmt(opens_at)}</b>. No signals until then."
+        meta = "Weekend break: Fri 21:00 → Sun 21:00 UTC. Use the Backtest tab meanwhile."
+    elif feed_stale:
+        card, big = "stop", "⛔ NO DATA"
+        sub = "The live feed is delayed. Refresh in a minute. Do not trade without fresh data."
+        meta = f"Last candle: {fmt(last_bar)}"
+    elif stopped:
+        card, big = "stop", "🛑 STOP TODAY"
+        sub = f"Risk guard: {stop_msg}. Come back tomorrow."
+        meta = "Protecting your balance is part of the strategy."
+    elif side != 0 and age_s > window_s:
+        card, big = "wait", "⌛ EXPIRED"
+        sub = f"Signal is {int(age_s)}s old. Entering late ruins the edge - wait for the next one."
+        meta = f"Setup was: {setup} ({'UP' if side == 1 else 'DOWN'})"
+    elif side != 0 and require_valid and not validated.get(setup, False):
+        card, big = "wait", "NO TRADE"
+        sub = f"{setup} fired, but this setup has not proven profitable in the backtest, so it is skipped."
+        meta = "Untick 'Only signal validated setups' to override (not recommended)."
+    elif side != 0:
+        card = "up" if side == 1 else "down"
+        big = "▲ UP" if side == 1 else "▼ DOWN"
+        badge = setup
+        sub = explain(row, setup, side, params)
+        meta = (f"Enter at {fmt(entry_time)} • expiry {horizon * mins} min • valid for {window_s}s")
+        meter = "<div class='meter'>" + "".join(
+            f"<i class='{'on' if k < conf else ''}'></i>" for k in range(5)) + "</div>"
+    else:
+        card, big = "wait", "NO TRADE"
+        sub = why_no_trade(row, params)
+        meta = f"Analysed candle closed {fmt(entry_time)}"
+        if not (h0 <= row["hour"] < h1):
+            meta += f" • next session starts {fmt(next_session(now, h0))}"
+
+    badge_html = f"<div class='badge'>{badge}</div>" if badge else ""
+    st.markdown(
+        f"<div class='sig {card}'>{badge_html}<div class='big'>{big}</div>"
+        f"<div class='sub'>{sub}</div>{meter}<div class='meta'>{meta}</div></div>",
+        unsafe_allow_html=True,
+    )
+
+    if card in ("up", "down"):
+        s = by_setup.get(setup)
+        if s:
+            st.caption(
+                f"Track record of **{setup}**: {s['wr'] * 100:.1f}% wins over {s['decided']} trades "
+                f"(break-even {s['be'] * 100:.1f}%).")
+
+    sec("Safety checks")
+    vol_ok = pd.notna(row["atr_med"]) and 0.6 <= row["atr"] / row["atr_med"] <= 2.0
+    st.markdown(chips([
+        ("Market open", mkt_open),
+        ("Fresh data", (not feed_stale) if mkt_open else None),
+        ("In session", h0 <= row["hour"] < h1),
+        ("Normal volatility", bool(vol_ok)),
+        ("Clear regime", regime in ("UPTREND", "DOWNTREND", "RANGING")),
+        ("Risk guard", not stopped),
+    ]), unsafe_allow_html=True)
+
+    sec("Chart")
+    st.altair_chart(candle_chart(x, tz), use_container_width=True, theme=None)
+    st.caption(f"🟠 EMA21   🔵 EMA50   •   Today's journal P/L: {today_pnl:+.1f} stakes")
+
+# ================= BACKTEST TAB =================
+with tab_bt:
+    st.caption(f"{len(x):,} candles • {fmt(x['time'].iloc[0])} → {fmt(x['time'].iloc[-1])} "
+               f"• payout {payout_pct}%")
+    if overall is None:
+        st.info("No qualifying setups with the current filters. Loosen the confluence or session filter.")
+    else:
+        colr, title, note = verdict(overall)
+        st.markdown(f"<div class='vd {colr}'><b>{title}</b><span>{note}</span></div>",
+                    unsafe_allow_html=True)
+        edge = (overall["wr"] - overall["be"]) * 100
+        st.markdown(grid([
+            tile("Trades", overall["n"], f"{overall['wins']}W / {overall['losses']}L / {overall['ties']}T"),
+            tile("Win rate", f"{overall['wr'] * 100:.1f}%", f"{edge:+.1f} pts vs break-even",
+                 "g" if edge > 0 else "r"),
+            tile("EV / trade", f"{overall['ev']:+.3f}", "stake units", "g" if overall["ev"] > 0 else "r"),
+            tile("Net result", f"{overall['net']:+.1f}", "stakes", "g" if overall["net"] > 0 else "r"),
+            tile("Max drawdown", f"{overall['dd']:.1f}", "stakes", "a"),
+            tile("Max loss streak", overall["streak"], "in a row", "a"),
+        ]), unsafe_allow_html=True)
+        st.caption(
+            f"95% range for win rate: {overall['lo'] * 100:.1f}% – {overall['hi'] * 100:.1f}%  •  "
+            f"p-value vs break-even: {overall['pval']:.3f}")
+
+        sec("By setup")
+        rows = [{
+            "Setup": name, "Trades": s["decided"], "Win %": round(s["wr"] * 100, 1),
+            "EV/trade": round(s["ev"], 3), "95% low": round(s["lo"] * 100, 1),
+            "Validated": "✅" if validated[name] else "❌",
+        } for name, s in by_setup.items()]
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+        sec("Consistency check · older vs newer half")
+        tr = overall["tr"]
+        half = len(tr) // 2
+        cons = []
+        for label, part in (("Older half", tr.iloc[:half]), ("Newer half", tr.iloc[half:])):
+            s = score_trades(part.reset_index(drop=True), payout)
+            if s:
+                cons.append({"Period": label, "Trades": s["decided"],
+                             "Win %": round(s["wr"] * 100, 1), "EV/trade": round(s["ev"], 3)})
+        if cons:
+            st.dataframe(pd.DataFrame(cons), use_container_width=True, hide_index=True)
+            st.caption("If the halves disagree strongly, the edge is probably noise.")
+
+        sec("Equity curve · stakes")
+        st.altair_chart(equity_chart(overall["equity"]), use_container_width=True, theme=None)
+
+        sec("Recent trades")
+        show = overall["tr"].tail(25).iloc[::-1].copy()
+        show["entry_time"] = show["entry_time"].dt.tz_convert(tz).dt.strftime("%d %b %H:%M")
+        show = show[["entry_time", "side", "setup", "conf", "pips", "result", "pnl"]]
+        st.dataframe(show, use_container_width=True, hide_index=True)
+
+        csv = overall["tr"].to_csv(index=False).encode()
+        st.download_button("⬇️ Download all backtest trades (CSV)", csv, "backtest_trades.csv",
+                           "text/csv", use_container_width=True)
+
+# ================= JOURNAL TAB =================
+with tab_j:
+    st.caption("Log every trade you take. The risk guard uses this to stop you after a bad streak.")
+    jc1, jc2, jc3 = st.columns(3)
+    j_side = jc1.selectbox("Side", ["UP", "DOWN"])
+    j_res = jc2.selectbox("Result", ["WIN", "LOSS", "TIE"])
+    jc3.markdown("<div style='height:1.7rem'></div>", unsafe_allow_html=True)
+    if jc3.button("➕ Add", use_container_width=True):
+        pnl = {"WIN": payout, "LOSS": -1.0, "TIE": 0.0}[j_res]
+        st.session_state["journal"].append({
+            "date": now.tz_convert(tz).strftime("%Y-%m-%d"),
+            "time": now.tz_convert(tz).strftime("%H:%M"),
+            "side": j_side, "result": j_res, "pnl": pnl,
+        })
+        st.rerun()
+
+    jr = st.session_state["journal"]
+    if jr:
+        jdf = pd.DataFrame(jr)
+        w = int((jdf["result"] == "WIN").sum())
+        l_ = int((jdf["result"] == "LOSS").sum())
+        net = float(jdf["pnl"].sum())
+        st.markdown(grid([
+            tile("Logged trades", len(jdf)),
+            tile("Win rate", f"{w / (w + l_) * 100:.0f}%" if (w + l_) else "—"),
+            tile("Net", f"{net:+.1f}", "stakes", "g" if net > 0 else ("r" if net < 0 else "")),
+        ]), unsafe_allow_html=True)
+        st.dataframe(jdf.iloc[::-1], use_container_width=True, hide_index=True)
+        if st.button("🗑️ Clear journal"):
+            st.session_state["journal"] = []
+            st.rerun()
+    else:
+        st.info("No trades logged yet.")
+    st.caption("Journal is kept only while this browser session is open.")
+
+# ================= GUIDE TAB =================
+with tab_guide:
+    st.markdown(
+        """
+**How to use**
+1. Read the signal card. Trade only when it says **▲ UP / ▼ DOWN** and is not expired.
+2. Enter at the **next candle open** shown on the card, with the suggested expiry.
+3. Log the result in *Journal*. When the risk guard says STOP, stop.
+
+**The two setups**
+- **Trend Pullback**: trade *with* a confirmed trend (ADX high, higher timeframe agrees) after a dip to EMA21.
+- **Range Reversal**: fade a Bollinger-band rejection, *only* when the market is ranging (ADX low).
+- Between the two (ADX in the middle) the bot stays out.
+
+**Reality check**
+- With ~85% payout you need **more than 54%** wins just to break even. In *Backtest*, trust a setup only when its **95% low** is above break-even.
+- Yahoo prices can differ from Quotex's own feed by a few pips and arrive slightly late.
+- No bot can guarantee wins. Keep stakes small and never risk money you cannot afford to lose.
+"""
+    )
+
+st.markdown("<div style='text-align:center;color:#5d6882;font-size:.72rem;margin-top:1.5rem'>"
+            "EUR/USD • live market only • OTC disabled • no auto-trading • not financial advice</div>",
+            unsafe_allow_html=True)
+
+# ---------------- auto refresh (only while market is open) ----------------
+if auto_refresh and mkt_open and hasattr(st, "fragment"):
+    @st.fragment(run_every=30)
+    def _auto_tick():
+        if st.session_state.pop("_full_run", False):
+            return
+        st.rerun()
+
+    _auto_tick()
