@@ -125,6 +125,28 @@ def fetch_candles(interval):
 
 
 # ============================================================
+# UI HELPER FUNCTIONS (MISSING EARLIER)
+# ============================================================
+def grid(tiles):
+  return f"<div class='grid'>{''.join(tiles)}</div>"
+
+
+def tile(title, val, sub="", tone=""):
+  return (
+      f"<div class='tile {tone}'><div class='tl'>{title}</div><div"
+      f" class='tv'>{val}</div><div class='ts'>{sub}</div></div>"
+  )
+
+
+def chips(items):
+  res = []
+  for label, ok in items:
+    c = "ok" if ok is True else ("bad" if ok is False else "idle")
+    res.append(f"<span class='chip {c}'>{label}</span>")
+  return f"<div class='chips'>{''.join(res)}</div>"
+
+
+# ============================================================
 # TECHNICAL INDICATORS (Includes RSI, ATR, ADX, MACD, Stochastic)
 # ============================================================
 def wilder(s, n):
@@ -171,14 +193,14 @@ def add_indicators(df, mins=5):
   sd = c.rolling(20).std(ddof=0)
   x["bb_mid"], x["bb_up"], x["bb_lo"] = mid, mid + 2 * sd, mid - 2 * sd
 
-  # --- NEW: MACD (Moving Average Convergence Divergence) ---
+  # MACD
   ema12 = c.ewm(span=12, adjust=False).mean()
   ema26 = c.ewm(span=26, adjust=False).mean()
   x["macd_line"] = ema12 - ema26
   x["macd_signal"] = x["macd_line"].ewm(span=9, adjust=False).mean()
   x["macd_hist"] = x["macd_line"] - x["macd_signal"]
 
-  # --- NEW: Stochastic Oscillator (14, 3, 3) ---
+  # Stochastic Oscillator (14, 3, 3)
   lowest_low = l.rolling(window=14).min()
   highest_high = h.rolling(window=14).max()
   x["stoch_k"] = (
@@ -213,7 +235,7 @@ def higher_tf_trend(x, mins):
 
 
 # ============================================================
-# SIGNAL ENGINE (Upgraded with MACD & Stochastic Confluence)
+# SIGNAL ENGINE
 # ============================================================
 def compute_signals(x, p):
   c, o, h, l = x["close"], x["open"], x["high"], x["low"]
@@ -224,7 +246,16 @@ def compute_signals(x, p):
       & (x["hour"] < p["h1"])
       & ratio.between(0.6, 2.0)
       & (x["body_atr"] <= 3.0)
-      & x[["atr", "atr_med", "rsi", "adx", "bb_up", "ema50", "macd_hist", "stoch_k"]]
+      & x[[
+          "atr",
+          "atr_med",
+          "rsi",
+          "adx",
+          "bb_up",
+          "ema50",
+          "macd_hist",
+          "stoch_k",
+      ]]
       .notna()
       .all(axis=1)
   )
@@ -241,7 +272,6 @@ def compute_signals(x, p):
       & (x["adx"] >= p["adx_trend"])
   )
 
-  # Trend Pullback with MACD & Stochastic confirmation
   a_up = (
       ok
       & up_tr
@@ -287,7 +317,6 @@ def compute_signals(x, p):
       + (x["macd_hist"] < x["macd_hist"].shift(1)).astype(int)
   )
 
-  # Range Reversal with Stochastic Oversold/Overbought confirmation
   ranging = x["adx"] < p["adx_range"]
   b_up = (
       ok
@@ -349,15 +378,6 @@ def market_state(now):
     return True, None
   opens = (now.normalize() + pd.Timedelta(days=(6 - wd) % 7)).replace(hour=21)
   return False, opens
-
-
-def next_session(now, h0):
-  c = now.normalize() + pd.Timedelta(hours=h0)
-  if c <= now:
-    c += pd.Timedelta(days=1)
-  while c.weekday() >= 5:
-    c += pd.Timedelta(days=1)
-  return c
 
 
 def regime_label(r, p):
@@ -790,10 +810,27 @@ with tab_sig:
       grid([
           tile("Price", f"{row['close']:.5f}"),
           tile("Regime", regime.title(), "", reg_tone),
-          tile("Higher TF", htf_txt, f"{HTF_MINUTES.get(mins, 15)}m trend", htf_tone),
-          tile("MACD Hist", f"{row['macd_hist']:.5f}" if pd.notna(row["macd_hist"]) else "—", "momentum"),
-          tile("Stoch %K", f"{row['stoch_k']:.0f}" if pd.notna(row["stoch_k"]) else "—", "oscillator"),
-          tile("RSI", f"{row['rsi']:.0f}" if pd.notna(row["rsi"]) else "—", "14"),
+          tile(
+              "Higher TF",
+              htf_txt,
+              f"{HTF_MINUTES.get(mins, 15)}m trend",
+              htf_tone,
+          ),
+          tile(
+              "MACD Hist",
+              f"{row['macd_hist']:.5f}" if pd.notna(row["macd_hist"]) else "—",
+              "momentum",
+          ),
+          tile(
+              "Stoch %K",
+              f"{row['stoch_k']:.0f}" if pd.notna(row["stoch_k"]) else "—",
+              "oscillator",
+          ),
+          tile(
+              "RSI",
+              f"{row['rsi']:.0f}" if pd.notna(row["rsi"]) else "—",
+              "14",
+          ),
       ]),
       unsafe_allow_html=True,
   )
@@ -842,7 +879,8 @@ with tab_sig:
 
     if enable_sound:
       st.markdown(
-          "<audio autoplay><source src='https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'"
+          "<audio autoplay><source"
+          " src='https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'"
           " type='audio/mpeg'></audio>",
           unsafe_allow_html=True,
       )
@@ -865,7 +903,7 @@ with tab_sig:
         f" **{rec_stake:.2f}** (Kelly Fraction: {kelly_f*100:.1f}%)"
     )
 
-  sec("Safety & Technical Confluence Checks")
+  st.markdown("### Safety & Technical Confluence Checks")
   vol_ok = pd.notna(row["atr_med"]) and 0.6 <= row["atr"] / row["atr_med"] <= 2.0
   st.markdown(
       chips([
@@ -879,7 +917,7 @@ with tab_sig:
       unsafe_allow_html=True,
   )
 
-  sec("Live Candle Chart")
+  st.markdown("### Live Candle Chart")
   st.altair_chart(candle_chart(x, tz), use_container_width=True, theme=None)
   st.caption(
       f"🟠 EMA21 | 🔵 EMA50 | MACD Histogram & Stochastic %K Filters Active"
@@ -931,30 +969,31 @@ with tab_bt:
         unsafe_allow_html=True,
     )
 
-    sec("Setup Breakdown")
-    rows = [
-        {
-            "Setup": name,
-            "Trades": s["decided"],
-            "Win %": round(s["wr"] * 100, 1),
-            "EV/trade": round(s["ev"], 3),
-            "95% Low": round(s["lo"] * 100, 1),
-            "Validated": "✅" if validated[name] else "❌",
-        }
-        for name, s in by_setup.items()
-    ]
+  st.markdown("### Setup Breakdown")
+  rows = [
+      {
+          "Setup": name,
+          "Trades": s["decided"],
+          "Win %": round(s["wr"] * 100, 1),
+          "EV/trade": round(s["ev"], 3),
+          "95% Low": round(s["lo"] * 100, 1),
+          "Validated": "✅" if validated[name] else "❌",
+      }
+      for name, s in by_setup.items()
+  ]
+  if rows:
     st.dataframe(
         pd.DataFrame(rows), use_container_width=True, hide_index=True
     )
 
-    sec("Equity Curve")
+  st.markdown("### Equity Curve")
+  if overall is not None:
     st.altair_chart(
         equity_chart(overall["equity"]), use_container_width=True, theme=None
     )
-
     csv = overall["tr"].to_csv(index=False).encode()
     st.download_button(
-        "⬇️️ Download Backtest CSV",
+        "⬇ Download Backtest CSV",
         csv,
         "backtest_trades.csv",
         "text/csv",
