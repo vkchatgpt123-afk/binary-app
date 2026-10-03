@@ -1,1511 +1,628 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import requests
 import math
+from datetime import datetime
 
-# ============================================================
-# EUR/USD SIGNAL BOT V8
-# QUALITY-FIRST • LIVE EUR/USD • 5M CLOSED CANDLE
-# MANUAL SIGNAL ONLY • OTC DISABLED
-# ============================================================
+import altair as alt
+import numpy as np
+import pandas as pd
+import requests
+import streamlit as st
 
 st.set_page_config(
-    page_title="EUR/USD Signal Bot V8",
+    page_title="EUR/USD Signal Pro",
     page_icon="📊",
-    layout="centered"
+    layout="centered",
 )
 
 PIP = 0.0001
 SYMBOL = "EURUSD=X"
-
-
-# ============================================================
-# BASIC HELPERS
-# ============================================================
-
-def max_loss_streak(values):
-    best = 0
-    current = 0
-
-    for value in values:
-        if int(value) == 0:
-            current += 1
-            best = max(best, current)
-        else:
-            current = 0
-
-    return best
-
-
-def wilson(wins, n, z=1.96):
-
-    if n <= 0:
-        return np.nan, np.nan
-
-    p = wins / n
-
-    den = 1 + (z * z / n)
-
-    center = (
-        p +
-        (z * z / (2 * n))
-    ) / den
-
-    half = (
-        z *
-        math.sqrt(
-            max(
-                p * (1 - p) / n +
-                z * z / (4 * n * n),
-                0
-            )
-        )
-    ) / den
-
-    return center - half, center + half
-
-
-# ============================================================
-# LIVE DATA
-# ============================================================
-
-@st.cache_data(ttl=45, show_spinner=False)
-def get_live_data():
-
-    url = (
-        "https://query1.finance.yahoo.com/v8/finance/chart/"
-        f"{SYMBOL}"
-        "?range=5d&interval=5m&includePrePost=false"
-    )
-
-    response = requests.get(
-        url,
-        timeout=15,
-        headers={
-            "User-Agent": "Mozilla/5.0"
-        }
-    )
-
-    response.raise_for_status()
-
-    result = response.json()[
-        "chart"
-    ]["result"][0]
-
-    quote = result[
-        "indicators"
-    ]["quote"][0]
-
-    timestamps = result.get(
-        "timestamp",
-        []
-    )
-
-    df = pd.DataFrame({
-        "time": pd.to_datetime(
-            timestamps,
-            unit="s",
-            utc=True
-        ),
-        "open": quote.get(
-            "open",
-            []
-        ),
-        "high": quote.get(
-            "high",
-            []
-        ),
-        "low": quote.get(
-            "low",
-            []
-        ),
-        "close": quote.get(
-            "close",
-            []
-        ),
-        "volume": quote.get(
-            "volume",
-            [np.nan] * len(timestamps)
-        )
-    })
-
-    df = df.dropna(
-        subset=[
-            "open",
-            "high",
-            "low",
-            "close"
-        ]
-    )
-
-    df = (
-        df
-        .drop_duplicates("time")
-        .sort_values("time")
-        .reset_index(drop=True)
-    )
-
-    return df
-
-
-# ============================================================
-# INDICATORS
-# ============================================================
-
-def add_indicators(df):
-
-    x = df.copy()
-
-    # ---------------- EMA ----------------
-
-    x["ema12"] = (
-        x["close"]
-        .ewm(
-            span=12,
-            adjust=False
-        )
-        .mean()
-    )
-
-    x["ema26"] = (
-        x["close"]
-        .ewm(
-            span=26,
-            adjust=False
-        )
-        .mean()
-    )
-
-    x["ema50"] = (
-        x["close"]
-        .ewm(
-            span=50,
-            adjust=False
-        )
-        .mean()
-    )
-
-    # ---------------- SMA ----------------
-
-    x["sma20"] = (
-        x["close"]
-        .rolling(20)
-        .mean()
-    )
-
-    # ---------------- RSI ----------------
-
-    delta = x["close"].diff()
-
-    gain = (
-        delta
-        .clip(lower=0)
-        .rolling(14)
-        .mean()
-    )
-
-    loss = (
-        (-delta.clip(upper=0))
-        .rolling(14)
-        .mean()
-    )
-
-    rs = (
-        gain /
-        loss.replace(0, np.nan)
-    )
-
-    x["rsi"] = (
-        100 -
-        (100 / (1 + rs))
-    )
-
-    # ---------------- ATR ----------------
-
-    tr = pd.concat(
-        [
-            x["high"] - x["low"],
-
-            (
-                x["high"] -
-                x["close"].shift()
-            ).abs(),
-
-            (
-                x["low"] -
-                x["close"].shift()
-            ).abs()
-        ],
-        axis=1
-    ).max(axis=1)
-
-    x["atr"] = (
-        tr
-        .rolling(14)
-        .mean()
-    )
-
-    x["atr_median"] = (
-        x["atr"]
-        .shift(1)
-        .rolling(100)
-        .median()
-    )
-
-    # ---------------- Candle structure ----------------
-
-    x["body"] = (
-        x["close"] -
-        x["open"]
-    ).abs()
-
-    x["range"] = (
-        x["high"] -
-        x["low"]
-    ).replace(0, np.nan)
-
-    x["body_atr"] = (
-        x["body"] /
-        x["atr"].replace(0, np.nan)
-    )
-
-    x["close_location"] = (
-        x["close"] -
-        x["low"]
-    ) / x["range"]
-
-    # ---------------- MACD ----------------
-
-    x["macd"] = (
-        x["ema12"] -
-        x["ema26"]
-    )
-
-    x["macd_signal"] = (
-        x["macd"]
-        .ewm(
-            span=9,
-            adjust=False
-        )
-        .mean()
-    )
-
-    x["macd_hist"] = (
-        x["macd"] -
-        x["macd_signal"]
-    )
-
-    x["macd_hist_prev"] = (
-        x["macd_hist"].shift(1)
-    )
-
-    # ---------------- Bollinger ----------------
-
-    x["bb_mid"] = (
-        x["close"]
-        .rolling(20)
-        .mean()
-    )
-
-    x["bb_std"] = (
-        x["close"]
-        .rolling(20)
-        .std()
-    )
-
-    x["bb_upper"] = (
-        x["bb_mid"] +
-        2 * x["bb_std"]
-    )
-
-    x["bb_lower"] = (
-        x["bb_mid"] -
-        2 * x["bb_std"]
-    )
-
-    # ---------------- Candle runs ----------------
-
-    bullish = (
-        x["close"] >
-        x["open"]
-    )
-
-    bearish = (
-        x["close"] <
-        x["open"]
-    )
-
-    x["bull_run"] = (
-        bullish
-        .groupby(
-            (~bullish).cumsum()
-        )
-        .cumsum()
-    )
-
-    x["bear_run"] = (
-        bearish
-        .groupby(
-            (~bearish).cumsum()
-        )
-        .cumsum()
-    )
-
-    # ---------------- Trend strength ----------------
-
-    x["ema_gap"] = (
-        x["ema12"] -
-        x["ema26"]
-    )
-
-    x["ema_slope"] = (
-        x["ema12"] -
-        x["ema12"].shift(3)
-    )
-
-    x["trend_strength"] = (
-        x["ema_gap"].abs() /
-        x["atr"].replace(0, np.nan)
-    )
-
-    # ---------------- Market regime ----------------
-
-    x["regime"] = np.where(
-
-        x["trend_strength"] < 0.30,
-
-        "SIDEWAYS",
-
-        np.where(
-            x["ema12"] >
-            x["ema26"],
-
-            "UPTREND",
-
-            "DOWNTREND"
-        )
-    )
-
-    return x
-
-
-# ============================================================
-# QUALITY SIGNAL ENGINE
-# ============================================================
-
-def get_signal(
-    x,
-    index,
-    minimum_score=8
-):
-
-    if index < 120:
-
-        return {
-            "signal": "NO TRADE",
-            "up": 0,
-            "down": 0,
-            "score": 0,
-            "reason": "Not enough data"
-        }
-
-    r = x.iloc[index]
-
-    required = [
-        "atr",
-        "atr_median",
-        "body_atr",
-        "close_location",
-        "rsi",
-        "ema12",
-        "ema26",
-        "ema50",
-        "macd_hist",
-        "bb_upper",
-        "bb_lower"
-    ]
-
-    if any(
-        pd.isna(r[k])
-        for k in required
-    ):
-
-        return {
-            "signal": "NO TRADE",
-            "up": 0,
-            "down": 0,
-            "score": 0,
-            "reason": "Indicators not ready"
-        }
-
-    # --------------------------------------------------------
-    # Safety: abnormal candle
-    # --------------------------------------------------------
-
-    if r["body_atr"] > 3.0:
-
-        return {
-            "signal": "NO TRADE",
-            "up": 0,
-            "down": 0,
-            "score": 0,
-            "reason": "Abnormally large candle"
-        }
-
-    up = 0
-    down = 0
-
-    up_reason = []
-    down_reason = []
-
-    # ========================================================
-    # UP SETUP
-    # ========================================================
-
-    # Strong bearish exhaustion
-    if r["bear_run"] >= 4:
-
-        up += 2
-
-        up_reason.append(
-            "4+ bearish candles"
-        )
-
-    # Strong bearish body
-    if (
-        r["body_atr"] >= 1.35
-        and
-        r["close"] < r["open"]
-    ):
-
-        up += 2
-
-        up_reason.append(
-            "strong bearish body"
-        )
-
-    # Close near low
-    if (
-        r["close_location"] <= 0.18
-        and
-        r["close"] < r["open"]
-    ):
-
-        up += 1
-
-        up_reason.append(
-            "close near low"
-        )
-
-    # Oversold
-    if r["rsi"] <= 34:
-
-        up += 2
-
-        up_reason.append(
-            "RSI oversold"
-        )
-
-    # Price below lower Bollinger
-    if r["close"] <= r["bb_lower"]:
-
-        up += 2
-
-        up_reason.append(
-            "below lower Bollinger"
-        )
-
-    # MACD improving
-    if (
-        r["macd_hist"] >
-        r["macd_hist_prev"]
-    ):
-
-        up += 1
-
-        up_reason.append(
-            "MACD improving"
-        )
-
-    # ========================================================
-    # DOWN SETUP
-    # ========================================================
-
-    # Strong bullish exhaustion
-    if r["bull_run"] >= 4:
-
-        down += 2
-
-        down_reason.append(
-            "4+ bullish candles"
-        )
-
-    # Strong bullish body
-    if (
-        r["body_atr"] >= 1.35
-        and
-        r["close"] > r["open"]
-    ):
-
-        down += 2
-
-        down_reason.append(
-            "strong bullish body"
-        )
-
-    # Close near high
-    if (
-        r["close_location"] >= 0.82
-        and
-        r["close"] > r["open"]
-    ):
-
-        down += 1
-
-        down_reason.append(
-            "close near high"
-        )
-
-    # Overbought
-    if r["rsi"] >= 66:
-
-        down += 2
-
-        down_reason.append(
-            "RSI overbought"
-        )
-
-    # Price above upper Bollinger
-    if r["close"] >= r["bb_upper"]:
-
-        down += 2
-
-        down_reason.append(
-            "above upper Bollinger"
-        )
-
-    # MACD weakening
-    if (
-        r["macd_hist"] <
-        r["macd_hist_prev"]
-    ):
-
-        down += 1
-
-        down_reason.append(
-            "MACD weakening"
-        )
-
-    # ========================================================
-    # MARKET REGIME PROTECTION
-    # ========================================================
-
-    # In strong trend, reversal needs extra confirmation.
-    if r["regime"] == "UPTREND":
-
-        down_required = minimum_score + 1
-
-        if down >= down_required:
-
-            return {
-                "signal": "DOWN",
-                "up": up,
-                "down": down,
-                "score": down,
-                "reason": ", ".join(
-                    down_reason
-                )
-            }
-
-        return {
-            "signal": "NO TRADE",
-            "up": up,
-            "down": down,
-            "score": max(up, down),
-            "reason":
-                "UPTREND; reversal too weak"
-        }
-
-    if r["regime"] == "DOWNTREND":
-
-        up_required = minimum_score + 1
-
-        if up >= up_required:
-
-            return {
-                "signal": "UP",
-                "up": up,
-                "down": down,
-                "score": up,
-                "reason": ", ".join(
-                    up_reason
-                )
-            }
-
-        return {
-            "signal": "NO TRADE",
-            "up": up,
-            "down": down,
-            "score": max(up, down),
-            "reason":
-                "DOWNTREND; reversal too weak"
-        }
-
-    # SIDEWAYS
-    return {
-        "signal": "NO TRADE",
-        "up": up,
-        "down": down,
-        "score": max(up, down),
-        "reason": "SIDEWAYS market"
-    }
-
-
-# ============================================================
-# BACKTEST
-# ============================================================
-
-def backtest(
-    df,
-    horizon=1,
-    minimum_score=8,
-    spread=1.2
-):
-
-    x = add_indicators(df)
-
-    trades = []
-
-    for i in range(
-        120,
-        len(x) -
-        horizon -
-        1
-    ):
-
-        result = get_signal(
-            x,
-            i,
-            minimum_score
-        )
-
-        signal = result["signal"]
-
-        if signal not in (
-            "UP",
-            "DOWN"
-        ):
-            continue
-
-        entry_index = i + 1
-        exit_index = i + horizon
-
-        entry = float(
-            x.iloc[
-                entry_index
-            ]["open"]
-        )
-
-        exit_price = float(
-            x.iloc[
-                exit_index
-            ]["close"]
-        )
-
-        direction = (
-            1
-            if signal == "UP"
-            else -1
-        )
-
-        gross_pips = (
-            (
-                exit_price -
-                entry
-            )
-            /
-            PIP
-            *
-            direction
-        )
-
-        net_pips = (
-            gross_pips -
-            spread
-        )
-
-        trades.append({
-
-            "signal_time":
-                x.iloc[i]["time"],
-
-            "entry_time":
-                x.iloc[
-                    entry_index
-                ]["time"],
-
-            "exit_time":
-                x.iloc[
-                    exit_index
-                ]["time"],
-
-            "signal":
-                signal,
-
-            "score":
-                result["score"],
-
-            "entry":
-                entry,
-
-            "exit":
-                exit_price,
-
-            "gross_pips":
-                gross_pips,
-
-            "net_pips":
-                net_pips,
-
-            "win":
-                int(gross_pips > 0)
-        })
-
-    return pd.DataFrame(
-        trades
-    )
-
-
-# ============================================================
-# REMOVE OVERLAPPING TRADES
-# ============================================================
-
-def non_overlap(trades):
-
-    if trades.empty:
-        return trades
-
-    keep = []
-
-    last_exit = None
-
-    for index, row in trades.iterrows():
-
-        if (
-            last_exit is None
-            or
-            row["entry_time"] >
-            last_exit
-        ):
-
-            keep.append(index)
-
-            last_exit = (
-                row["exit_time"]
-            )
-
-    return (
-        trades
-        .loc[keep]
-        .reset_index(drop=True)
-    )
+# interval -> (yahoo range, minutes per candle)
+INTERVALS = {"1m": ("7d", 1), "5m": ("60d", 5), "15m": ("60d", 15)}
+TIMEZONES = ["Asia/Kolkata", "UTC", "Asia/Dubai", "Europe/London", "America/New_York"]
 
 
 # ============================================================
 # STATISTICS
 # ============================================================
 
-def calculate_stats(trades):
+def wilson(wins, n, z=1.96):
+    """95% Wilson confidence interval for a win rate."""
+    if n <= 0:
+        return np.nan, np.nan
+    p = wins / n
+    den = 1 + z * z / n
+    center = (p + z * z / (2 * n)) / den
+    half = z * math.sqrt(max(p * (1 - p) / n + z * z / (4 * n * n), 0)) / den
+    return center - half, center + half
 
-    if trades.empty:
-        return None
 
-    n = len(trades)
+def p_value_vs_breakeven(wins, n, breakeven):
+    """One-sided p-value: is the win rate really above break-even?"""
+    if n <= 0:
+        return np.nan
+    z = (wins / n - breakeven) / math.sqrt(breakeven * (1 - breakeven) / n)
+    return 0.5 * math.erfc(z / math.sqrt(2))
 
-    wins = int(
-        trades["win"].sum()
-    )
 
-    losses = n - wins
+def max_loss_streak(results):
+    best = cur = 0
+    for r in results:
+        if r == "LOSS":
+            cur += 1
+            best = max(best, cur)
+        elif r == "WIN":
+            cur = 0
+    return best
 
-    winrate = (
-        wins / n
-    )
 
-    low, high = wilson(
-        wins,
-        n
-    )
+# ============================================================
+# LIVE DATA (with retry + validation)
+# ============================================================
 
-    # Equity starts at zero.
-    equity = np.r_[
-        0.0,
-        trades[
-            "net_pips"
-        ]
-        .astype(float)
-        .cumsum()
-        .to_numpy()
-    ]
-
-    peak = np.maximum.accumulate(
-        equity
-    )
-
-    drawdown = (
-        equity -
-        peak
-    )
-
-    max_dd = float(
-        drawdown.min()
-    )
-
-    positive = float(
-        trades.loc[
-            trades["net_pips"] > 0,
-            "net_pips"
-        ].sum()
-    )
-
-    negative = float(
-        -trades.loc[
-            trades["net_pips"] < 0,
-            "net_pips"
-        ].sum()
-    )
-
-    profit_factor = (
-        positive / negative
-        if negative > 0
-        else np.inf
-    )
-
-    return {
-
-        "trades":
-            n,
-
-        "wins":
-            wins,
-
-        "losses":
-            losses,
-
-        "winrate":
-            winrate,
-
-        "low":
-            low,
-
-        "high":
-            high,
-
-        "total_pips":
-            float(
-                trades[
-                    "net_pips"
-                ].sum()
-            ),
-
-        "avg_pips":
-            float(
-                trades[
-                    "net_pips"
-                ].mean()
-            ),
-
-        "profit_factor":
-            profit_factor,
-
-        "max_dd":
-            max_dd,
-
-        "max_streak":
-            max_loss_streak(
-                trades[
-                    "win"
-                ]
+@st.cache_data(ttl=30, show_spinner=False)
+def fetch_candles(interval):
+    rng = INTERVALS[interval][0]
+    last_err = None
+    for host in ("query1", "query2"):
+        url = f"https://{host}.finance.yahoo.com/v8/finance/chart/{SYMBOL}"
+        try:
+            r = requests.get(
+                url,
+                params={"range": rng, "interval": interval, "includePrePost": "false"},
+                timeout=12,
+                headers={"User-Agent": "Mozilla/5.0"},
             )
+            r.raise_for_status()
+            res = r.json()["chart"]["result"][0]
+            q = res["indicators"]["quote"][0]
+            ts = res.get("timestamp") or []
+            df = pd.DataFrame({
+                "time": pd.to_datetime(ts, unit="s", utc=True),
+                "open": q["open"], "high": q["high"],
+                "low": q["low"], "close": q["close"],
+            })
+            df = (df.dropna().drop_duplicates("time")
+                  .sort_values("time").reset_index(drop=True))
+            if len(df) < 250:
+                raise ValueError(f"Only {len(df)} candles received")
+            return df
+        except Exception as e:  # try next host
+            last_err = e
+    raise RuntimeError(f"Yahoo feed unavailable: {last_err}")
+
+
+# ============================================================
+# INDICATORS (Wilder smoothing = standard RSI / ATR / ADX)
+# ============================================================
+
+def wilder(s, n):
+    return s.ewm(alpha=1 / n, adjust=False, min_periods=n).mean()
+
+
+def add_indicators(df):
+    x = df.copy()
+    c, o, h, l = x["close"], x["open"], x["high"], x["low"]
+
+    x["ema9"] = c.ewm(span=9, adjust=False).mean()
+    x["ema21"] = c.ewm(span=21, adjust=False).mean()
+    x["ema50"] = c.ewm(span=50, adjust=False).mean()
+
+    delta = c.diff()
+    gain = wilder(delta.clip(lower=0), 14)
+    loss = wilder(-delta.clip(upper=0), 14)
+    rsi = 100 - 100 / (1 + gain / loss.replace(0, np.nan))
+    rsi[(loss == 0) & (gain > 0)] = 100.0
+    x["rsi"] = rsi
+
+    tr = pd.concat([h - l, (h - c.shift()).abs(), (l - c.shift()).abs()], axis=1).max(axis=1)
+    x["atr"] = wilder(tr, 14)
+    x["atr_med"] = x["atr"].shift(1).rolling(100).median()
+
+    # ADX: trend strength (separates trending from ranging markets)
+    up, dn = h.diff(), -l.diff()
+    plus_dm = pd.Series(np.where((up > dn) & (up > 0), up, 0.0), index=x.index)
+    minus_dm = pd.Series(np.where((dn > up) & (dn > 0), dn, 0.0), index=x.index)
+    plus_di = 100 * wilder(plus_dm, 14) / x["atr"]
+    minus_di = 100 * wilder(minus_dm, 14) / x["atr"]
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan)
+    x["adx"] = wilder(dx, 14)
+
+    mid = c.rolling(20).mean()
+    sd = c.rolling(20).std(ddof=0)
+    x["bb_mid"], x["bb_up"], x["bb_lo"] = mid, mid + 2 * sd, mid - 2 * sd
+
+    rng = (h - l).replace(0, np.nan)
+    x["body_atr"] = (c - o).abs() / x["atr"].replace(0, np.nan)
+    x["close_loc"] = (c - l) / rng
+    x["upper_wick"] = (h - np.maximum(o, c)) / rng
+    x["lower_wick"] = (np.minimum(o, c) - l) / rng
+    x["hour"] = x["time"].dt.hour
+    return x
+
+
+# ============================================================
+# SIGNAL ENGINE (vectorised: identical logic for live + backtest)
+#   A) Trend Pullback  - trade WITH the trend after a dip to EMA21
+#   B) Range Reversal  - fade Bollinger extremes ONLY in ranging market
+#   Transition zone (ADX between thresholds) = no trade.
+# ============================================================
+
+def compute_signals(x, p):
+    c, o, h, l = x["close"], x["open"], x["high"], x["low"]
+    ratio = x["atr"] / x["atr_med"]
+
+    ok = (
+        (x["hour"] >= p["h0"]) & (x["hour"] < p["h1"])
+        & ratio.between(0.6, 2.0)
+        & (x["body_atr"] <= 3.0)
+        & x[["atr", "atr_med", "rsi", "adx", "bb_up", "ema50"]].notna().all(axis=1)
+    )
+    good_vol = ratio.between(0.8, 1.5)
+
+    # --- A) trend pullback
+    up_tr = (x["ema21"] > x["ema50"]) & (c > x["ema50"]) & (x["adx"] >= p["adx_trend"])
+    dn_tr = (x["ema21"] < x["ema50"]) & (c < x["ema50"]) & (x["adx"] >= p["adx_trend"])
+    a_up = (ok & up_tr & (l.rolling(3).min() <= x["ema21"]) & (c > x["ema21"])
+            & (c > o) & (c > c.shift(1)) & (x["close_loc"] >= 0.6) & x["rsi"].between(40, 66))
+    a_dn = (ok & dn_tr & (h.rolling(3).max() >= x["ema21"]) & (c < x["ema21"])
+            & (c < o) & (c < c.shift(1)) & (x["close_loc"] <= 0.4) & x["rsi"].between(34, 60))
+    conf_a_up = ((x["adx"] >= 30).astype(int) + (x["ema9"] > x["ema21"]).astype(int)
+                 + x["rsi"].between(45, 60).astype(int) + good_vol.astype(int)
+                 + (x["close_loc"] >= 0.75).astype(int))
+    conf_a_dn = ((x["adx"] >= 30).astype(int) + (x["ema9"] < x["ema21"]).astype(int)
+                 + x["rsi"].between(40, 55).astype(int) + good_vol.astype(int)
+                 + (x["close_loc"] <= 0.25).astype(int))
+
+    # --- B) range reversal (previous candle pierced band, current candle rejects it)
+    ranging = x["adx"] < p["adx_range"]
+    b_up = (ok & ranging & (c.shift(1) <= x["bb_lo"].shift(1)) & (x["rsi"].shift(1) <= 35)
+            & (c > x["bb_lo"]) & (c > o) & (x["close_loc"] >= 0.55))
+    b_dn = (ok & ranging & (c.shift(1) >= x["bb_up"].shift(1)) & (x["rsi"].shift(1) >= 65)
+            & (c < x["bb_up"]) & (c < o) & (x["close_loc"] <= 0.45))
+    conf_b_up = ((x["rsi"].shift(1) <= 30).astype(int) + (x["lower_wick"].shift(1) >= 0.4).astype(int)
+                 + good_vol.astype(int) + (x["close_loc"] >= 0.75).astype(int)
+                 + (x["adx"] < 15).astype(int))
+    conf_b_dn = ((x["rsi"].shift(1) >= 70).astype(int) + (x["upper_wick"].shift(1) >= 0.4).astype(int)
+                 + good_vol.astype(int) + (x["close_loc"] <= 0.25).astype(int)
+                 + (x["adx"] < 15).astype(int))
+
+    n = len(x)
+    side = np.zeros(n, dtype=int)
+    conf = np.zeros(n, dtype=int)
+    setup = np.array([""] * n, dtype=object)
+    for mask, s, name, cf in [
+        (a_up, 1, "Trend Pullback", conf_a_up), (a_dn, -1, "Trend Pullback", conf_a_dn),
+        (b_up, 1, "Range Reversal", conf_b_up), (b_dn, -1, "Range Reversal", conf_b_dn),
+    ]:
+        m = mask.fillna(False).to_numpy(dtype=bool) & (cf.to_numpy() >= p["min_conf"])
+        side[m], conf[m], setup[m] = s, cf.to_numpy()[m], name
+    return pd.DataFrame({"side": side, "conf": conf, "setup": setup}, index=x.index)
+
+
+def regime_label(r, p):
+    if pd.isna(r["adx"]):
+        return "—"
+    if r["adx"] >= p["adx_trend"]:
+        return "UPTREND" if r["ema21"] > r["ema50"] else "DOWNTREND"
+    if r["adx"] < p["adx_range"]:
+        return "RANGING"
+    return "TRANSITION"
+
+
+def why_no_trade(r, p):
+    if not (p["h0"] <= r["hour"] < p["h1"]):
+        return "Outside chosen trading session (low liquidity / spreads)."
+    if pd.isna(r["atr_med"]) or pd.isna(r["adx"]):
+        return "Indicators still warming up."
+    ratio = r["atr"] / r["atr_med"]
+    if ratio < 0.6:
+        return "Market too quiet (volatility far below normal)."
+    if ratio > 2.0:
+        return "Volatility spike (news-like conditions) - skipped."
+    if r["body_atr"] > 3.0:
+        return "Abnormal oversized candle - skipped."
+    reg = regime_label(r, p)
+    if reg == "TRANSITION":
+        return f"Transition zone (ADX {r['adx']:.0f}) - neither a clean trend nor a clean range."
+    if reg == "RANGING":
+        return "Ranging market, but price is not rejecting a Bollinger extreme."
+    return f"{reg.title()}, but no pullback-and-resume trigger yet."
+
+
+def explain(r, setup, side, p):
+    d = "UP" if side == 1 else "DOWN"
+    if setup == "Trend Pullback":
+        trend = "uptrend" if side == 1 else "downtrend"
+        return (f"{trend} (ADX {r['adx']:.0f}); price dipped to EMA21 and resumed {d}; "
+                f"RSI {r['rsi']:.0f} (not exhausted).")
+    band = "lower" if side == 1 else "upper"
+    return (f"Ranging market (ADX {r['adx']:.0f}); price pierced the {band} Bollinger band "
+            f"and was rejected; RSI extreme on prior candle.")
+
+
+# ============================================================
+# BINARY-OPTIONS BACKTEST (win = +payout, loss = -1, tie = 0)
+# ============================================================
+
+def run_backtest(x, sig, horizon, one_at_a_time):
+    n = len(x)
+    o, c = x["open"].to_numpy(), x["close"].to_numpy()
+    rows, busy_until = [], -1
+    for i in np.flatnonzero(sig["side"].to_numpy() != 0):
+        e, ex = i + 1, i + horizon
+        if ex >= n:
+            break
+        if one_at_a_time and e <= busy_until:
+            continue
+        s = int(sig["side"].iat[i])
+        move = round((c[ex] - o[e]) * s / PIP, 1)
+        res = "WIN" if move > 0 else ("LOSS" if move < 0 else "TIE")
+        rows.append({
+            "signal_time": x["time"].iat[i], "entry_time": x["time"].iat[e],
+            "side": "UP" if s == 1 else "DOWN", "setup": sig["setup"].iat[i],
+            "conf": int(sig["conf"].iat[i]), "entry": o[e], "exit": c[ex],
+            "pips": move, "result": res,
+        })
+        busy_until = ex
+    return pd.DataFrame(rows)
+
+
+def score_trades(tr, payout):
+    """Adds pnl (in stake units) and returns summary stats."""
+    if tr.empty:
+        return None
+    tr = tr.copy()
+    tr["pnl"] = tr["result"].map({"WIN": payout, "LOSS": -1.0, "TIE": 0.0})
+    wins = int((tr["result"] == "WIN").sum())
+    losses = int((tr["result"] == "LOSS").sum())
+    decided = wins + losses
+    be = 1 / (1 + payout)
+    wr = wins / decided if decided else np.nan
+    lo, hi = wilson(wins, decided)
+    equity = np.r_[0.0, tr["pnl"].cumsum().to_numpy()]
+    max_dd = float((equity - np.maximum.accumulate(equity)).min())
+    return {
+        "tr": tr, "n": len(tr), "wins": wins, "losses": losses, "ties": len(tr) - decided,
+        "decided": decided, "wr": wr, "lo": lo, "hi": hi, "be": be,
+        "ev": float(tr["pnl"].mean()), "net": float(tr["pnl"].sum()),
+        "dd": max_dd, "streak": max_loss_streak(tr["result"]),
+        "pval": p_value_vs_breakeven(wins, decided, be), "equity": equity,
     }
 
 
-# ============================================================
-# VALIDATION
-# ============================================================
-
-def validation_report(
-    trades,
-    holdout_percent=30
-):
-
-    if trades.empty:
-        return None, None
-
-    split = int(
-        len(trades) *
-        (1 -
-         holdout_percent / 100)
-    )
-
-    if split < 10:
-        return None, None
-
-    train = (
-        trades
-        .iloc[:split]
-        .copy()
-    )
-
-    holdout = (
-        trades
-        .iloc[split:]
-        .copy()
-    )
-
-    return train, holdout
+def verdict(s):
+    if s is None or s["decided"] < 30:
+        return "gray", "Not enough trades", "Fewer than 30 decided trades - results are not reliable yet."
+    if s["lo"] > s["be"]:
+        return "green", "Statistically proven edge", "Even the pessimistic (95%) win-rate estimate beats break-even."
+    if s["ev"] > 0:
+        return "amber", "Positive, but unproven", "Profitable in the sample, but could still be luck."
+    return "red", "No edge", "Win rate is below break-even - this setup loses money historically."
 
 
 # ============================================================
-# UI
+# JOURNAL / RISK GUARD
 # ============================================================
 
-st.title(
-    "📊 EUR/USD SIGNAL BOT V8"
-)
+def guard_status(journal, today, max_consec, max_loss_units):
+    t = [j for j in journal if j["date"] == today]
+    pnl = sum(j["pnl"] for j in t)
+    consec = 0
+    for j in reversed(t):
+        if j["result"] == "LOSS":
+            consec += 1
+        elif j["result"] == "WIN":
+            break
+    if consec >= max_consec:
+        return True, f"{consec} losses in a row today", pnl
+    if pnl <= -max_loss_units:
+        return True, f"daily loss limit reached ({pnl:.1f} stakes)", pnl
+    return False, "", pnl
 
-st.caption(
-    "QUALITY-FIRST • LIVE EUR/USD • 5M CLOSED CANDLE"
-)
 
+# ============================================================
+# CHART
+# ============================================================
+
+def candle_chart(x, tz, n=80):
+    d = x.tail(n).copy()
+    d["time"] = d["time"].dt.tz_convert(tz).dt.tz_localize(None)
+    d["up"] = d["close"] >= d["open"]
+    ysc = alt.Scale(zero=False)
+    col = alt.condition("datum.up", alt.value("#16c784"), alt.value("#ea3943"))
+    base = alt.Chart(d).encode(x=alt.X("time:T", title=None))
+    wick = base.mark_rule().encode(y=alt.Y("low:Q", scale=ysc, title=None), y2="high:Q", color=col)
+    body = base.mark_bar(size=5).encode(y=alt.Y("open:Q", scale=ysc), y2="close:Q", color=col)
+    e21 = base.mark_line(color="#f5a623", strokeWidth=1.2).encode(y=alt.Y("ema21:Q", scale=ysc))
+    e50 = base.mark_line(color="#4c8bf5", strokeWidth=1.2).encode(y=alt.Y("ema50:Q", scale=ysc))
+    return (wick + body + e21 + e50).properties(height=280)
+
+
+# ===== UI =====
+
+CSS = """
+<style>
+.block-container{padding-top:1.4rem;max-width:760px}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem}
+.hdr h2{margin:0;font-size:1.35rem}
+.pill{padding:.15rem .6rem;border-radius:999px;font-size:.72rem;font-weight:600;
+      background:rgba(128,128,128,.18)}
+.sig{border-radius:16px;padding:1.2rem 1rem;text-align:center;margin:.6rem 0 .8rem 0;
+     border:1px solid rgba(128,128,128,.25)}
+.sig .big{font-size:2.6rem;font-weight:800;line-height:1.1}
+.sig .sub{opacity:.85;font-size:.9rem;margin-top:.3rem}
+.sig .meta{opacity:.7;font-size:.78rem;margin-top:.6rem}
+.up{background:rgba(22,199,132,.14);border-color:rgba(22,199,132,.5)}
+.down{background:rgba(234,57,67,.14);border-color:rgba(234,57,67,.5)}
+.wait{background:rgba(245,166,35,.12);border-color:rgba(245,166,35,.45)}
+.stop{background:rgba(128,128,128,.14)}
+.vd{border-radius:12px;padding:.7rem .9rem;margin:.3rem 0 .8rem 0;border:1px solid rgba(128,128,128,.25)}
+.vd.green{background:rgba(22,199,132,.14)} .vd.amber{background:rgba(245,166,35,.14)}
+.vd.red{background:rgba(234,57,67,.14)} .vd.gray{background:rgba(128,128,128,.12)}
+.vd b{font-size:1rem}
+[data-testid="stMetric"]{background:rgba(128,128,128,.08);border-radius:12px;padding:.5rem .7rem}
+</style>
+"""
+st.markdown(CSS, unsafe_allow_html=True)
+
+st.session_state.setdefault("journal", [])
+
+# ---------------- sidebar ----------------
 with st.sidebar:
+    st.header("⚙️ Settings")
+    interval = st.selectbox("Candle size", list(INTERVALS), index=1)
+    mins = INTERVALS[interval][1]
+    horizon = st.selectbox("Expiry (candles)", [1, 2, 3], index=0,
+                           help="Quotex expiry = candles x candle size")
+    st.caption(f"Expiry on Quotex: **{horizon * mins} min**")
+    payout_pct = st.slider("Broker payout %", 70, 95, 85,
+                           help="Check the % shown next to EUR/USD in Quotex")
+    payout = payout_pct / 100
+    st.caption(f"Break-even win rate: **{100 / (1 + payout):.1f}%**")
+    tz = st.selectbox("Your timezone", TIMEZONES, index=0)
 
-    st.header(
-        "⚙️ Bot Settings"
-    )
+    st.subheader("Filters")
+    h0, h1 = st.slider("Trading session (UTC hours)", 0, 24, (7, 20),
+                       help="07-20 UTC = London + New York. Asian night is low quality.")
+    min_conf = st.slider("Minimum confluence (0-5)", 0, 5, 2)
+    require_valid = st.checkbox("Only signal validated setups", value=True,
+                                help="Blocks a setup unless it has been profitable in the backtest.")
+    one_at_a_time = st.checkbox("One trade at a time", value=True)
+    with st.expander("Advanced"):
+        adx_trend = st.slider("ADX = trending above", 15, 35, 22)
+        adx_range = st.slider("ADX = ranging below", 10, 25, 20)
 
-    minimum_score = st.slider(
-        "Minimum signal score",
-        min_value=8,
-        max_value=10,
-        value=8,
-        step=1
-    )
+    st.subheader("Risk guard")
+    balance = st.number_input("Balance", min_value=0.0, value=100.0, step=10.0)
+    stake_pct = st.slider("Stake % of balance", 0.5, 5.0, 1.0, 0.5)
+    max_consec = st.slider("Stop after N losses in a row", 1, 5, 2)
+    max_loss_units = st.slider("Daily loss limit (stakes)", 1, 10, 3)
+    st.caption(f"Suggested stake: **{balance * stake_pct / 100:.2f}**")
 
-    horizon = st.selectbox(
-        "Backtest expiry",
-        [1, 2, 3],
-        index=0
-    )
+params = {"h0": h0, "h1": h1, "min_conf": min_conf, "adx_trend": adx_trend, "adx_range": adx_range}
 
-    spread = st.number_input(
-        "Estimated cost (pips)",
-        min_value=0.0,
-        max_value=5.0,
-        value=1.2,
-        step=0.1
-    )
-
-    holdout_percent = st.slider(
-        "Holdout %",
-        min_value=20,
-        max_value=40,
-        value=30,
-        step=5
-    )
-
-    one_trade = st.checkbox(
-        "One trade at a time",
-        value=True
-    )
-
-    st.divider()
-
-    st.caption(
-        "🔒 OTC DISABLED"
-    )
-
-    st.caption(
-        "🔒 AUTO TRADE DISABLED"
-    )
-
-
-# ============================================================
-# REFRESH
-# ============================================================
-
-if st.button(
-    "🔄 REFRESH LIVE DATA",
-    use_container_width=True
-):
-
+# ---------------- header ----------------
+st.markdown(
+    "<div class='hdr'><h2>📊 EUR/USD Signal Pro</h2>"
+    "<span class='pill'>MANUAL • CLOSED CANDLES ONLY</span></div>",
+    unsafe_allow_html=True,
+)
+if st.button("🔄 Refresh live data", use_container_width=True):
     st.cache_data.clear()
-
     st.rerun()
 
-
-# ============================================================
-# LIVE ANALYSIS
-# ============================================================
-
+# ---------------- data ----------------
 try:
+    raw = fetch_candles(interval)
+except Exception as err:
+    st.error("Live data error")
+    st.code(str(err))
+    st.info("Feed unavailable. Do not trade without data. Refresh in a moment.")
+    st.stop()
 
-    raw = get_live_data()
+x = add_indicators(raw)
+sig = compute_signals(x, params)
+bt = run_backtest(x, sig, horizon, one_at_a_time)
+overall = score_trades(bt, payout)
 
-    data = add_indicators(
-        raw
-    )
+by_setup = {}
+if overall is not None:
+    for name, g in overall["tr"].groupby("setup"):
+        by_setup[name] = score_trades(g.reset_index(drop=True), payout)
+validated = {k: (v["decided"] >= 20 and v["ev"] > 0) for k, v in by_setup.items()}
 
-    if len(data) < 150:
+now = pd.Timestamp.now(tz="UTC")
+delta = pd.Timedelta(minutes=mins)
+last_bar = x["time"].iloc[-1]
+idx = len(x) - 1 if now >= last_bar + delta else len(x) - 2
+row = x.iloc[idx]
+entry_time = row["time"] + delta
+age_s = (now - entry_time).total_seconds()
+feed_stale = (now - last_bar) > max(pd.Timedelta(minutes=15), 3 * delta)
+window_s = max(20, int(mins * 60 * 0.3))
+regime = regime_label(row, params)
+fmt = lambda t: t.tz_convert(tz).strftime("%d %b %H:%M")
 
-        st.error(
-            "Not enough 5-minute data."
-        )
+tab_sig, tab_bt, tab_j, tab_guide = st.tabs(["📡 Signal", "📈 Backtest", "📒 Journal", "ℹ️ Guide"])
 
-        st.stop()
-
-    now = pd.Timestamp.now(
-        tz="UTC"
-    )
-
-    latest = data.iloc[-1]
-
-    candle_end = (
-        latest["time"].floor("5min")
-        +
-        pd.Timedelta(minutes=5)
-    )
-
-    # Use only CLOSED candle.
-    if now < candle_end:
-
-        signal_index = (
-            len(data) - 2
-        )
-
-    else:
-
-        signal_index = (
-            len(data) - 1
-        )
-
-    row = data.iloc[
-        signal_index
-    ]
-
-    age_minutes = (
-        now -
-        row["time"]
-    ).total_seconds() / 60
-
-    # --------------------------------------------------------
-    # STALE DATA PROTECTION
-    # --------------------------------------------------------
-
-    stale = (
-        age_minutes > 20
-    )
-
-    st.subheader(
-        "🟢 LIVE EUR/USD"
-    )
-
+# ================= SIGNAL TAB =================
+with tab_sig:
     c1, c2, c3 = st.columns(3)
+    c1.metric("Price", f"{row['close']:.5f}")
+    c2.metric("Regime", regime.title())
+    c3.metric("ATR", f"{row['atr'] / PIP:.1f} pips" if pd.notna(row["atr"]) else "—")
 
-    c1.metric(
-        "PRICE",
-        f"{row['close']:.5f}"
-    )
+    today = now.tz_convert(tz).strftime("%Y-%m-%d")
+    stopped, stop_msg, today_pnl = guard_status(st.session_state["journal"], today, max_consec, max_loss_units)
 
-    c2.metric(
-        "RSI",
-        (
-            f"{row['rsi']:.1f}"
-            if pd.notna(row["rsi"])
-            else "—"
-        )
-    )
+    side = int(sig["side"].iloc[idx])
+    setup = sig["setup"].iloc[idx]
+    conf = int(sig["conf"].iloc[idx])
 
-    c3.metric(
-        "ATR",
-        (
-            f"{row['atr']/PIP:.1f} pips"
-            if pd.notna(row["atr"])
-            else "—"
-        )
-    )
-
-    st.write(
-        "**Closed candle:** "
-        +
-        row["time"].strftime(
-            "%Y-%m-%d %H:%M UTC"
-        )
-    )
-
-    st.write(
-        f"**Data age:** "
-        f"{age_minutes:.1f} minutes"
-    )
-
-    if stale:
-
-        st.error(
-            "🔴 DATA STALE — NO SIGNAL"
-        )
-
-        st.stop()
-
-
-    # --------------------------------------------------------
-    # SIGNAL
-    # --------------------------------------------------------
-
-    result = get_signal(
-        data,
-        signal_index,
-        minimum_score
-    )
-
-    signal = result[
-        "signal"
-    ]
-
-    if signal == "UP":
-
-        st.success(
-            "🟢 UP"
-        )
-
-    elif signal == "DOWN":
-
-        st.error(
-            "🔴 DOWN"
-        )
-
+    if feed_stale:
+        card, big, sub = "stop", "⛔ NO DATA", "Feed is stale or the market is closed. Do not trade."
+        meta = f"Last candle: {fmt(last_bar)}"
+    elif stopped:
+        card, big, sub = "stop", "🛑 STOP TODAY", f"Risk guard: {stop_msg}. Come back tomorrow."
+        meta = "Protecting your balance is part of the strategy."
+    elif side != 0 and age_s > window_s:
+        card, big = "wait", "⌛ EXPIRED"
+        sub = f"Signal is {int(age_s)}s old. Entering late ruins the edge - wait for the next one."
+        meta = f"Setup was: {setup} ({'UP' if side == 1 else 'DOWN'})"
+    elif side != 0 and require_valid and not validated.get(setup, False):
+        card, big = "wait", "🟡 NO TRADE"
+        sub = f"{setup} fired, but this setup has not proven profitable in the backtest. Skipped."
+        meta = "Untick 'Only signal validated setups' to override (not recommended)."
+    elif side != 0:
+        up = side == 1
+        card, big = ("up", "🟢 UP") if up else ("down", "🔴 DOWN")
+        sub = explain(row, setup, side, params)
+        meta = (f"{setup} • confluence {conf}/5 • enter at {fmt(entry_time)} • "
+                f"expiry {horizon * mins} min • valid for {window_s}s")
     else:
+        card, big, sub = "wait", "🟡 NO TRADE", why_no_trade(row, params)
+        meta = f"Analysed candle closed {fmt(entry_time)}"
 
-        st.warning(
-            "🟡 NO TRADE"
-        )
-
-    st.write(
-        f"**Market:** "
-        f"{row['regime']}"
+    st.markdown(
+        f"<div class='sig {card}'><div class='big'>{big}</div>"
+        f"<div class='sub'>{sub}</div><div class='meta'>{meta}</div></div>",
+        unsafe_allow_html=True,
     )
 
-    st.write(
-        f"**UP score:** "
-        f"{result['up']}"
-    )
+    if side != 0 and card in ("up", "down"):
+        s = by_setup.get(setup)
+        if s:
+            st.caption(
+                f"Historical record of **{setup}**: {s['wr'] * 100:.1f}% win rate over "
+                f"{s['decided']} trades (break-even {s['be'] * 100:.1f}%)."
+            )
 
-    st.write(
-        f"**DOWN score:** "
-        f"{result['down']}"
-    )
-
-    st.write(
-        f"**Final score:** "
-        f"{result['score']}"
-    )
-
-    st.write(
-        f"**Reason:** "
-        f"{result['reason']}"
-    )
-
-
-    # ========================================================
-    # SAFETY CHECKS
-    # ========================================================
-
-    st.subheader(
-        "🛡️ Safety Checks"
-    )
-
+    st.markdown("**Safety checks**")
     checks = [
-
-        (
-            "5-minute data",
-            True
-        ),
-
-        (
-            "Closed candle",
-            True
-        ),
-
-        (
-            "Fresh data",
-            not stale
-        ),
-
-        (
-            "Indicators ready",
-            all(
-                pd.notna(
-                    row[k]
-                )
-                for k in [
-                    "atr",
-                    "rsi",
-                    "ema12",
-                    "ema26",
-                    "ema50",
-                    "macd_hist"
-                ]
-            )
-        ),
-
-        (
-            "Normal candle",
-            (
-                pd.notna(
-                    row["body_atr"]
-                )
-                and
-                row["body_atr"] <= 3
-            )
-        ),
-
-        (
-            "Not sideways",
-            row["regime"] != "SIDEWAYS"
-        ),
-
-        (
-            "Score threshold",
-            result["score"] >= minimum_score
-        )
+        ("Fresh data", not feed_stale),
+        ("Closed candle only", True),
+        ("Inside trading session", h0 <= row["hour"] < h1),
+        ("Normal volatility",
+         pd.notna(row["atr_med"]) and 0.6 <= row["atr"] / row["atr_med"] <= 2.0),
+        ("Clear regime (not transition)", regime in ("UPTREND", "DOWNTREND", "RANGING")),
+        ("Risk guard clear", not stopped),
     ]
+    st.write("  ".join(("✅ " if ok_ else "❌ ") + n_ for n_, ok_ in checks[:3]))
+    st.write("  ".join(("✅ " if ok_ else "❌ ") + n_ for n_, ok_ in checks[3:]))
 
-    for name, okay in checks:
+    st.altair_chart(candle_chart(x, tz), use_container_width=True)
+    st.caption("🟠 EMA21  •  🔵 EMA50  •  Today's journal P/L: "
+               f"{today_pnl:+.1f} stakes")
 
-        if okay:
-
-            st.write(
-                "✅ " + name
-            )
-
-        else:
-
-            st.write(
-                "❌ " + name
-            )
-
-
-    # ========================================================
-    # BACKTEST
-    # ========================================================
-
-    st.divider()
-
-    st.subheader(
-        "📈 V8 BACKTEST"
-    )
-
-    trades = backtest(
-        raw,
-        horizon=horizon,
-        minimum_score=minimum_score,
-        spread=spread
-    )
-
-    if one_trade:
-
-        trades = non_overlap(
-            trades
-        )
-
-    if trades.empty:
-
-        st.warning(
-            "No qualifying setups."
-        )
-
+# ================= BACKTEST TAB =================
+with tab_bt:
+    st.caption(f"{len(x):,} candles • {fmt(x['time'].iloc[0])} → {fmt(x['time'].iloc[-1])} "
+               f"• payout {payout_pct}%")
+    if overall is None:
+        st.info("No qualifying setups with the current filters. Loosen the confluence or session filter.")
     else:
-
-        train, holdout = (
-            validation_report(
-                trades,
-                holdout_percent
-            )
+        colr, title, note = verdict(overall)
+        st.markdown(f"<div class='vd {colr}'><b>{title}</b><br>"
+                    f"<span style='opacity:.8;font-size:.85rem'>{note}</span></div>",
+                    unsafe_allow_html=True)
+        a, b, c_ = st.columns(3)
+        a.metric("Trades", overall["n"])
+        b.metric("Win rate", f"{overall['wr'] * 100:.1f}%",
+                 f"{(overall['wr'] - overall['be']) * 100:+.1f} vs break-even")
+        c_.metric("EV / trade", f"{overall['ev']:+.3f} stake")
+        d, e, f = st.columns(3)
+        d.metric("Net result", f"{overall['net']:+.1f} stakes")
+        e.metric("Max drawdown", f"{overall['dd']:.1f} stakes")
+        f.metric("Max loss streak", overall["streak"])
+        st.caption(
+            f"95% confidence range for win rate: {overall['lo'] * 100:.1f}% – {overall['hi'] * 100:.1f}%  "
+            f"• p-value vs break-even: {overall['pval']:.3f}  "
+            f"• ties (refunded): {overall['ties']}"
         )
 
-        # ----------------------------------------------------
-        # FULL
-        # ----------------------------------------------------
+        st.markdown("**By setup**")
+        rows = []
+        for name, s in by_setup.items():
+            rows.append({
+                "Setup": name, "Trades": s["decided"], "Win %": round(s["wr"] * 100, 1),
+                "EV/trade": round(s["ev"], 3), "95% low": round(s["lo"] * 100, 1),
+                "Validated": "✅" if validated[name] else "❌",
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-        st.markdown(
-            "### Overall"
-        )
+        st.markdown("**Consistency check** (older half vs newer half)")
+        tr = overall["tr"]
+        half = len(tr) // 2
+        cons = []
+        for label, part in (("Older half", tr.iloc[:half]), ("Newer half", tr.iloc[half:])):
+            s = score_trades(part.reset_index(drop=True), payout)
+            if s:
+                cons.append({"Period": label, "Trades": s["decided"],
+                             "Win %": round(s["wr"] * 100, 1), "EV/trade": round(s["ev"], 3)})
+        if cons:
+            st.dataframe(pd.DataFrame(cons), use_container_width=True, hide_index=True)
+            st.caption("If the two halves disagree strongly, the edge is probably noise.")
 
-        overall_stats = (
-            calculate_stats(
-                trades
-            )
-        )
+        st.markdown("**Equity curve (stakes)**")
+        st.line_chart(pd.Series(overall["equity"], name="equity"))
 
-        a, b, c = st.columns(3)
+        st.markdown("**Recent trades**")
+        show = overall["tr"].tail(25).iloc[::-1].copy()
+        show["entry_time"] = show["entry_time"].dt.tz_convert(tz).dt.strftime("%d %b %H:%M")
+        show = show[["entry_time", "side", "setup", "conf", "pips", "result", "pnl"]]
+        st.dataframe(show, use_container_width=True, hide_index=True)
 
-        a.metric(
-            "Trades",
-            overall_stats["trades"]
-        )
+# ================= JOURNAL TAB =================
+with tab_j:
+    st.caption("Log every trade you take. The risk guard uses this to stop you after a bad streak.")
+    jc1, jc2, jc3 = st.columns(3)
+    j_side = jc1.selectbox("Side", ["UP", "DOWN"])
+    j_res = jc2.selectbox("Result", ["WIN", "LOSS", "TIE"])
+    if jc3.button("➕ Add", use_container_width=True):
+        pnl = {"WIN": payout, "LOSS": -1.0, "TIE": 0.0}[j_res]
+        st.session_state["journal"].append({
+            "date": now.tz_convert(tz).strftime("%Y-%m-%d"),
+            "time": now.tz_convert(tz).strftime("%H:%M"),
+            "side": j_side, "result": j_res, "pnl": pnl,
+        })
+        st.rerun()
 
-        b.metric(
-            "Win rate",
-            (
-                f"{overall_stats['winrate']*100:.1f}%"
-            )
-        )
+    jr = st.session_state["journal"]
+    if jr:
+        jdf = pd.DataFrame(jr)
+        w = int((jdf["result"] == "WIN").sum())
+        l_ = int((jdf["result"] == "LOSS").sum())
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Logged trades", len(jdf))
+        m2.metric("Win rate", f"{w / (w + l_) * 100:.0f}%" if (w + l_) else "—")
+        m3.metric("Net (stakes)", f"{jdf['pnl'].sum():+.1f}")
+        st.dataframe(jdf.iloc[::-1], use_container_width=True, hide_index=True)
+        if st.button("🗑️ Clear journal"):
+            st.session_state["journal"] = []
+            st.rerun()
+    else:
+        st.info("No trades logged yet.")
+    st.caption("Journal is kept only while this browser tab session is open.")
 
-        c.metric(
-            "Loss streak",
-            overall_stats["max_streak"]
-        )
+# ================= GUIDE TAB =================
+with tab_guide:
+    st.markdown(
+        """
+**How to use**
+1. Press *Refresh*, read the signal card. Trade only when it says **UP / DOWN** and is not expired.
+2. Enter at the **next candle open** shown on the card, with the suggested expiry.
+3. Log the result in *Journal*. When the risk guard says STOP, stop.
 
-        # ----------------------------------------------------
-        # TRAIN
-        # ----------------------------------------------------
+**The two setups**
+- **Trend Pullback** – trade *with* a confirmed trend (ADX high) after a dip to EMA21.
+- **Range Reversal** – fade a Bollinger-band rejection, *only* when the market is ranging (ADX low).
+- Between the two (ADX in the middle) the bot stays out.
 
-        if train is not None:
-
-            st.markdown(
-                "### Training period"
-            )
-
-            train_stats = (
-                calculate_stats(
-                    train
-                )
-            )
-
-            a, b, c = st.columns(3)
-
-            a.metric(
-                "Trades",
-                train_stats["trades"]
-            )
-
-            b.metric(
-                "Win rate",
-                (
-                    f"{train_stats['winrate']*100:.1f}%"
-                )
-            )
-
-            c.metric(
-                "Max DD",
-                (
-                    f"{train_stats['max_dd']:.1f}"
-                )
-            )
-
-            # ------------------------------------------------
-            # HOLDOUT
-            # ------------------------------------------------
-
-            st.markdown(
-                "### 🔬 Out-of-sample holdout"
-            )
-
-            holdout_stats = (
-                calculate_stats(
-                    holdout
-                )
-            )
-
-            a, b, c = st.columns(3)
-
-            a.metric(
-                "Trades",
-                holdout_stats["trades"]
-            )
-
-            b.metric(
-                "Win rate",
-                (
-                    f"{holdout_stats['winrate']*100:.1f}%"
-                )
-            )
-
-            c.metric(
-                "Max DD",
-                (
-                    f"{holdout_stats['max_dd']:.1f}"
-                )
-            )
-
-            # ------------------------------------------------
-            # VALIDATION STATUS
-            # ------------------------------------------------
-
-            if (
-                holdout_stats["trades"] >= 20
-                and
-                holdout_stats["winrate"] >= 0.56
-                and
-                holdout_stats["total_pips"] > 0
-            ):
-
-                st.success(
-                    "🟢 HOLDOUT PASSED — "
-                    "historical evidence is acceptable"
-                )
-
-            else:
-
-                st.warning(
-                    "🟡 HOLDOUT NOT STRONG ENOUGH — "
-                    "NO automatic confidence upgrade"
-                )
-
-        # ----------------------------------------------------
-        # TRADE TABLE
-        # ----------------------------------------------------
-
-        st.markdown(
-            "### Recent qualifying trades"
-        )
-
-        st.dataframe(
-            trades.tail(30),
-            use_container_width=True,
-            hide_index=True
-        )
-
-        st.info(
-            "⚠️ Holdout results are historical evidence, "
-            "not a guarantee of future wins."
-        )
-
-
-except Exception as error:
-
-    st.error(
-        "LIVE DATA ERROR"
+**Reality check**
+- With ~85% payout you need **> 54%** wins just to break even. Check the *Backtest* tab: a setup is only trustworthy when its **95% low** is above break-even.
+- Yahoo prices can differ from Quotex's own feed by a few pips and arrive slightly late.
+- No bot can guarantee wins. Never stake money you cannot afford to lose; keep stakes small.
+"""
     )
-
-    st.code(
-        str(error)
-    )
-
-    st.info(
-        "Data feed unavailable/stale. "
-        "Do not trade until fresh data returns."
-    )
-
-
-# ============================================================
-# FOOTER
-# ============================================================
 
 st.divider()
-
-st.caption(
-    "EUR/USD • LIVE MARKET ONLY • "
-    "OTC DISABLED • MANUAL SIGNAL ONLY • "
-    "NO AUTO TRADE"
-)
+st.caption("EUR/USD • live market only • OTC disabled • no auto-trading • not financial advice")
