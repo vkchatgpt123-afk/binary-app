@@ -334,7 +334,9 @@ def run_backtest(d, horizon, cost_pips, use_session, step_min):
         res = "TIE" if pips == 0 else ("WIN" if pips > cost_pips else "LOSS")
         trades.append((t[i], side[i], setup[i], int(score[i]), res, pips))
         busy = xx
-    return pd.DataFrame(trades, columns=["time", "side", "setup", "score", "result", "pips"])
+    out = pd.DataFrame(trades, columns=["time", "side", "setup", "score", "result", "pips"])
+    out["time"] = pd.to_datetime(out["time"], utc=True)
+    return out
 
 
 def wilson_lower(w, n, z=1.96):
@@ -530,7 +532,8 @@ risk_ok, risk_msg, today_pnl, streak, n_today = risk_guard(journal, sig_id, dail
 # validation
 trades = run_backtest(x[["time", "open", "close", "side", "setup", "score", "session_ok"]],
                       int(horizon), float(cost_pips), bool(use_session), cfg["minutes"])
-split_t = x.time.iloc[int(len(x) * 0.7)]
+split_t = pd.Timestamp(x.time.iloc[int(len(x) * 0.7)])
+split_t = split_t.tz_localize("UTC") if split_t.tzinfo is None else split_t.tz_convert("UTC")
 vtrain, vtest, v_active, tr_train, tr_test = validate(trades, split_t, payout)
 
 # gates
